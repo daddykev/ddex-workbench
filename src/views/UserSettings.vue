@@ -3,7 +3,14 @@
     <div class="container">
       <h1 class="page-title">Account Settings</h1>
       
-      <div class="settings-grid">
+      <!-- Show loading state while auth is loading -->
+      <div v-if="authLoading" class="loading-state">
+        <font-awesome-icon :icon="['fas', 'spinner']" spin size="2x" />
+        <p>Loading your settings...</p>
+      </div>
+      
+      <!-- Show settings only when auth is loaded and user exists -->
+      <div v-else-if="user" class="settings-grid">
         <!-- Profile Settings -->
         <section class="settings-section card">
           <div class="card-header">
@@ -155,16 +162,24 @@
           </div>
         </section>
       </div>
+      
+      <!-- Handle case where user is not authenticated -->
+      <div v-else class="empty-state">
+        <p>Please log in to view your settings.</p>
+        <router-link to="/login" class="btn btn-primary mt-lg">
+          Sign In
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { getApiKeys, createApiKey, revokeApiKey } from '@/services/api'
 
-const { user, updateUserProfile } = useAuth()
+const { user, updateUserProfile, loading: authLoading } = useAuth()
 
 // Profile state
 const profileForm = reactive({
@@ -188,9 +203,20 @@ const stats = reactive({
   apiCalls: 0
 })
 
-// Initialize form with user data
+// Watch for user changes
+watch(user, async (newUser) => {
+  if (newUser) {
+    console.log('User loaded:', newUser);
+    profileForm.displayName = newUser.displayName || ''
+    await loadApiKeys()
+    // TODO: Load user stats
+  }
+})
+
+// Also handle if user is already loaded on mount
 onMounted(async () => {
-  if (user.value) {
+  console.log('UserSettings mounted, user:', user.value);
+  if (user.value && !authLoading.value) {
     profileForm.displayName = user.value.displayName || ''
     await loadApiKeys()
     // TODO: Load user stats
@@ -221,9 +247,13 @@ const updateProfile = async () => {
 // API Key methods
 const loadApiKeys = async () => {
   try {
-    apiKeys.value = await getApiKeys()
+    console.log('Loading API keys...');
+    const keys = await getApiKeys();
+    console.log('Received keys:', keys);
+    // Handle both array and wrapped response
+    apiKeys.value = Array.isArray(keys) ? keys : (keys.keys || []);
   } catch (err) {
-    console.error('Failed to load API keys:', err)
+    console.error('Failed to load API keys:', err);
   }
 }
 
@@ -272,7 +302,8 @@ const copyKey = async () => {
 // Utility methods
 const formatDate = (date) => {
   if (!date) return 'N/A'
-  const d = date.toDate ? date.toDate() : new Date(date)
+  // Handle Firestore timestamps and regular dates
+  const d = date.toDate ? date.toDate() : (date._seconds ? new Date(date._seconds * 1000) : new Date(date))
   return d.toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'short', 
@@ -311,6 +342,17 @@ const formatDate = (date) => {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* Loading state */
+.loading-state {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--color-text-secondary);
+}
+
+.loading-state p {
+  margin-top: var(--space-md);
 }
 
 /* API Keys */
@@ -425,6 +467,10 @@ const formatDate = (date) => {
 /* Utilities */
 .mr-xs {
   margin-right: var(--space-xs);
+}
+
+.mt-lg {
+  margin-top: var(--space-lg);
 }
 
 /* Responsive */

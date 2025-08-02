@@ -62,7 +62,7 @@
               
               <div class="info-box mt-lg">
                 <h4>Base URL</h4>
-                <code class="endpoint-url">https://api.ddex-connect.org/v1</code>
+                <code class="endpoint-url">https://api.ddex-workbench.org/v1</code>
               </div>
 
               <h3 class="mt-xl">Quick Start</h3>
@@ -101,7 +101,7 @@
 
               <h3>Getting an API Key</h3>
               <ol class="numbered-list">
-                <li>Sign up for a free account at <a href="/signup">ddex-connect.org/signup</a></li>
+                <li>Sign up for a free account at <a href="/signup">ddex-workbench.org/signup</a></li>
                 <li>Navigate to your <a href="/dashboard/api-keys">API Keys dashboard</a></li>
                 <li>Click "Generate New Key" and copy your key</li>
                 <li>Store your key securely - it won't be shown again</li>
@@ -351,7 +351,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
                   <div class="sdk-install">
                     <code>npm install @ddex-workbench/api-client</code>
                   </div>
-                  <a href="https://github.com/ddex-connect/js-sdk" class="btn btn-sm btn-primary">
+                  <a href="https://github.com/ddex-workbench/js-sdk" class="btn btn-sm btn-primary">
                     <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
                     View on GitHub
                   </a>
@@ -364,9 +364,9 @@ X-RateLimit-Reset: 1642521600</code></pre>
                   <h3>Python</h3>
                   <p class="text-sm text-secondary">Official SDK for Python 3.7+</p>
                   <div class="sdk-install">
-                    <code>pip install ddex-connect</code>
+                    <code>pip install ddex-workbench</code>
                   </div>
-                  <a href="https://github.com/ddex-connect/python-sdk" class="btn btn-sm btn-primary">
+                  <a href="https://github.com/ddex-workbench/python-sdk" class="btn btn-sm btn-primary">
                     <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
                     View on GitHub
                   </a>
@@ -381,7 +381,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
                   <div class="sdk-install">
                     <code>composer require ddex/connect-php</code>
                   </div>
-                  <a href="https://github.com/community/ddex-connect-php" class="btn btn-sm btn-secondary">
+                  <a href="https://github.com/community/ddex-workbench-php" class="btn btn-sm btn-secondary">
                     <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
                     View on GitHub
                   </a>
@@ -415,7 +415,7 @@ const languages = [
 // Code examples
 const codeExamples = {
   quickstart: {
-    curl: `curl -X POST https://api.ddex-connect.org/v1/validate \\
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
@@ -424,7 +424,7 @@ const codeExamples = {
     "version": "4.3",
     "profile": "AudioAlbum"
   }'`,
-    javascript: `const response = await fetch('https://api.ddex-connect.org/v1/validate', {
+    javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -442,7 +442,7 @@ const result = await response.json();`,
     python: `import requests
 
 response = requests.post(
-    'https://api.ddex-connect.org/v1/validate',
+    'https://api.ddex-workbench.org/v1/validate',
     headers={
         'Authorization': 'Bearer YOUR_API_KEY'
     },
@@ -456,7 +456,7 @@ response = requests.post(
 
 result = response.json()`,
     php: `$client = new \\GuzzleHttp\\Client();
-$response = $client->post('https://api.ddex-connect.org/v1/validate', [
+$response = $client->post('https://api.ddex-workbench.org/v1/validate', [
     'headers' => [
         'Authorization' => 'Bearer YOUR_API_KEY'
     ],
@@ -488,7 +488,7 @@ $result = json_decode($response->getBody(), true);`
 }`
   },
   validateEndpoint: {
-    curl: `curl -X POST https://api.ddex-connect.org/v1/validate \\
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d @- << 'EOF'
@@ -500,7 +500,7 @@ $result = json_decode($response->getBody(), true);`
 }
 EOF`,
     javascript: `// Using the official SDK
-import { DDEXClient } from '@ddex-connect/api-client';
+import { DDEXClient } from '@ddex-workbench/api-client';
 
 const client = new DDEXClient({ apiKey: 'YOUR_API_KEY' });
 
@@ -539,7 +539,7 @@ use GuzzleHttp\\Client;
 $client = new Client();
 
 try {
-    $response = $client->post('https://api.ddex-connect.org/v1/validate', [
+    $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
         'headers' => [
             'Authorization' => 'Bearer YOUR_API_KEY',
             'Content-Type' => 'application/json'
@@ -593,7 +593,7 @@ try {
 }`
   },
   fileUpload: {
-    curl: `curl -X POST https://api.ddex-connect.org/v1/validate/file \\
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate/file \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -F "file=@release.xml" \\
   -F "type=ERN" \\
@@ -605,7 +605,7 @@ formData.append('type', 'ERN');
 formData.append('version', '4.3');
 formData.append('profile', 'AudioAlbum');
 
-const response = await fetch('https://api.ddex-connect.org/v1/validate/file', {
+const response = await fetch('https://api.ddex-workbench.org/v1/validate/file', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY'
@@ -625,7 +625,7 @@ with open('release.xml', 'rb') as f:
     }
     
     response = requests.post(
-        'https://api.ddex-connect.org/v1/validate/file',
+        'https://api.ddex-workbench.org/v1/validate/file',
         headers={'Authorization': 'Bearer YOUR_API_KEY'},
         files=files,
         data=data
@@ -634,7 +634,7 @@ with open('release.xml', 'rb') as f:
 result = response.json()`,
     php: `$client = new \\GuzzleHttp\\Client();
 
-$response = $client->post('https://api.ddex-connect.org/v1/validate/file', [
+$response = $client->post('https://api.ddex-workbench.org/v1/validate/file', [
     'headers' => [
         'Authorization' => 'Bearer YOUR_API_KEY'
     ],
