@@ -23,7 +23,14 @@ import {
   faDownload,
   faCode,
   faExternalLinkAlt,
-  faCheck
+  faCheck,
+  faWrench,
+  faSun,
+  faMoon,
+  faDesktop,
+  faChevronDown,
+  faBars,
+  faSignInAlt
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -40,7 +47,14 @@ library.add(
   faDownload,
   faCode,
   faExternalLinkAlt,
-  faCheck
+  faCheck,
+  faWrench,
+  faSun,
+  faMoon,
+  faDesktop,
+  faChevronDown,
+  faBars,
+  faSignInAlt
 )
 
 const app = createApp(App)

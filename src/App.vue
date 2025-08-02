@@ -42,7 +42,7 @@
             <div class="footer-section">
               <h4 class="footer-heading">Community</h4>
               <ul class="footer-links">
-                <li><a href="https://github.com/yourusername/ddex-workbench" target="_blank" rel="noopener">GitHub</a></li>
+                <li><a href="https://github.com/daddykev/ddex-workbench" target="_blank" rel="noopener">GitHub</a></li>
                 <li><a href="#" target="_blank" rel="noopener">Discord</a></li>
                 <li><router-link to="/contribute">Contribute</router-link></li>
               </ul>
