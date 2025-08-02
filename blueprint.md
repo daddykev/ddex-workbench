@@ -1,5 +1,3 @@
-You're absolutely right! Let me update the blueprint.md to keep it focused on the architecture and structure without the full CSS code:
-
 # DDEX Workbench - Blueprint
 
 ## Project Overview
