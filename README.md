@@ -47,8 +47,6 @@ A modern web-based ERN 4.3 validator with community knowledge sharing capabiliti
 ### Frontend
 - **Vue 3** with Composition API
 - **Vite** for lightning-fast builds
-- **Tailwind CSS** for modern styling
-- **Pinia** for state management
 - **Monaco Editor** for XML editing
 
 ### Backend

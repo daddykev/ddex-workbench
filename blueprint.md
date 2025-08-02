@@ -1,3 +1,5 @@
+You're absolutely right! Let me update the blueprint.md to keep it focused on the architecture and structure without the full CSS code:
+
 # DDEX Workbench - Blueprint
 
 ## Project Overview
@@ -15,10 +17,9 @@ A web-based ERN 4.3 validator with community knowledge sharing capabilities.
 ### Frontend
 - **Framework**: Vue 3 with Composition API
 - **Build Tool**: Vite
-- **UI Library**: Tailwind CSS for styling
-- **State Management**: Pinia
 - **HTTP Client**: Axios
 - **Code Editor**: Monaco Editor (for XML display/editing)
+- **Styling**: Custom CSS with utility classes and theme support
 
 ### Backend
 - **Platform**: Firebase
@@ -57,47 +58,85 @@ ddex-workbench/
 │   │   └── validator.js       # Validation logic
 │   ├── composables/           # Vue composables
 │   ├── utils/                 # Utility functions
+│   │   └── themeManager.js    # Theme switching logic
 │   ├── router/                # Vue Router configuration
-│   ├── assets/                # Static assets
-│   │   └── main.css           # Tailwind CSS imports
+│   ├── assets/                # Static assets and styles
+│   │   ├── main.css           # Main stylesheet entry
+│   │   ├── base.css           # CSS reset/normalize
+│   │   ├── themes.css         # CSS custom properties
+│   │   ├── components.css     # Reusable component classes
+│   │   ├── fonts/             # Custom fonts
+│   │   └── images/            # Images and icons
 │   ├── App.vue                # Root component
 │   └── main.js                # Application entry point
 ├── functions/                 # Firebase Cloud Functions
 │   ├── src/
-│   │   ├── validators/      # Validation logic
-│   │   │   ├── ern43.js     # ERN 4.3 validator
-│   │   │   └── schemas/     # DDEX XSD schemas
-│   │   ├── api/             # API endpoints
-│   │   │   ├── validate.js  # Validation endpoint
-│   │   │   └── snippets.js  # Snippets CRUD
-│   │   └── utils/           # Shared utilities
-│   ├── index.js             # Functions entry point
-│   └── package.json         # Functions dependencies
-├── public/                  # Static public assets
+│   │   ├── validators/        # Validation logic
+│   │   │   ├── ern43.js       # ERN 4.3 validator
+│   │   │   └── schemas/       # DDEX XSD schemas
+│   │   ├── api/               # API endpoints
+│   │   │   ├── validate.js    # Validation endpoint
+│   │   │   └── snippets.js    # Snippets CRUD
+│   │   └── utils/             # Shared utilities
+│   ├── index.js               # Functions entry point
+│   └── package.json           # Functions dependencies
+├── public/                    # Static public assets
 │   └── favicon.ico
-├── docs/                    # Documentation
-│   ├── API.md               # API documentation
-│   └── SETUP.md             # Setup instructions
-├── .firebase/               # Firebase cache (git ignored)
-├── .vscode/                 # VS Code settings (git ignored)
-├── index.html               # HTML entry point
-├── vite.config.js           # Vite configuration
-├── tailwind.config.js       # Tailwind CSS configuration
-├── postcss.config.js        # PostCSS configuration
-├── firebase.json            # Firebase configuration
-├── firestore.rules          # Firestore security rules
-├── firestore.indexes.json   # Firestore indexes
-├── storage.rules            # Storage security rules
-├── .firebaserc              # Firebase project alias (git ignored)
-├── .gitignore               # Git ignore file
-├── .env                     # Environment variables (git ignored)
-├── .env.example             # Environment variables template
-├── package.json             # Project dependencies
-├── package-lock.json        # Locked dependencies
-├── README.md                # Project documentation
-├── LICENSE                  # MIT License
-└── CONTRIBUTING.md          # Contribution guidelines
+├── docs/                      # Documentation
+│   ├── API.md                 # API documentation
+│   └── SETUP.md               # Setup instructions
+├── .firebase/                 # Firebase cache (git ignored)
+├── .vscode/                   # VS Code settings (git ignored)
+├── index.html                 # HTML entry point
+├── vite.config.js             # Vite configuration
+├── firebase.json              # Firebase configuration
+├── firestore.rules            # Firestore security rules
+├── firestore.indexes.json     # Firestore indexes
+├── storage.rules              # Storage security rules
+├── .firebaserc                # Firebase project alias (git ignored)
+├── .gitignore                 # Git ignore file
+├── .env                       # Environment variables (git ignored)
+├── .env.example               # Environment variables template
+├── package.json               # Project dependencies
+├── package-lock.json          # Locked dependencies
+├── README.md                  # Project documentation
+├── LICENSE                    # MIT License
+└── CONTRIBUTING.md            # Contribution guidelines
 ```
+
+## CSS Architecture
+
+### Design System Overview
+
+Our CSS architecture follows a utility-first approach with semantic component classes:
+
+1. **`assets/main.css`**: Entry point that imports all other CSS files
+2. **`assets/base.css`**: CSS reset, base typography, and global styles
+3. **`assets/themes.css`**: CSS custom properties supporting light/dark/auto themes
+4. **`assets/components.css`**: Reusable component classes and utility classes
+
+### Theme System
+
+- **Light/Dark/Auto modes**: Automatic theme detection with manual override
+- **CSS Custom Properties**: All colors, spacing, and other design tokens
+- **High Contrast Support**: Accessibility considerations for better readability
+- **Theme Manager**: JavaScript utility (`utils/themeManager.js`) for theme switching
+
+### Component Classes
+
+Semantic, reusable classes for common UI patterns:
+- **Buttons**: `.btn`, `.btn-primary`, `.btn-secondary`, size variants
+- **Cards**: `.card`, `.card-header`, `.card-body`, `.card-footer`
+- **Forms**: `.form-group`, `.form-label`, `.form-input`, `.form-error`
+- **Layout**: `.container`, `.section`, `.grid`, `.flex`
+
+### Utility Classes
+
+Semantic utility classes for:
+- **Spacing**: `.mt-md`, `.p-lg`, `.mb-xl` (margin/padding with size modifiers)
+- **Typography**: `.text-primary`, `.text-lg`, `.font-semibold`
+- **Display**: `.hidden`, `.block`, `.flex`
+- **Colors**: `.bg-surface`, `.text-error`, `.border-primary`
 
 ## Phase 1 Features
 
@@ -209,6 +248,7 @@ interface ApiKey {
 - [ ] Initialize monorepo structure
 - [ ] Configure Firebase project
 - [ ] Setup Vue 3 + Vite app
+- [ ] Implement CSS architecture and theme system
 - [ ] Configure CI/CD (GitHub Actions)
 - [ ] Setup development environment docs
 
@@ -221,6 +261,7 @@ interface ApiKey {
 
 ### Week 5-6: Web Interface
 - [ ] Design and implement UI components
+- [ ] Implement theme switcher
 - [ ] File upload functionality
 - [ ] Monaco editor integration
 - [ ] Results display with error highlighting
@@ -242,6 +283,7 @@ interface ApiKey {
 
 ### Week 11-12: Polish & Launch
 - [ ] Performance optimization
+- [ ] CSS optimization
 - [ ] Security audit
 - [ ] Documentation site
 - [ ] Example integrations
