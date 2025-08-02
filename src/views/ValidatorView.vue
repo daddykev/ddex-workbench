@@ -23,9 +23,7 @@
               class="tab-button"
               :class="{ active: inputMethod === 'upload' }"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/>
-              </svg>
+              <font-awesome-icon :icon="['fas', 'cloud-upload-alt']" />
               Upload File
             </button>
             <button 
@@ -33,10 +31,7 @@
               class="tab-button"
               :class="{ active: inputMethod === 'paste' }"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
-                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
-              </svg>
+              <font-awesome-icon :icon="['fas', 'clipboard']" />
               Paste XML
             </button>
           </div>
@@ -59,10 +54,11 @@
               >
               
               <div class="dropzone-content">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" class="mb-md">
-                  <path d="M24 32V16m0 0l-6 6m6-6l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M12 40h24a4 4 0 004-4V12a4 4 0 00-4-4H12a4 4 0 00-4 4v24a4 4 0 004 4z" stroke="currentColor" stroke-width="2"/>
-                </svg>
+                <font-awesome-icon 
+                  :icon="['fas', 'cloud-upload-alt']" 
+                  size="3x"
+                  class="mb-md"
+                />
                 
                 <p class="text-lg font-medium mb-sm">
                   Drop your XML file here
@@ -83,10 +79,11 @@
             <div v-if="selectedFile" class="file-info card mt-md">
               <div class="flex items-center justify-between p-md">
                 <div class="flex items-center gap-sm">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary)">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
-                    <path d="M14 2v6h6" stroke="white" stroke-width="2"/>
-                  </svg>
+                  <font-awesome-icon 
+                    :icon="['fas', 'file-code']" 
+                    size="lg"
+                    class="text-primary"
+                  />
                   <div>
                     <p class="font-medium">{{ selectedFile.name }}</p>
                     <p class="text-sm text-secondary">{{ formatFileSize(selectedFile.size) }}</p>
@@ -96,6 +93,7 @@
                   @click="clearFile"
                   class="btn btn-secondary btn-sm"
                 >
+                  <font-awesome-icon :icon="['fas', 'times']" class="mr-xs" />
                   Remove
                 </button>
               </div>
@@ -161,12 +159,16 @@
               class="btn btn-primary btn-lg"
             >
               <span v-if="isValidating" class="flex items-center gap-sm">
-                <svg class="spinner" width="20" height="20" viewBox="0 0 20 20">
-                  <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="40" stroke-dashoffset="10"/>
-                </svg>
+                <font-awesome-icon 
+                  :icon="['fas', 'spinner']" 
+                  spin 
+                />
                 Validating...
               </span>
-              <span v-else>Validate XML</span>
+              <span v-else>
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-xs" />
+                Validate XML
+              </span>
             </button>
           </div>
 
@@ -177,12 +179,10 @@
               :class="validationResult.valid ? 'result-success' : 'result-error'"
             >
               <div class="flex items-center gap-sm">
-                <svg v-if="validationResult.valid" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-                <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
+                <font-awesome-icon 
+                  :icon="['fas', validationResult.valid ? 'check-circle' : 'exclamation-circle']" 
+                  size="lg"
+                />
                 <h2 class="text-2xl font-semibold">
                   {{ validationResult.valid ? 'Valid DDEX File' : 'Validation Failed' }}
                 </h2>
@@ -221,7 +221,11 @@
                       class="text-sm text-primary"
                       @click="openDDEXReference(error.rule)"
                     >
-                      View Spec →
+                      View Spec 
+                      <font-awesome-icon 
+                        :icon="['fas', 'external-link-alt']" 
+                        size="sm"
+                      />
                     </button>
                   </div>
                   
@@ -254,9 +258,11 @@
               
               <div class="flex gap-md mt-lg">
                 <button class="btn btn-primary">
+                  <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
                   Download Report
                 </button>
                 <button class="btn btn-secondary">
+                  <font-awesome-icon :icon="['fas', 'code']" class="mr-xs" />
                   View in Snippets
                 </button>
               </div>
@@ -491,13 +497,9 @@ const openDDEXReference = (rule) => {
   overflow-x: auto;
 }
 
-/* Spinner Animation */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
+/* Utilities */
+.mr-xs {
+  margin-right: var(--space-xs);
 }
 
 /* Responsive */
