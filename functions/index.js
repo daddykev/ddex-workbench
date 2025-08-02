@@ -27,7 +27,13 @@ app.use(cors(corsOptions));
 // Parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
 
-// Import route handlers - UPDATED PATHS
+// Request logging middleware (helpful for debugging)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Import route handlers
 const validateRoutes = require('./api/validate');
 const snippetRoutes = require('./api/snippets');
 
@@ -40,9 +46,32 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    service: 'DDEX Workbench API'
+    service: 'DDEX Workbench API',
+    version: '1.0.0'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: {
+      message: 'Endpoint not found',
+      path: req.path
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    }
   });
 });
 
 // Export the Express app as a Cloud Function
-exports.app = functions.https.onRequest(app)
+exports.app = functions.https.onRequest(app);

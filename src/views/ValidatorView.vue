@@ -134,18 +134,21 @@
                 <label class="form-label">Standard Version</label>
                 <select v-model="validationOptions.version" class="form-select">
                   <option value="4.3">ERN 4.3 (Latest)</option>
-                  <option value="4.2" disabled>ERN 4.2 (Coming Soon)</option>
-                  <option value="3.8.2" disabled>ERN 3.8.2 (Coming Soon)</option>
+                  <option value="4.2">ERN 4.2</option>
+                  <option value="3.8.2">ERN 3.8.2</option>
                 </select>
               </div>
               
               <div class="form-group mb-0">
                 <label class="form-label">Profile</label>
                 <select v-model="validationOptions.profile" class="form-select">
-                  <option value="AudioAlbum">Audio Album</option>
-                  <option value="AudioSingle">Audio Single</option>
-                  <option value="Video">Video</option>
-                  <option value="Mixed">Mixed</option>
+                  <option 
+                    v-for="profile in availableProfiles" 
+                    :key="profile"
+                    :value="profile"
+                  >
+                    {{ profile }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -275,8 +278,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { validateERN } from '@/services/api'
+import { ref, computed, watch, onMounted } from 'vue'
+import { validateERN, getSupportedFormats } from '@/services/api'
 
 // State
 const inputMethod = ref('upload')
@@ -285,6 +288,10 @@ const selectedFile = ref(null)
 const xmlContent = ref('')
 const isValidating = ref(false)
 const validationResult = ref(null)
+
+// Dynamic profiles support
+const supportedFormats = ref(null)
+const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
 
 const validationOptions = ref({
   version: '4.3',
@@ -296,7 +303,40 @@ const canValidate = computed(() => {
   return inputMethod.value === 'upload' ? selectedFile.value : xmlContent.value.trim()
 })
 
+// Load supported formats on mount
+onMounted(async () => {
+  try {
+    const formats = await getSupportedFormats()
+    supportedFormats.value = formats
+    updateAvailableProfiles()
+  } catch (error) {
+    console.error('Failed to load supported formats:', error)
+    // Continue with default profiles if API fails
+  }
+})
+
+// Watch for version changes to update available profiles
+watch(() => validationOptions.value.version, () => {
+  updateAvailableProfiles()
+})
+
 // Methods
+const updateAvailableProfiles = () => {
+  if (!supportedFormats.value) return
+  
+  const versionConfig = supportedFormats.value.versions.find(
+    v => v.version === validationOptions.value.version
+  )
+  
+  if (versionConfig) {
+    availableProfiles.value = versionConfig.profiles
+    // Reset profile if current selection is not available
+    if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
+      validationOptions.value.profile = versionConfig.profiles[0]
+    }
+  }
+}
+
 const handleDrop = (e) => {
   e.preventDefault()
   isDragging.value = false
@@ -316,8 +356,8 @@ const handleFileSelect = (e) => {
 
 const clearFile = () => {
   selectedFile.value = null
-  if (fileInput.value) {
-    fileInput.value.value = ''
+  if ($refs.fileInput) {
+    $refs.fileInput.value = ''
   }
 }
 
@@ -348,7 +388,22 @@ const validateXML = async () => {
     validationResult.value = result
   } catch (error) {
     console.error('Validation error:', error)
-    // Handle error appropriately
+    // Show error message to user
+    validationResult.value = {
+      valid: false,
+      errors: [{
+        line: 0,
+        column: 0,
+        message: error.message || 'An error occurred during validation',
+        severity: 'error',
+        rule: 'System Error'
+      }],
+      metadata: {
+        processingTime: 0,
+        schemaVersion: `ERN ${validationOptions.value.version}`,
+        validatedAt: new Date().toISOString()
+      }
+    }
   } finally {
     isValidating.value = false
   }
@@ -500,6 +555,10 @@ const openDDEXReference = (rule) => {
 /* Utilities */
 .mr-xs {
   margin-right: var(--space-xs);
+}
+
+.gap-sm {
+  gap: var(--space-sm);
 }
 
 /* Responsive */

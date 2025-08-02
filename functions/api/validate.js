@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { XMLParser, XMLValidator } = require('fast-xml-parser');
+const { ERNValidator } = require('../validators/ernValidator');
 
 // Validation endpoint
 router.post('/', async (req, res) => {
@@ -13,48 +13,46 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (type !== 'ERN') {
+      return res.status(400).json({
+        error: { message: 'Only ERN validation is currently supported' }
+      });
+    }
+
+    if (!version) {
+      return res.status(400).json({
+        error: { message: 'Version is required' }
+      });
+    }
+
     // Start timing
     const startTime = Date.now();
 
-    // Basic XML validation using fast-xml-parser
-    const validationResult = XMLValidator.validate(content, {
-      allowBooleanAttributes: true,
-      ignoreAttributes: false
-    });
-
-    const processingTime = Date.now() - startTime;
-
-    if (validationResult === true) {
-      // XML is well-formed
-      return res.json({
-        valid: true,
-        errors: [],
-        metadata: {
-          processingTime,
-          schemaVersion: `${type} ${version}`,
-          validatedAt: new Date().toISOString()
-        }
-      });
-    } else {
-      // Parse error details
-      const error = {
-        line: validationResult.err.line || 0,
-        column: validationResult.err.col || 0,
-        message: validationResult.err.msg,
-        severity: 'error',
-        rule: 'XML Well-formedness'
-      };
-
-      return res.json({
-        valid: false,
-        errors: [error],
-        metadata: {
-          processingTime,
-          schemaVersion: `${type} ${version}`,
-          validatedAt: new Date().toISOString()
-        }
+    // Create validator for the specified version
+    let validator;
+    try {
+      validator = new ERNValidator(version);
+    } catch (error) {
+      return res.status(400).json({
+        error: { message: error.message }
       });
     }
+
+    // Perform validation
+    const validationResult = await validator.validate(content, profile);
+    const processingTime = Date.now() - startTime;
+
+    return res.json({
+      valid: validationResult.valid,
+      errors: validationResult.errors,
+      metadata: {
+        processingTime,
+        schemaVersion: `ERN ${version}`,
+        profile: profile,
+        validatedAt: new Date().toISOString()
+      }
+    });
+
   } catch (error) {
     console.error('Validation error:', error);
     res.status(500).json({
@@ -66,12 +64,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-// File upload endpoint
-router.post('/file', async (req, res) => {
-  // TODO: Implement file upload handling with busboy
-  res.status(501).json({
-    error: { message: 'File upload not yet implemented' }
-  });
+// Get supported versions and profiles
+router.get('/formats', (req, res) => {
+  const { ERN_CONFIGS } = require('../validators/ernValidator');
+  
+  const formats = {
+    types: ['ERN'],
+    versions: Object.keys(ERN_CONFIGS).map(version => ({
+      version,
+      profiles: ERN_CONFIGS[version].profiles,
+      status: version === '4.3' ? 'recommended' : 'supported'
+    }))
+  };
+
+  res.json(formats);
 });
 
 module.exports = router;
