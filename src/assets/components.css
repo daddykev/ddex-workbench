@@ -29,6 +29,9 @@
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+  color: white; /* Explicitly maintain white text on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-secondary {
@@ -39,6 +42,9 @@
 
 .btn-secondary:hover:not(:disabled) {
   background-color: var(--color-surface-hover);
+  color: var(--color-text); /* Maintain text color */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-success {
@@ -46,9 +52,23 @@
   color: white;
 }
 
+.btn-success:hover:not(:disabled) {
+  background-color: var(--color-success);
+  color: white;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
 .btn-error {
   background-color: var(--color-error);
   color: white;
+}
+
+.btn-error:hover:not(:disabled) {
+  background-color: var(--color-error);
+  color: white;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .btn-sm {

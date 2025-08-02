@@ -4,6 +4,7 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+[![DDEX ERN](https://img.shields.io/badge/DDEX_ERN-4.3-brightgreen)](https://ddex.net)
 
 > An open-source suite of modern, accessible tools for working with DDEX standards in the digital music industry.
 
@@ -14,45 +15,66 @@ DDEX Workbench aims to democratize access to the digital music supply chain by p
 ## 🚀 Project Overview
 
 ### Phase 1: DDEX Connect (Current Focus)
-A modern web-based ERN 4.3 validator with community knowledge sharing capabilities.
+A modern web-based ERN validator supporting multiple versions with community knowledge sharing capabilities.
 
 **Why it matters:**
-- DDEX is mandating migration to ERN 4.3 by March 2025
+- DDEX is mandating migration to ERN 4.3 by March 2026
 - Zero maintained open-source tools currently support ERN 4.3
 - The industry urgently needs accessible validation tools
 
 ### Key Features
 
-#### Web Validator Interface
-- **Drag-and-drop** file upload for XML files
-- **Monaco editor** for pasting and editing XML directly
-- **Line-by-line error highlighting** with detailed messages
-- **DDEX KB links** for understanding and fixing errors
-- Support for ERN 4.3 (expandable to other versions)
+#### 🎯 Multi-Version ERN Support
+- **ERN 4.3** - Latest standard with full ERN 4.x features
+- **ERN 4.2** - Previous ERN 4.x version
+- **ERN 3.8.2** - Legacy support with migration hints
+- **Profile-specific validation** for AudioAlbum, AudioSingle, Video, Mixed, and ReleaseByRelease (3.8.2 only)
 
-#### Public Validation API
+#### 🎨 Modern Web Interface
+- **Drag-and-drop** file upload for XML files
+- **Direct XML input** with syntax highlighting
+- **Real-time validation** with line-by-line error highlighting
+- **DDEX KB links** for understanding and fixing errors
+- **Theme system** with light/dark/auto modes
+- **Responsive design** for mobile and desktop
+
+#### 🔐 Authentication & User Features
+- **Firebase Auth** integration with email/password and Google OAuth
+- **User profiles** with customizable display names
+- **API key management** for programmatic access
+- **Validation history** tracking (authenticated users)
+- **Higher rate limits** for authenticated API usage
+
+#### 📡 Public Validation API
 ```javascript
 // POST /api/validate
 {
   "content": "<xml>...</xml>",
   "type": "ERN",
-  "version": "4.3",
+  "version": "4.3",  // or "4.2", "3.8.2"
   "profile": "AudioAlbum"
+}
+
+// Authentication via API Key
+headers: {
+  "X-API-Key": "your-api-key"
 }
 ```
 
-#### Community Knowledge Base
-- Searchable snippet library for common DDEX patterns
-- Community voting and comments
-- Real-world examples for complex scenarios
-- Direct integration with validator
+#### 📚 Community Knowledge Base
+- **Searchable snippet library** for common DDEX patterns
+- **Version-specific examples** with migration guides
+- **Community voting and comments** (authenticated)
+- **Real-world examples** for complex scenarios
+- **Direct integration** with validator ("Copy to Validator" button)
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **Vue 3** with Composition API
 - **Vite** for lightning-fast builds
-- **Monaco Editor** for XML editing
+- **Custom CSS Architecture** with utility classes and theme support
+- **FontAwesome** for icons
 
 ### Backend
 - **Firebase** platform
@@ -60,6 +82,12 @@ A modern web-based ERN 4.3 validator with community knowledge sharing capabiliti
 - **Firestore** for data persistence
 - **Firebase Auth** for user management
 - **Cloud Storage** for file handling
+
+### Validation Engine
+- **Multi-version support** with custom `ernValidator.js`
+- **Version-specific rules** for ERN 3.8.2, 4.2, and 4.3
+- **Profile validation** with business rule checking
+- **Fast XML parsing** with detailed error reporting
 
 ## 📦 Installation
 
@@ -123,16 +151,18 @@ firebase deploy
 
 ### Phase 1: DDEX Connect (Weeks 1-12)
 - [x] Project setup and architecture
-- [ ] Core validation engine
-- [ ] Web interface development
-- [ ] Public API endpoints
+- [x] Core validation engine with multi-version support
+- [x] Web interface development
+- [x] Authentication system
+- [x] Theme system (light/dark/auto)
+- [ ] Public API endpoints (in progress)
 - [ ] Community knowledge base
 - [ ] Documentation and launch
 
-### Phase 2: DSR-Flow
+### Phase 2: DSR-Flow (Sep 2025)
 Digital Sales Reporting processor for financial data workflows
 
-### Phase 3: DDEX Workbench
+### Phase 3: DDEX Workbench (Oct 2025)
 Full collaborative metadata management platform
 
 ## 🤝 Contributing

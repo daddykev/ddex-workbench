@@ -15,7 +15,7 @@
             <router-link to="/validator" class="btn btn-primary btn-lg">
               Start Validating
             </router-link>
-            <router-link to="/api" class="btn btn-secondary btn-lg">
+            <router-link to="/api" class="btn btn-hero-secondary btn-lg">
               <font-awesome-icon :icon="['fas', 'code']" class="mr-sm" />
               View API Docs
             </router-link>
@@ -43,7 +43,7 @@
     <!-- Current Features -->
     <section class="features-section section bg-secondary">
       <div class="container">
-        <div class="text-center mb-2xl">
+        <div class="text-center features-header">
           <h2 class="text-3xl font-semibold mb-md">Available Now</h2>
           <p class="text-lg text-secondary">
             Essential tools for the modern music industry
@@ -271,10 +271,25 @@
   color: white;
 }
 
+/* Ensure primary button in hero maintains white text */
+.hero-section .btn-primary {
+  background-color: white;
+  color: var(--color-primary);
+  border: 1px solid white;
+}
+
+.hero-section .btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .hero-title {
   font-size: clamp(2rem, 5vw, 3rem);
   margin-bottom: var(--space-lg);
   line-height: 1.2;
+  color: white !important; /* Ensure white in both modes */
 }
 
 .hero-subtitle {
@@ -283,6 +298,7 @@
   max-width: 800px;
   margin: 0 auto var(--space-xl);
   line-height: 1.6;
+  color: white;
 }
 
 .hero-actions {
@@ -290,6 +306,21 @@
   gap: var(--space-md);
   justify-content: center;
   margin-bottom: var(--space-2xl);
+}
+
+/* Custom hero secondary button for better contrast */
+.btn-hero-secondary {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.btn-hero-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .hero-stats {
@@ -310,11 +341,13 @@
 .stat-value {
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
+  color: white;
 }
 
 .stat-label {
   font-size: var(--text-sm);
   opacity: 0.8;
+  color: white;
 }
 
 .stat-divider {
@@ -324,6 +357,10 @@
 }
 
 /* Features Section */
+.features-header {
+  margin-bottom: var(--space-3xl); /* Increased from 2xl */
+}
+
 .feature-card {
   height: 100%;
   transition: transform var(--transition-base);
