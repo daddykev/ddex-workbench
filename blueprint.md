@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DDEX Workbench is an open-source suite of tools for working with DDEX standards, starting with ERN 4.3 validation and expanding to include DSR processing and collaborative metadata management.
+DDEX Workbench is an open-source suite of tools for working with DDEX standards, starting with ERN validation (supporting versions 3.8.2, 4.2, and 4.3) and expanding to include DSR processing and collaborative metadata management.
 
 ### Vision
 Create modern, accessible tools that lower the barrier to entry for DDEX implementation, serving everyone from independent artists to major labels.
@@ -11,7 +11,7 @@ Create modern, accessible tools that lower the barrier to entry for DDEX impleme
 **URL**: [https://ddex-workbench.org](https://ddex-workbench.org)
 
 ### Phase 1: DDEX Connect (The Validator)
-A web-based ERN 4.3 validator with community knowledge sharing capabilities.
+A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with community knowledge sharing capabilities.
 
 ## Technical Architecture
 
@@ -31,9 +31,10 @@ A web-based ERN 4.3 validator with community knowledge sharing capabilities.
 - **Storage**: Cloud Storage (for file uploads)
 
 ### Validation Engine
-- **XML Parser**: fast-xml-parser or xml2js
-- **Schema Validation**: xmllint bindings or pure JS implementation
-- **Schematron**: schematron-runner or custom implementation
+- **XML Parser**: fast-xml-parser (for performance and flexibility)
+- **Multi-Version Support**: ERN 3.8.2, 4.2, and 4.3
+- **Validator Module**: Custom `ernValidator.js` with version-specific rules
+- **Profile Support**: AudioAlbum, AudioSingle, Video, Mixed, ReleaseByRelease (3.8.2 only)
 
 ## Project Structure
 
@@ -67,6 +68,8 @@ ddex-workbench/
 │   ├── api/                   # API endpoints
 │   │   ├── validate.js        # Validation endpoint
 │   │   └── snippets.js        # Snippets CRUD
+│   ├── validators/            # Validation modules
+│   │   └── ernValidator.js    # Multi-version ERN validator
 │   ├── index.js               # Functions entry point
 │   └── package.json           # Functions dependencies
 ├── public/                    # Static public assets
@@ -92,6 +95,123 @@ ddex-workbench/
 ├── LICENSE                    # MIT License
 └── CONTRIBUTING.md            # Contribution guidelines
 ```
+
+## ERN Validator Architecture
+
+### Multi-Version Support
+
+The `ernValidator.js` module provides comprehensive validation for three major ERN versions:
+
+- **ERN 4.3**: Latest version with removed UpdateIndicator, enhanced metadata capabilities
+- **ERN 4.2**: Previous major version with similar structure to 4.3
+- **ERN 3.8.2**: Legacy version still widely used, includes UpdateIndicator and ReleaseDetailsByTerritory
+
+### Version-Specific Rules
+
+Each ERN version has distinct validation requirements:
+
+#### ERN 4.3 & 4.2
+- No UpdateIndicator element (removed in ERN 4.x)
+- Required elements: MessageHeader, ReleaseList, ResourceList, DealList
+- Simplified territorial handling without DetailsByTerritory
+- PartyList for centralized party information
+
+#### ERN 3.8.2
+- Optional UpdateIndicator element
+- Legacy ReleaseDetailsByTerritory structure
+- Additional profile: ReleaseByRelease
+- Migration suggestions for users to upgrade to 4.3
+
+### Profile Validation
+
+The validator supports profile-specific rules:
+- **AudioAlbum**: Validates album structure, expects ReleaseType 'Album' or 'EP'
+- **AudioSingle**: Ensures single release structure
+- **Video**: Checks for video resources in ResourceList
+- **Mixed**: Allows various content types with minimal restrictions
+- **ReleaseByRelease**: Available only in ERN 3.8.2
+
+## Phase 1 Features
+
+### 1. Web Validator Interface
+- **File Upload**: Drag-and-drop or file picker for XML files
+- **Text Input**: Direct XML pasting with syntax highlighting
+- **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
+- **Profile Selection**: Dynamic profile options based on selected version
+- **Validation Results**: 
+  - Clear pass/fail status
+  - Line-by-line error highlighting
+  - Detailed error messages with DDEX KB links
+  - Version-specific validation rules
+
+### 2. Public Validation API
+```typescript
+// POST /api/validate
+{
+  "content": "<xml>...</xml>",
+  "type": "ERN",
+  "version": "4.3",  // or "4.2", "3.8.2"
+  "profile": "AudioAlbum"
+}
+
+// Response
+{
+  "valid": boolean,
+  "errors": [{
+    "line": number,
+    "column": number,
+    "message": string,
+    "severity": "error" | "warning" | "info",
+    "rule": string
+  }],
+  "metadata": {
+    "processingTime": number,
+    "schemaVersion": string,
+    "profile": string,
+    "validatedAt": string
+  }
+}
+
+// GET /api/validate/formats
+// Returns supported versions and profiles
+{
+  "types": ["ERN"],
+  "versions": [{
+    "version": "4.3",
+    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
+    "status": "recommended"
+  }, {
+    "version": "4.2",
+    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
+    "status": "supported"
+  }, {
+    "version": "3.8.2",
+    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
+    "status": "supported"
+  }]
+}
+```
+
+### 3. Community Knowledge Base
+- **Snippet Categories**:
+  - Common Patterns
+  - Complex Scenarios
+  - Migration Examples (ERN 3.8.2 to 4.3)
+  - Version-specific examples
+- **Features**:
+  - Search and filter by version
+  - Upvote/downvote
+  - Comments (authenticated users)
+  - Copy to validator button
+  - Tags for discovery
+
+### 4. User Features
+- **Anonymous Usage**: Core validation without login
+- **Authenticated Features**:
+  - Save validation history with version info
+  - Contribute snippets
+  - Vote and comment
+  - API key for higher rate limits
 
 ## CSS Architecture
 
@@ -127,64 +247,6 @@ Semantic utility classes for:
 - **Display**: `.hidden`, `.block`, `.flex`
 - **Colors**: `.bg-surface`, `.text-error`, `.border-primary`
 
-## Phase 1 Features
-
-### 1. Web Validator Interface
-- **File Upload**: Drag-and-drop or file picker for XML files
-- **Text Input**: Monaco editor for pasting/editing XML
-- **Validation Results**: 
-  - Clear pass/fail status
-  - Line-by-line error highlighting
-  - Detailed error messages with DDEX KB links
-- **Schema Version Selection**: Support for ERN 4.3 (expandable)
-
-### 2. Public Validation API
-```typescript
-// POST /api/validate
-{
-  "content": "<xml>...</xml>",
-  "type": "ERN",
-  "version": "4.3",
-  "profile": "AudioAlbum"
-}
-
-// Response
-{
-  "valid": boolean,
-  "errors": [{
-    "line": number,
-    "column": number,
-    "message": string,
-    "severity": "error" | "warning",
-    "rule": string
-  }],
-  "metadata": {
-    "processingTime": number,
-    "schemaVersion": string
-  }
-}
-```
-
-### 3. Community Knowledge Base
-- **Snippet Categories**:
-  - Common Patterns
-  - Complex Scenarios
-  - Migration Examples (ERN 3 to 4.3)
-- **Features**:
-  - Search and filter
-  - Upvote/downvote
-  - Comments (authenticated users)
-  - Copy to validator button
-  - Tags for discovery
-
-### 4. User Features
-- **Anonymous Usage**: Core validation without login
-- **Authenticated Features**:
-  - Save validation history
-  - Contribute snippets
-  - Vote and comment
-  - API key for higher rate limits
-
 ## Data Models
 
 ### Firestore Collections
@@ -198,6 +260,7 @@ interface Snippet {
   content: string;
   category: string;
   tags: string[];
+  ernVersion?: string;  // "3.8.2", "4.2", or "4.3"
   author: {
     uid: string;
     displayName: string;
@@ -215,7 +278,7 @@ interface ValidationHistory {
   fileName?: string;
   valid: boolean;
   errorCount: number;
-  version: string;
+  version: string;      // ERN version used
   profile: string;
 }
 
@@ -233,31 +296,34 @@ interface ApiKey {
 
 ## Implementation Roadmap
 
-### Week 1-2: Project Setup
-- [ ] Initialize monorepo structure
-- [ ] Configure Firebase project
-- [ ] Setup Vue 3 + Vite app
-- [ ] Implement CSS architecture and theme system
-- [ ] Configure CI/CD (GitHub Actions)
-- [ ] Setup development environment docs
+### Week 1-2: Project Setup ✓
+- [x] Initialize monorepo structure
+- [x] Configure Firebase project
+- [x] Setup Vue 3 + Vite app
+- [x] Implement CSS architecture and theme system
+- [x] Configure CI/CD (GitHub Actions)
+- [x] Setup development environment docs
 
-### Week 3-4: Core Validation Engine
-- [ ] Implement XML parser wrapper
-- [ ] Integrate ERN 4.3 XSD schemas
-- [ ] Build validation function
-- [ ] Create error formatter
-- [ ] Unit tests for validation logic
+### Week 3-4: Core Validation Engine ✓
+- [x] Implement XML parser wrapper
+- [x] Build multi-version ERN validator
+- [x] Support ERN 3.8.2, 4.2, and 4.3
+- [x] Create error formatter
+- [x] Profile-specific validation
 
-### Week 5-6: Web Interface
-- [ ] Design and implement UI components
-- [ ] Implement theme switcher
-- [ ] File upload functionality
-- [ ] Monaco editor integration
-- [ ] Results display with error highlighting
-- [ ] Responsive design
+### Week 5-6: Web Interface ✓
+- [x] Design and implement UI components
+- [x] Implement theme switcher
+- [x] File upload functionality
+- [x] Direct XML input
+- [x] Results display with error details
+- [x] Responsive design
+- [x] Dynamic profile selection based on version
 
 ### Week 7-8: API Development
-- [ ] REST API endpoints
+- [x] REST API endpoints
+- [x] Multi-version validation endpoint
+- [x] Formats discovery endpoint
 - [ ] Rate limiting
 - [ ] API documentation
 - [ ] Client SDK (npm package)
