@@ -7,6 +7,9 @@ DDEX Workbench is an open-source suite of tools for working with DDEX standards,
 ### Vision
 Create modern, accessible tools that lower the barrier to entry for DDEX implementation, serving everyone from independent artists to major labels.
 
+### Official App
+**URL**: [https://ddex-workbench.org](https://ddex-workbench.org)
+
 ### Phase 1: DDEX Connect (The Validator)
 A web-based ERN 4.3 validator with community knowledge sharing capabilities.
 
