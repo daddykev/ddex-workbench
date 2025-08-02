@@ -21,7 +21,7 @@
       <div class="container">
         <div class="footer-content">
           <div class="footer-brand">
-            <h3 class="footer-title">DDEX Connect</h3>
+            <h3 class="footer-title">DDEX Workbench</h3>
             <p class="footer-tagline text-secondary">
               Open source DDEX validation tools for the music industry
             </p>

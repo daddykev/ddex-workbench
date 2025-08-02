@@ -8,7 +8,7 @@
             <rect width="32" height="32" rx="8" fill="var(--color-primary)"/>
             <path d="M8 12h16M8 16h16M8 20h16" stroke="white" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <span class="brand-text font-semibold text-xl">DDEX Connect</span>
+          <span class="brand-text font-semibold text-xl">DDEX Workbench</span>
         </router-link>
 
         <!-- Desktop Navigation -->

@@ -62,7 +62,7 @@
               
               <div class="info-box mt-lg">
                 <h4>Base URL</h4>
-                <code class="endpoint-url">https://api.ddex-connect.org/v1</code>
+                <code class="endpoint-url">https://api.ddex-workbench.org/v1</code>
               </div>
 
               <h3 class="mt-xl">Quick Start</h3>
@@ -354,7 +354,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
                   <h3>JavaScript/TypeScript</h3>
                   <p class="text-sm text-secondary">Official SDK for Node.js and browsers</p>
                   <div class="sdk-install">
-                    <code>npm install @ddex-connect/api-client</code>
+                    <code>npm install @ddex-workbench/api-client</code>
                   </div>
                   <a href="https://github.com/ddex-connect/js-sdk" class="btn btn-sm btn-primary">View on GitHub</a>
                 </div>

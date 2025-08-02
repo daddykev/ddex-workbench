@@ -67,7 +67,7 @@ A modern web-based ERN 4.3 validator with community knowledge sharing capabiliti
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ddex-workbench.git
+git clone https://github.com/daddykev/ddex-workbench.git
 cd ddex-workbench
 ```
 
@@ -170,8 +170,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **GitHub Issues**: For bug reports and feature requests
 - **Discord**: [Join our community](https://discord.gg/ddex-workbench)
-- **Email**: support@ddex-workbench.org
-- **Twitter**: [@DDEXWorkbench](https://twitter.com/DDEXWorkbench)
+- **Email**: daddykev@gmail.com
 
 ---
 
