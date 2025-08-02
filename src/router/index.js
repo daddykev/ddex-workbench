@@ -21,6 +21,11 @@ const router = createRouter({
       name: 'api-docs',
       component: () => import('@/views/ApiDocsView.vue')
     },
+    {
+      path: '/pricing',
+      name: 'pricing',
+      component: () => import('@/views/PricingView.vue')
+    },
     // Legal pages
     {
       path: '/privacy',
