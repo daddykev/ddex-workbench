@@ -46,16 +46,14 @@ ddex-workbench/
 │   │   ├── ValidatorView.vue  # Main validator page
 │   │   ├── SnippetsView.vue   # Community snippets page
 │   │   └── ApiDocsView.vue    # API documentation page
-│   ├── stores/                # Pinia stores
-│   │   ├── auth.js            # Authentication state
-│   │   ├── validator.js       # Validation state
-│   │   └── snippets.js        # Snippets state
 │   ├── services/              # External service integrations
 │   │   ├── firebase.js        # Firebase configuration
 │   │   ├── api.js             # API calls to Cloud Functions
 │   │   └── validator.js       # Validation logic
 │   ├── composables/           # Vue composables
 │   ├── utils/                 # Utility functions
+│   │   ├── auth.js            # Authentication state
+│   │   ├── validator.js       # Validation state
 │   │   └── themeManager.js    # Theme switching logic
 │   ├── router/                # Vue Router configuration
 │   ├── assets/                # Static assets and styles

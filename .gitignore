@@ -31,3 +31,6 @@ coverage
 
 .firebase/
 .firebaserc
+
+.env
+.env.local

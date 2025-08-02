@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { auth } from './firebase'
+import { auth } from '../firebase'
 
 // API configuration
 const API_CONFIG = {
