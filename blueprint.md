@@ -21,6 +21,8 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 - **HTTP Client**: Axios
 - **Code Editor**: Monaco Editor (for XML display/editing)
 - **Styling**: Custom CSS with utility classes and theme support
+- **Icons**: FontAwesome (free icons)
+- **Authentication**: Firebase Auth with email/password and Google OAuth
 
 ### Backend
 - **Platform**: Firebase
@@ -42,18 +44,28 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 ddex-workbench/
 ├── src/                       # Vue 3 application source
 │   ├── components/            # Vue components
-│   │   └── NavBar.vue/        # Navigation UI component
+│   │   └── NavBar.vue         # Navigation with auth state
 │   ├── views/                 # Vue router views/pages
+│   │   ├── SplashPage.vue     # Landing page with features overview
 │   │   ├── ValidatorView.vue  # Main validator page
 │   │   ├── SnippetsView.vue   # Community snippets page
-│   │   └── ApiDocsView.vue    # API documentation page
+│   │   ├── ApiDocsView.vue    # API documentation page
+│   │   ├── UserSettings.vue   # User profile & API keys management
+│   │   ├── auth/              # Authentication views
+│   │   │   ├── LoginView.vue  # Login page
+│   │   │   └── SignupView.vue # Registration page
+│   │   └── legal/             # Legal pages
+│   │       ├── PrivacyView.vue
+│   │       ├── TermsView.vue
+│   │       └── LicenseView.vue
 │   ├── services/              # External service integrations
-│   │   ├── firebase.js        # Firebase configuration
 │   │   └── api.js             # API calls to Cloud Functions
 │   ├── composables/           # Vue composables
+│   │   └── useAuth.js         # Authentication composable
 │   ├── utils/                 # Utility functions
 │   │   └── themeManager.js    # Theme switching logic
 │   ├── router/                # Vue Router configuration
+│   │   └── index.js           # Routes with auth guards
 │   ├── assets/                # Static assets and styles
 │   │   ├── main.css           # Main stylesheet entry
 │   │   ├── base.css           # CSS reset/normalize
@@ -62,7 +74,7 @@ ddex-workbench/
 │   │   ├── fonts/             # Custom fonts
 │   │   └── images/            # Images and icons
 │   ├── App.vue                # Root component
-│   ├── firebase.js            # Firebase project config
+│   ├── firebase.js            # Firebase configuration & exports
 │   └── main.js                # Application entry point
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
@@ -96,162 +108,78 @@ ddex-workbench/
 └── CONTRIBUTING.md            # Contribution guidelines
 ```
 
-## ERN Validator Architecture
+## Authentication Architecture
 
-### Multi-Version Support
+### Auth Flow
 
-The `ernValidator.js` module provides comprehensive validation for three major ERN versions:
+The application uses Firebase Authentication with the following features:
 
-- **ERN 4.3**: Latest version with removed UpdateIndicator, enhanced metadata capabilities
-- **ERN 4.2**: Previous major version with similar structure to 4.3
-- **ERN 3.8.2**: Legacy version still widely used, includes UpdateIndicator and ReleaseDetailsByTerritory
+1. **Authentication Methods**:
+   - Email/Password registration and login
+   - Google OAuth integration
+   - Persistent sessions with automatic token refresh
 
-### Version-Specific Rules
+2. **User Management**:
+   - User profiles stored in Firestore `users` collection
+   - Display name customization
+   - API key generation and management
+   - Usage statistics tracking
 
-Each ERN version has distinct validation requirements:
+3. **Protected Routes**:
+   - `/settings` - Requires authentication
+   - `/login`, `/signup` - Redirects to home if already authenticated
+   - API endpoints - Optional authentication for higher rate limits
 
-#### ERN 4.3 & 4.2
-- No UpdateIndicator element (removed in ERN 4.x)
-- Required elements: MessageHeader, ReleaseList, ResourceList, DealList
-- Simplified territorial handling without DetailsByTerritory
-- PartyList for centralized party information
+### Auth Composable
 
-#### ERN 3.8.2
-- Optional UpdateIndicator element
-- Legacy ReleaseDetailsByTerritory structure
-- Additional profile: ReleaseByRelease
-- Migration suggestions for users to upgrade to 4.3
+The `useAuth` composable provides reactive authentication state:
 
-### Profile Validation
-
-The validator supports profile-specific rules:
-- **AudioAlbum**: Validates album structure, expects ReleaseType 'Album' or 'EP'
-- **AudioSingle**: Ensures single release structure
-- **Video**: Checks for video resources in ResourceList
-- **Mixed**: Allows various content types with minimal restrictions
-- **ReleaseByRelease**: Available only in ERN 3.8.2
-
-## Phase 1 Features
-
-### 1. Web Validator Interface
-- **File Upload**: Drag-and-drop or file picker for XML files
-- **Text Input**: Direct XML pasting with syntax highlighting
-- **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
-- **Profile Selection**: Dynamic profile options based on selected version
-- **Validation Results**: 
-  - Clear pass/fail status
-  - Line-by-line error highlighting
-  - Detailed error messages with DDEX KB links
-  - Version-specific validation rules
-
-### 2. Public Validation API
-```typescript
-// POST /api/validate
-{
-  "content": "<xml>...</xml>",
-  "type": "ERN",
-  "version": "4.3",  // or "4.2", "3.8.2"
-  "profile": "AudioAlbum"
-}
-
-// Response
-{
-  "valid": boolean,
-  "errors": [{
-    "line": number,
-    "column": number,
-    "message": string,
-    "severity": "error" | "warning" | "info",
-    "rule": string
-  }],
-  "metadata": {
-    "processingTime": number,
-    "schemaVersion": string,
-    "profile": string,
-    "validatedAt": string
-  }
-}
-
-// GET /api/validate/formats
-// Returns supported versions and profiles
-{
-  "types": ["ERN"],
-  "versions": [{
-    "version": "4.3",
-    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
-    "status": "recommended"
-  }, {
-    "version": "4.2",
-    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
-    "status": "supported"
-  }, {
-    "version": "3.8.2",
-    "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
-    "status": "supported"
-  }]
-}
+```javascript
+const { 
+  user,              // Current user object
+  loading,           // Auth initialization state
+  error,             // Last auth error
+  isAuthenticated,   // Computed auth status
+  login,             // Email/password login
+  signup,            // Create new account
+  loginWithGoogle,   // Google OAuth
+  logout,            // Sign out
+  updateUserProfile  // Update user data
+} = useAuth()
 ```
-
-### 3. Community Knowledge Base
-- **Snippet Categories**:
-  - Common Patterns
-  - Complex Scenarios
-  - Migration Examples (ERN 3.8.2 to 4.3)
-  - Version-specific examples
-- **Features**:
-  - Search and filter by version
-  - Upvote/downvote
-  - Comments (authenticated users)
-  - Copy to validator button
-  - Tags for discovery
-
-### 4. User Features
-- **Anonymous Usage**: Core validation without login
-- **Authenticated Features**:
-  - Save validation history with version info
-  - Contribute snippets
-  - Vote and comment
-  - API key for higher rate limits
-
-## CSS Architecture
-
-### Design System Overview
-
-Our CSS architecture follows a utility-first approach with semantic component classes:
-
-1. **`assets/main.css`**: Entry point that imports all other CSS files
-2. **`assets/base.css`**: CSS reset, base typography, and global styles
-3. **`assets/themes.css`**: CSS custom properties supporting light/dark/auto themes
-4. **`assets/components.css`**: Reusable component classes and utility classes
-
-### Theme System
-
-- **Light/Dark/Auto modes**: Automatic theme detection with manual override
-- **CSS Custom Properties**: All colors, spacing, and other design tokens
-- **High Contrast Support**: Accessibility considerations for better readability
-- **Theme Manager**: JavaScript utility (`utils/themeManager.js`) for theme switching
-
-### Component Classes
-
-Semantic, reusable classes for common UI patterns:
-- **Buttons**: `.btn`, `.btn-primary`, `.btn-secondary`, size variants
-- **Cards**: `.card`, `.card-header`, `.card-body`, `.card-footer`
-- **Forms**: `.form-group`, `.form-label`, `.form-input`, `.form-error`
-- **Layout**: `.container`, `.section`, `.grid`, `.flex`
-
-### Utility Classes
-
-Semantic utility classes for:
-- **Spacing**: `.mt-md`, `.p-lg`, `.mb-xl` (margin/padding with size modifiers)
-- **Typography**: `.text-primary`, `.text-lg`, `.font-semibold`
-- **Display**: `.hidden`, `.block`, `.flex`
-- **Colors**: `.bg-surface`, `.text-error`, `.border-primary`
 
 ## Data Models
 
 ### Firestore Collections
 
 ```typescript
+// users collection
+interface User {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  created: Timestamp;
+  role: 'user' | 'admin';
+  // Stats (denormalized for performance)
+  validationCount?: number;
+  snippetCount?: number;
+  apiCallCount?: number;
+}
+
+// api_keys collection
+interface ApiKey {
+  id: string;
+  userId: string;
+  name: string;
+  key: string;        // Hashed, only shown once on creation
+  created: Timestamp;
+  lastUsed?: Timestamp;
+  requestCount: number;
+  rateLimit: number;
+  active: boolean;
+}
+
 // snippets collection
 interface Snippet {
   id: string;
@@ -280,19 +208,144 @@ interface ValidationHistory {
   errorCount: number;
   version: string;      // ERN version used
   profile: string;
+  metadata?: {
+    fileSize?: number;
+    processingTime: number;
+  };
 }
 
-// api_keys collection
-interface ApiKey {
-  id: string;
-  userId: string;
-  key: string;
-  created: Timestamp;
-  lastUsed: Timestamp;
-  requestCount: number;
-  rateLimit: number;
+// user_votes subcollection (under users)
+interface UserVote {
+  snippetId: string;
+  vote: 1 | -1;       // upvote or downvote
+  timestamp: Timestamp;
 }
 ```
+
+## Phase 1 Features
+
+### 1. Landing Page
+- **Modern hero section** with value proposition
+- **Feature cards** for Validator, Snippets, and API
+- **ERN 4.3 migration urgency** messaging
+- **Future roadmap** preview (DSR-Flow, DDEX Workbench)
+- **Call-to-action** for immediate engagement
+
+### 2. Web Validator Interface
+- **File Upload**: Drag-and-drop or file picker for XML files
+- **Text Input**: Direct XML pasting with syntax highlighting
+- **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
+- **Profile Selection**: Dynamic profile options based on selected version
+- **Validation Results**: 
+  - Clear pass/fail status
+  - Line-by-line error highlighting
+  - Detailed error messages with DDEX KB links
+  - Version-specific validation rules
+- **History Tracking**: Save validation history for authenticated users
+
+### 3. Authentication System
+- **Registration**: Email/password with display name
+- **Login Options**: Email/password or Google OAuth
+- **User Settings**: 
+  - Profile management
+  - API key generation
+  - Usage statistics
+- **Session Management**: Persistent login with automatic token refresh
+
+### 4. Public Validation API
+```typescript
+// POST /api/validate
+{
+  "content": "<xml>...</xml>",
+  "type": "ERN",
+  "version": "4.3",  // or "4.2", "3.8.2"
+  "profile": "AudioAlbum"
+}
+
+// Response
+{
+  "valid": boolean,
+  "errors": [{
+    "line": number,
+    "column": number,
+    "message": string,
+    "severity": "error" | "warning" | "info",
+    "rule": string
+  }],
+  "metadata": {
+    "processingTime": number,
+    "schemaVersion": string,
+    "profile": string,
+    "validatedAt": string
+  }
+}
+
+// Authentication via API Key
+headers: {
+  "X-API-Key": "your-api-key"
+}
+```
+
+### 5. Community Knowledge Base
+- **Snippet Categories**:
+  - Common Patterns
+  - Complex Scenarios
+  - Migration Examples (ERN 3.8.2 to 4.3)
+  - Version-specific examples
+- **Features**:
+  - Search and filter by version
+  - Upvote/downvote (authenticated)
+  - Comments (authenticated)
+  - Copy to validator button
+  - Tags for discovery
+- **Contribution**: Authenticated users can submit snippets
+
+### 6. User Features
+- **Anonymous Usage**: 
+  - Core validation without login
+  - Read-only access to snippets
+  - Basic API access (rate limited)
+- **Authenticated Features**:
+  - Save validation history
+  - Contribute and vote on snippets
+  - Generate API keys
+  - Higher API rate limits
+  - Usage analytics dashboard
+
+## CSS Architecture
+
+### Design System Overview
+
+Our CSS architecture follows a utility-first approach with semantic component classes:
+
+1. **`assets/main.css`**: Entry point that imports all other CSS files
+2. **`assets/base.css`**: CSS reset, base typography, and global styles
+3. **`assets/themes.css`**: CSS custom properties supporting light/dark/auto themes
+4. **`assets/components.css`**: Reusable component classes and utility classes
+
+### Theme System
+
+- **Light/Dark/Auto modes**: Automatic theme detection with manual override
+- **CSS Custom Properties**: All colors, spacing, and other design tokens
+- **High Contrast Support**: Accessibility considerations for better readability
+- **Theme Manager**: JavaScript utility (`utils/themeManager.js`) for theme switching
+
+### Component Classes
+
+Semantic, reusable classes for common UI patterns:
+- **Buttons**: `.btn`, `.btn-primary`, `.btn-secondary`, size variants
+- **Cards**: `.card`, `.card-header`, `.card-body`, `.card-footer`
+- **Forms**: `.form-group`, `.form-label`, `.form-input`, `.form-error`
+- **Layout**: `.container`, `.section`, `.grid`, `.flex`
+- **Auth Components**: `.auth-page`, `.auth-card`, `.user-menu`, `.user-avatar`
+
+### Utility Classes
+
+Semantic utility classes for:
+- **Spacing**: `.mt-md`, `.p-lg`, `.mb-xl` (margin/padding with size modifiers)
+- **Typography**: `.text-primary`, `.text-lg`, `.font-semibold`
+- **Display**: `.hidden`, `.block`, `.flex`
+- **Colors**: `.bg-surface`, `.text-error`, `.border-primary`
 
 ## Implementation Roadmap
 
@@ -320,76 +373,72 @@ interface ApiKey {
 - [x] Responsive design
 - [x] Dynamic profile selection based on version
 
-### Week 7-8: API Development
+### Week 7-8: Authentication & User Features ✓
+- [x] Firebase Auth integration
+- [x] Login/Signup pages
+- [x] User settings page
+- [x] API key management UI
+- [x] Protected routes
+- [x] Auth state in navigation
+- [ ] Usage statistics tracking
+- [ ] Validation history
+
+### Week 9-10: API Development (Current Phase)
 - [x] REST API endpoints
 - [x] Multi-version validation endpoint
-- [x] Formats discovery endpoint
-- [ ] Rate limiting
-- [ ] API documentation
+- [ ] API key validation
+- [ ] Rate limiting implementation
+- [ ] API documentation page
 - [ ] Client SDK (npm package)
-- [ ] Integration tests
+- [ ] Integration examples
 
-### Week 9-10: Knowledge Base
+### Week 11-12: Knowledge Base
 - [ ] Snippet management UI
 - [ ] Search and filtering
-- [ ] Voting system
-- [ ] Authentication flow
+- [ ] Voting system implementation
+- [ ] Comment system
 - [ ] Moderation tools
+- [ ] Snippet categories
 
-### Week 11-12: Polish & Launch
+### Week 13-14: Polish & Launch
 - [ ] Performance optimization
-- [ ] CSS optimization
 - [ ] Security audit
+- [ ] Complete test coverage
 - [ ] Documentation site
-- [ ] Example integrations
+- [ ] Marketing website
 - [ ] Launch announcement
 
 ## Security Considerations
 
-1. **Input Validation**:
+1. **Authentication Security**:
+   - Firebase Auth handles password hashing and session management
+   - OAuth integration for secure third-party login
+   - Secure token storage and automatic refresh
+   - HTTPS-only for all auth operations
+
+2. **API Security**:
+   - API key generation with secure random tokens
+   - Key hashing before storage
+   - Rate limiting per key
+   - Request validation and sanitization
+
+3. **Input Validation**:
    - File size limits (10MB default)
    - XML bomb protection
    - Content type verification
-
-2. **Rate Limiting**:
-   - Anonymous: 10 requests/minute
-   - Authenticated: 60 requests/minute
-   - API Key: Configurable
-
-3. **Authentication**:
-   - Firebase Auth with email/Google
-   - JWT verification for API calls
-   - Role-based access for moderation
+   - XSS prevention in user content
 
 4. **Data Privacy**:
    - No storage of validated content (unless explicitly saved)
-   - Encrypted API keys
-   - GDPR compliance
-
-## Community Engagement
-
-1. **Documentation**:
-   - Comprehensive API docs
-   - Integration examples
-   - Video tutorials
-   - Contributing guide
-
-2. **Outreach**:
-   - DDEX working group presentation
-   - Blog post series
-   - Conference talks
-   - Partner with music tech organizations
-
-3. **Support**:
-   - GitHub Issues
-   - Discord community
-   - Stack Overflow monitoring
-   - Regular office hours
+   - User data isolation
+   - GDPR compliance considerations
+   - Secure API key handling
 
 ## Success Metrics
 
 - **Adoption**: 1000+ validations/week within 3 months
-- **API Usage**: 50+ registered developers
+- **User Growth**: 500+ registered users in first quarter
+- **API Usage**: 50+ active API keys
 - **Community**: 100+ contributed snippets
 - **Performance**: <2s validation for typical files
 - **Reliability**: 99.9% uptime
@@ -397,14 +446,16 @@ interface ApiKey {
 ## Future Phases Integration
 
 ### Phase 2 (DSR-Flow) Preparation:
-- Shared authentication system
-- Common UI components library
-- Reusable validation patterns
+- Shared authentication system ✓
+- Common UI components library ✓
+- Reusable validation patterns ✓
+- API infrastructure foundation ✓
 
 ### Phase 3 (DDEX Workbench) Foundation:
-- User management system
-- Project/workspace concept
-- Collaborative features groundwork
+- User management system ✓
+- Project/workspace concept (planned)
+- Collaborative features groundwork ✓
+- Real-time capabilities (via Firebase)
 
 ## Open Source Strategy
 
@@ -414,7 +465,8 @@ interface ApiKey {
    - Code of conduct
    - Issue templates
    - PR review process
-3. **Transparency**:
+3. **Community Building**:
    - Public roadmap
    - Regular releases
    - Community calls
+   - Discord server (planned)
