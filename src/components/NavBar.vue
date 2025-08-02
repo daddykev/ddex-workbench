@@ -16,7 +16,7 @@
 
         <!-- Desktop Navigation -->
         <div class="nav-main hidden-sm flex items-center gap-lg">
-          <router-link to="/" class="nav-link">Validator</router-link>
+          <router-link to="/validator" class="nav-link">Validator</router-link>
           <router-link to="/snippets" class="nav-link">Snippets</router-link>
           <router-link to="/api" class="nav-link">API Docs</router-link>
         </div>
@@ -54,7 +54,7 @@
                 <button 
                   v-for="theme in themes" 
                   :key="theme.value"
-                  @click="$emit('theme-change', theme.value)"
+                  @click="selectTheme(theme.value)"
                   class="theme-option"
                   :class="{ active: themePreference === theme.value }"
                 >
@@ -67,6 +67,72 @@
             </transition>
           </div>
 
+          <!-- Auth Actions -->
+          <div v-if="!authLoading" class="auth-actions hidden-sm">
+            <!-- Authenticated User Menu -->
+            <div v-if="isAuthenticated" class="user-menu">
+              <button 
+                @click="toggleUserMenu"
+                class="user-menu-button flex items-center gap-xs"
+              >
+                <span class="user-name">{{ displayName }}</span>
+                <div class="user-avatar">
+                  {{ userInitials }}
+                </div>
+                <font-awesome-icon 
+                  :icon="['fas', 'chevron-down']" 
+                  size="xs"
+                />
+              </button>
+              
+              <!-- User Dropdown -->
+              <transition name="dropdown">
+                <div v-if="showUserMenu" class="user-dropdown card">
+                  <div class="dropdown-header">
+                    <div class="user-info">
+                      <p class="user-info-name">{{ user.displayName || user.email }}</p>
+                      <p class="user-info-email">{{ user.email }}</p>
+                    </div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <router-link 
+                    to="/settings" 
+                    class="dropdown-item"
+                    @click="showUserMenu = false"
+                  >
+                    <font-awesome-icon :icon="['fas', 'wrench']" />
+                    <span>Settings</span>
+                  </router-link>
+                  <router-link 
+                    to="/api-keys" 
+                    class="dropdown-item"
+                    @click="showUserMenu = false"
+                  >
+                    <font-awesome-icon :icon="['fas', 'code']" />
+                    <span>API Keys</span>
+                  </router-link>
+                  <div class="dropdown-divider"></div>
+                  <button 
+                    @click="handleLogout"
+                    class="dropdown-item text-error"
+                  >
+                    <font-awesome-icon :icon="['fas', 'sign-out-alt']" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </transition>
+            </div>
+            
+            <!-- Sign In Button (Guest) -->
+            <router-link v-else to="/login" class="btn btn-primary btn-sm">
+              <font-awesome-icon 
+                :icon="['fas', 'sign-in-alt']" 
+                class="mr-xs"
+              />
+              Sign In
+            </router-link>
+          </div>
+
           <!-- Mobile Menu Toggle -->
           <button 
             @click="showMobileMenu = !showMobileMenu"
@@ -77,15 +143,6 @@
               :icon="['fas', showMobileMenu ? 'times' : 'bars']" 
             />
           </button>
-
-          <!-- Sign In (placeholder for Phase 1) -->
-          <button class="btn btn-primary btn-sm hidden-sm">
-            <font-awesome-icon 
-              :icon="['fas', 'sign-in-alt']" 
-              class="mr-xs"
-            />
-            Sign In
-          </button>
         </div>
       </nav>
     </div>
@@ -95,7 +152,7 @@
       <div v-if="showMobileMenu" class="mobile-menu">
         <div class="container">
           <div class="mobile-nav-links">
-            <router-link to="/" class="mobile-nav-link" @click="showMobileMenu = false">
+            <router-link to="/validator" class="mobile-nav-link" @click="showMobileMenu = false">
               Validator
             </router-link>
             <router-link to="/snippets" class="mobile-nav-link" @click="showMobileMenu = false">
@@ -104,14 +161,59 @@
             <router-link to="/api" class="mobile-nav-link" @click="showMobileMenu = false">
               API Docs
             </router-link>
+            
             <div class="mobile-nav-divider"></div>
-            <button class="btn btn-primary btn-sm w-full">
-              <font-awesome-icon 
-                :icon="['fas', 'sign-in-alt']" 
-                class="mr-xs"
-              />
-              Sign In
-            </button>
+            
+            <!-- Mobile Auth Section -->
+            <div v-if="!authLoading" class="mobile-auth-section">
+              <!-- Authenticated Mobile Menu -->
+              <div v-if="isAuthenticated">
+                <div class="mobile-user-info">
+                  <div class="user-avatar">{{ userInitials }}</div>
+                  <div>
+                    <p class="user-info-name">{{ user.displayName || user.email }}</p>
+                    <p class="user-info-email">{{ user.email }}</p>
+                  </div>
+                </div>
+                <router-link 
+                  to="/settings" 
+                  class="mobile-nav-link"
+                  @click="showMobileMenu = false"
+                >
+                  <font-awesome-icon :icon="['fas', 'wrench']" class="mr-sm" />
+                  Settings
+                </router-link>
+                <router-link 
+                  to="/api-keys" 
+                  class="mobile-nav-link"
+                  @click="showMobileMenu = false"
+                >
+                  <font-awesome-icon :icon="['fas', 'code']" class="mr-sm" />
+                  API Keys
+                </router-link>
+                <button 
+                  @click="handleLogout"
+                  class="mobile-nav-link text-error w-full text-left"
+                >
+                  <font-awesome-icon :icon="['fas', 'sign-out-alt']" class="mr-sm" />
+                  Sign Out
+                </button>
+              </div>
+              
+              <!-- Guest Mobile Menu -->
+              <router-link 
+                v-else 
+                to="/login" 
+                class="btn btn-primary btn-sm w-full"
+                @click="showMobileMenu = false"
+              >
+                <font-awesome-icon 
+                  :icon="['fas', 'sign-in-alt']" 
+                  class="mr-xs"
+                />
+                Sign In
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -121,6 +223,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 // Props
 const props = defineProps({
@@ -137,9 +241,16 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['theme-change'])
 
+// Router
+const router = useRouter()
+
+// Auth composable
+const { user, isAuthenticated, loading: authLoading, logout } = useAuth()
+
 // State
 const showThemeMenu = ref(false)
 const showMobileMenu = ref(false)
+const showUserMenu = ref(false)
 
 // Theme configuration
 const themes = [
@@ -160,14 +271,63 @@ const themes = [
   }
 ]
 
+// Computed
+const displayName = computed(() => {
+  if (!user.value) return ''
+  return user.value.displayName || user.value.email.split('@')[0]
+})
+
+const userInitials = computed(() => {
+  if (!user.value) return ''
+  const name = user.value.displayName || user.value.email
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+})
+
 // Methods
 const toggleThemeMenu = (e) => {
   e.stopPropagation()
   showThemeMenu.value = !showThemeMenu.value
+  showUserMenu.value = false
 }
 
-const handleClickOutside = () => {
+const toggleUserMenu = (e) => {
+  e.stopPropagation()
+  showUserMenu.value = !showUserMenu.value
   showThemeMenu.value = false
+}
+
+const selectTheme = (theme) => {
+  emit('theme-change', theme)
+  showThemeMenu.value = false
+}
+
+const handleLogout = async () => {
+  showUserMenu.value = false
+  showMobileMenu.value = false
+  
+  try {
+    await logout()
+    // Only redirect if we're on a protected route
+    if (router.currentRoute.value.meta.requiresAuth) {
+      router.push('/')
+    }
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+}
+
+const handleClickOutside = (e) => {
+  if (!e.target.closest('.theme-switcher')) {
+    showThemeMenu.value = false
+  }
+  if (!e.target.closest('.user-menu')) {
+    showUserMenu.value = false
+  }
 }
 
 // Lifecycle
@@ -239,6 +399,109 @@ onUnmounted(() => {
   background-color: var(--color-primary-light);
 }
 
+/* Auth Actions */
+.auth-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* User Menu */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-button {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.user-menu-button:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.user-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  min-width: 240px;
+  padding: 0;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+}
+
+.dropdown-header {
+  padding: var(--space-md);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.user-info-name {
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-xs);
+}
+
+.user-info-email {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.dropdown-item.text-error {
+  color: var(--color-error);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 0;
+}
+
 /* Theme Switcher */
 .theme-switcher {
   position: relative;
@@ -301,6 +564,10 @@ onUnmounted(() => {
   font-weight: var(--font-medium);
   text-decoration: none;
   transition: color var(--transition-base);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-base);
 }
 
 .mobile-nav-link:hover {
@@ -317,13 +584,34 @@ onUnmounted(() => {
   margin: var(--space-md) 0;
 }
 
+.mobile-auth-section {
+  padding-top: var(--space-sm);
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+}
+
 /* Utilities */
 .w-full {
   width: 100%;
 }
 
+.text-left {
+  text-align: left;
+}
+
 .mr-xs {
   margin-right: var(--space-xs);
+}
+
+.mr-sm {
+  margin-right: var(--space-sm);
 }
 
 /* Transitions */
@@ -352,6 +640,10 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .mobile-menu-toggle {
     display: flex;
+  }
+  
+  .user-name {
+    display: none;
   }
 }
 </style>

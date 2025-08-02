@@ -1,12 +1,10 @@
-// src/firebase.js
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
-import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
+import { getFunctions } from 'firebase/functions'
 
-// Your Firebase configuration
-// Replace these with your actual Firebase project config
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -19,11 +17,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 
-// Initialize Firebase services
+// Initialize services
 export const auth = getAuth(app)
 export const db = getFirestore(app)
-export const functions = getFunctions(app)
 export const storage = getStorage(app)
+export const functions = getFunctions(app)
+
+// Auth state observer helper
+export const onAuthChange = (callback) => {
+  return onAuthStateChanged(auth, callback)
+}
 
 // Export the app instance
 export default app
