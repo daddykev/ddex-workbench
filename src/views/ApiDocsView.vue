@@ -62,7 +62,7 @@
               
               <div class="info-box mt-lg">
                 <h4>Base URL</h4>
-                <code class="endpoint-url">https://api.ddex-workbench.org/v1</code>
+                <code class="endpoint-url">https://api.ddex-connect.org/v1</code>
               </div>
 
               <h3 class="mt-xl">Quick Start</h3>
@@ -341,54 +341,50 @@ X-RateLimit-Reset: 1642521600</code></pre>
                 Official and community SDKs are available for popular programming languages:
               </p>
 
-              <!-- Replace the SDK grid section with this -->
               <div class="sdk-grid">
                 <div class="sdk-card card">
                   <div class="sdk-icon">
-                    <!-- JavaScript Logo -->
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <rect width="48" height="48" rx="6" fill="#F7DF1E"/>
-                      <path d="M31.647 36.731c1.141 1.868 2.628 3.241 5.256 3.241 2.207 0 3.614-1.104 3.614-2.628 0-1.828-1.447-2.476-3.876-3.539l-1.33-.57c-3.839-1.636-6.39-3.683-6.39-8.016 0-3.99 3.038-7.027 7.789-7.027 3.382 0 5.81 1.178 7.562 4.263l-4.14 2.66c-.912-1.636-1.894-2.281-3.422-2.281-1.558 0-2.548.988-2.548 2.281 0 1.596.99 2.243 3.276 3.232l1.33.57c4.522 1.94 7.069 3.916 7.069 8.359 0 4.79-3.764 7.41-8.82 7.41-4.945 0-8.14-2.357-9.702-5.446l4.332-2.509zm-16.81.418c.837 1.483 1.598 2.736 3.422 2.736 1.749 0 2.853-.684 2.853-3.346V18.503h5.296v18.111c0 5.513-3.232 8.023-7.944 8.023-4.257 0-6.732-2.205-7.982-4.865l4.355-2.623z" fill="#000"/>
-                    </svg>
+                    <font-awesome-icon :icon="['fab', 'js']" class="brand-icon js-icon" />
                   </div>
                   <h3>JavaScript/TypeScript</h3>
                   <p class="text-sm text-secondary">Official SDK for Node.js and browsers</p>
                   <div class="sdk-install">
                     <code>npm install @ddex-workbench/api-client</code>
                   </div>
-                  <a href="https://github.com/ddex-connect/js-sdk" class="btn btn-sm btn-primary">View on GitHub</a>
+                  <a href="https://github.com/ddex-connect/js-sdk" class="btn btn-sm btn-primary">
+                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
+                    View on GitHub
+                  </a>
                 </div>
 
                 <div class="sdk-card card">
                   <div class="sdk-icon">
-                    <!-- Python Logo -->
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <path d="M23.885 6c-5.93 0-5.56 2.573-5.56 2.573l.007 2.665h5.66v.8H15.71S12 11.606 12 17.627c0 6.02 3.24 5.808 3.24 5.808h1.935v-2.792s-.104-3.24 3.186-3.24h5.487s3.084.05 3.084-2.982V8.982S29.348 6 23.885 6zm-3.112 1.737a.994.994 0 110 1.988.994.994 0 010-1.988z" fill="#366994"/>
-                      <path d="M24.115 42c5.93 0 5.56-2.573 5.56-2.573l-.007-2.665h-5.66v-.8h8.282S36 36.394 36 30.373c0-6.02-3.24-5.808-3.24-5.808h-1.935v2.792s.104 3.24-3.186 3.24h-5.487s-3.084-.05-3.084 2.982v5.439S18.652 42 24.115 42zm3.112-1.737a.994.994 0 110-1.988.994.994 0 010 1.988z" fill="#FFC331"/>
-                    </svg>
+                    <font-awesome-icon :icon="['fab', 'python']" class="brand-icon python-icon" />
                   </div>
                   <h3>Python</h3>
                   <p class="text-sm text-secondary">Official SDK for Python 3.7+</p>
                   <div class="sdk-install">
                     <code>pip install ddex-connect</code>
                   </div>
-                  <a href="https://github.com/ddex-connect/python-sdk" class="btn btn-sm btn-primary">View on GitHub</a>
+                  <a href="https://github.com/ddex-connect/python-sdk" class="btn btn-sm btn-primary">
+                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
+                    View on GitHub
+                  </a>
                 </div>
 
                 <div class="sdk-card card">
                   <div class="sdk-icon">
-                    <!-- PHP Logo -->
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <ellipse cx="24" cy="24" rx="24" ry="12" fill="#777BB4"/>
-                      <path d="M13.5 20.5h2.8c1.4 0 2.4.3 2.9.9.5.6.7 1.4.5 2.5-.1.6-.4 1.1-.8 1.6-.4.4-.9.8-1.5 1-.3.1-.7.2-1.3.2h-1.1l-.4 2.3h-2.1l1-5.5zm1.9 1.7l-.3 1.7h.9c.5 0 .9-.1 1.1-.3.2-.2.4-.5.4-.8.1-.3 0-.5-.1-.6-.1-.1-.4-.2-.8-.2h-1.2v.2zm7.1-1.7h2.1l-.2 1.1c.3-.4.6-.7 1-.9.4-.2.8-.3 1.3-.3.7 0 1.2.2 1.5.6.3.4.4 1 .2 1.8l-.6 3.3h-2.1l.6-3.1c.1-.3 0-.5-.1-.7-.1-.1-.3-.2-.6-.2-.4 0-.8.2-1.1.5-.3.3-.5.8-.6 1.3l-.5 2.2h-2.1l1-5.6h.2zm10.1 0h2.8c1.4 0 2.4.3 2.9.9.5.6.7 1.4.5 2.5-.1.6-.4 1.1-.8 1.6-.4.4-.9.8-1.5 1-.3.1-.7.2-1.3.2h-1.1l-.4 2.3h-2.1l1-5.5zm1.9 1.7l-.3 1.7h.9c.5 0 .9-.1 1.1-.3.2-.2.4-.5.4-.8.1-.3 0-.5-.1-.6-.1-.1-.4-.2-.8-.2h-1.2v.2z" fill="#FFF"/>
-                    </svg>
+                    <font-awesome-icon :icon="['fab', 'php']" class="brand-icon php-icon" />
                   </div>
                   <h3>PHP</h3>
                   <p class="text-sm text-secondary">Community SDK for PHP 7.4+</p>
                   <div class="sdk-install">
                     <code>composer require ddex/connect-php</code>
                   </div>
-                  <a href="https://github.com/community/ddex-connect-php" class="btn btn-sm btn-secondary">View on GitHub</a>
+                  <a href="https://github.com/community/ddex-connect-php" class="btn btn-sm btn-secondary">
+                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
+                    View on GitHub
+                  </a>
                 </div>
               </div>
 
@@ -968,9 +964,23 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-.sdk-icon img {
-  max-width: 100%;
-  max-height: 100%;
+.brand-icon {
+  font-size: 48px;
+}
+
+.js-icon {
+  color: #F7DF1E;
+  background-color: #323330;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.python-icon {
+  color: #3776AB;
+}
+
+.php-icon {
+  color: #777BB4;
 }
 
 .sdk-card h3 {
@@ -985,6 +995,11 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+}
+
+/* Icons */
+.icon-left {
+  margin-right: var(--space-xs);
 }
 
 /* Utilities */

@@ -12,9 +12,7 @@
           <!-- Search Bar -->
           <div class="search-container mt-xl">
             <div class="search-box">
-              <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-              </svg>
+              <font-awesome-icon :icon="['fas', 'search']" class="search-icon" />
               <input 
                 v-model="searchQuery"
                 type="text"
@@ -27,9 +25,7 @@
                 @click="searchQuery = ''"
                 class="search-clear"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M4.293 4.293a1 1 0 011.414 0L8 6.586l2.293-2.293a1 1 0 111.414 1.414L9.414 8l2.293 2.293a1 1 0 01-1.414 1.414L8 9.414l-2.293 2.293a1 1 0 01-1.414-1.414L6.586 8 4.293 5.707a1 1 0 010-1.414z"/>
-                </svg>
+                <font-awesome-icon :icon="['fas', 'times']" />
               </button>
             </div>
           </div>
@@ -106,23 +102,19 @@
                 class="btn btn-primary btn-sm"
                 @click="showCreateModal = true"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="mr-xs">
-                  <path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/>
-                </svg>
+                <font-awesome-icon :icon="['fas', 'plus']" class="icon-left" />
                 Add Snippet
               </button>
             </div>
 
             <!-- Snippets List -->
             <div v-if="loading" class="loading-state">
-              <div class="spinner-large"></div>
+              <font-awesome-icon :icon="['fas', 'spinner']" class="spinner-icon" spin />
               <p class="text-secondary mt-md">Loading snippets...</p>
             </div>
 
             <div v-else-if="filteredSnippets.length === 0" class="empty-state">
-              <svg width="64" height="64" viewBox="0 0 64 64" fill="var(--color-text-tertiary)" class="mb-md">
-                <path d="M32 8C18.745 8 8 18.745 8 32s10.745 24 24 24 24-10.745 24-24S45.255 8 32 8zm0 4c11.046 0 20 8.954 20 20s-8.954 20-20 20-20-8.954-20-20 8.954-20 20-20zm-8 18a2 2 0 100 4 2 2 0 000-4zm16 0a2 2 0 100 4 2 2 0 000-4zM25.5 40a1.5 1.5 0 00-1.5 1.5 1.5 1.5 0 001.5 1.5h13a1.5 1.5 0 001.5-1.5 1.5 1.5 0 00-1.5-1.5h-13z"/>
-              </svg>
+              <font-awesome-icon :icon="['fas', 'frown']" class="empty-icon" />
               <h3 class="text-xl mb-sm">No snippets found</h3>
               <p class="text-secondary">Try adjusting your filters or search query</p>
             </div>
@@ -179,16 +171,12 @@
                       class="action-btn"
                       :class="{ active: snippet.userVote === 1 }"
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 3.5a.5.5 0 01.5.5v8.793l2.146-2.147a.5.5 0 01.708.708l-3 3a.5.5 0 01-.708 0l-3-3a.5.5 0 01.708-.708L7.5 12.793V4a.5.5 0 01.5-.5z"/>
-                      </svg>
+                      <font-awesome-icon :icon="['fas', 'arrow-up']" />
                       <span>{{ snippet.votes }}</span>
                     </button>
                     
                     <button class="action-btn">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M2.5 1a1 1 0 00-1 1v1a1 1 0 001 1H3v6.5A2.5 2.5 0 005.5 13h5a2.5 2.5 0 002.5-2.5V4h.5a1 1 0 001-1V2a1 1 0 00-1-1h-11zM4 4h8v6.5a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 014 10.5V4z"/>
-                      </svg>
+                      <font-awesome-icon :icon="['fas', 'comment']" />
                       <span>{{ snippet.commentCount }}</span>
                     </button>
                   </div>
@@ -198,9 +186,7 @@
                       @click="copySnippet(snippet)"
                       class="btn btn-secondary btn-sm"
                     >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                        <path d="M10 1.5H4.5A1.5 1.5 0 003 3v7a.5.5 0 001 0V3a.5.5 0 01.5-.5H10a.5.5 0 000-1zM6 4.5A1.5 1.5 0 017.5 3h4A1.5 1.5 0 0113 4.5v7a1.5 1.5 0 01-1.5 1.5h-4A1.5 1.5 0 016 11.5v-7zM7.5 4a.5.5 0 00-.5.5v7a.5.5 0 00.5.5h4a.5.5 0 00.5-.5v-7a.5.5 0 00-.5-.5h-4z"/>
-                      </svg>
+                      <font-awesome-icon :icon="['fas', 'copy']" class="icon-left" />
                       Copy
                     </button>
                     <button 
@@ -221,9 +207,7 @@
                 :disabled="currentPage === 1"
                 class="pagination-btn"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M11.354 1.646a.5.5 0 010 .708L5.707 8l5.647 5.646a.5.5 0 01-.708.708l-6-6a.5.5 0 010-.708l6-6a.5.5 0 01.708 0z"/>
-                </svg>
+                <font-awesome-icon :icon="['fas', 'chevron-left']" />
               </button>
               
               <div class="pagination-numbers">
@@ -233,6 +217,7 @@
                   @click="currentPage = page"
                   class="pagination-number"
                   :class="{ active: currentPage === page }"
+                  :disabled="page === '...'"
                 >
                   {{ page }}
                 </button>
@@ -243,9 +228,7 @@
                 :disabled="currentPage === totalPages"
                 class="pagination-btn"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z"/>
-                </svg>
+                <font-awesome-icon :icon="['fas', 'chevron-right']" />
               </button>
             </div>
           </main>
@@ -582,6 +565,7 @@ onMounted(() => {
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-lg);
   transition: all var(--transition-base);
+  color: var(--color-text);
 }
 
 .search-input:focus {
@@ -846,18 +830,15 @@ onMounted(() => {
   padding: var(--space-3xl) 0;
 }
 
-.spinner-large {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  margin: 0 auto;
-  animation: spin 1s linear infinite;
+.spinner-icon {
+  font-size: 48px;
+  color: var(--color-primary);
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.empty-icon {
+  font-size: 64px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-md);
 }
 
 /* Pagination */
@@ -914,7 +895,7 @@ onMounted(() => {
   transition: all var(--transition-base);
 }
 
-.pagination-number:hover {
+.pagination-number:hover:not(:disabled) {
   background-color: var(--color-bg-secondary);
   color: var(--color-text);
 }
@@ -922,6 +903,16 @@ onMounted(() => {
 .pagination-number.active {
   background-color: var(--color-primary);
   color: white;
+}
+
+.pagination-number:disabled {
+  cursor: default;
+  color: var(--color-text-tertiary);
+}
+
+/* Icons */
+.icon-left {
+  margin-right: var(--space-xs);
 }
 
 /* Responsive */

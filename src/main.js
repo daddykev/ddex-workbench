@@ -30,11 +30,29 @@ import {
   faDesktop,
   faChevronDown,
   faBars,
-  faSignInAlt
+  faSignInAlt,
+  faSearch,
+  faPlus,
+  faFrown,
+  faArrowUp,
+  faComment,
+  faCopy,
+  faChevronLeft,
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons'
+
+// Import brand icons
+import {
+  faJs,
+  faPython,
+  faPhp,
+  faGithub,
+  faNode
+} from '@fortawesome/free-brands-svg-icons'
 
 // Add icons to the library
 library.add(
+  // Solid icons
   faCloudUploadAlt,
   faClipboard,
   faFile,
@@ -54,7 +72,21 @@ library.add(
   faDesktop,
   faChevronDown,
   faBars,
-  faSignInAlt
+  faSignInAlt,
+  faSearch,
+  faPlus,
+  faFrown,
+  faArrowUp,
+  faComment,
+  faCopy,
+  faChevronLeft,
+  faChevronRight,
+  // Brand icons
+  faJs,
+  faPython,
+  faPhp,
+  faGithub,
+  faNode
 )
 
 const app = createApp(App)
