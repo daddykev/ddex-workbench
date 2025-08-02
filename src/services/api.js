@@ -4,11 +4,11 @@ import { auth } from '../firebase'
 // API configuration
 const API_CONFIG = {
   development: {
-    baseURL: 'http://localhost:5001/your-project-id/us-central1',
+    baseURL: 'http://localhost:5001/ddex-workbench/us-central1/app',
     timeout: 30000
   },
   production: {
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://us-central1-your-project-id.cloudfunctions.net',
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://us-central1-ddex-workbench.cloudfunctions.net/app',
     timeout: 30000
   }
 }

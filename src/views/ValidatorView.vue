@@ -4,9 +4,9 @@
     <section class="hero-section bg-primary">
       <div class="container">
         <div class="hero-content text-center">
-          <h1 class="hero-title">DDEX ERN 4.3 Validator</h1>
+          <h1 class="hero-title">DDEX ERN Validator</h1>
           <p class="hero-subtitle">
-            Validate your Electronic Release Notification files against the latest DDEX standards
+            Validate your Electronic Release Notification messages
           </p>
         </div>
       </div>
