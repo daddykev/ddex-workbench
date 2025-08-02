@@ -41,22 +41,16 @@ A web-based ERN 4.3 validator with community knowledge sharing capabilities.
 ddex-workbench/
 ├── src/                       # Vue 3 application source
 │   ├── components/            # Vue components
-│   │   ├── validator/         # Validation-related components
-│   │   ├── snippets/          # Snippet browser/editor components
-│   │   ├── layout/            # Layout components (header, nav, etc.)
-│   │   └── common/            # Shared components
+│   │   └── NavBar.vue/        # Navigation UI component
 │   ├── views/                 # Vue router views/pages
 │   │   ├── ValidatorView.vue  # Main validator page
 │   │   ├── SnippetsView.vue   # Community snippets page
 │   │   └── ApiDocsView.vue    # API documentation page
 │   ├── services/              # External service integrations
 │   │   ├── firebase.js        # Firebase configuration
-│   │   ├── api.js             # API calls to Cloud Functions
-│   │   └── validator.js       # Validation logic
+│   │   └── api.js             # API calls to Cloud Functions
 │   ├── composables/           # Vue composables
 │   ├── utils/                 # Utility functions
-│   │   ├── auth.js            # Authentication state
-│   │   ├── validator.js       # Validation state
 │   │   └── themeManager.js    # Theme switching logic
 │   ├── router/                # Vue Router configuration
 │   ├── assets/                # Static assets and styles
@@ -67,16 +61,12 @@ ddex-workbench/
 │   │   ├── fonts/             # Custom fonts
 │   │   └── images/            # Images and icons
 │   ├── App.vue                # Root component
+│   ├── firebase.js            # Firebase project config
 │   └── main.js                # Application entry point
 ├── functions/                 # Firebase Cloud Functions
-│   ├── src/
-│   │   ├── validators/        # Validation logic
-│   │   │   ├── ern43.js       # ERN 4.3 validator
-│   │   │   └── schemas/       # DDEX XSD schemas
-│   │   ├── api/               # API endpoints
-│   │   │   ├── validate.js    # Validation endpoint
-│   │   │   └── snippets.js    # Snippets CRUD
-│   │   └── utils/             # Shared utilities
+│   ├── api/                   # API endpoints
+│   │   ├── validate.js        # Validation endpoint
+│   │   └── snippets.js        # Snippets CRUD
 │   ├── index.js               # Functions entry point
 │   └── package.json           # Functions dependencies
 ├── public/                    # Static public assets
