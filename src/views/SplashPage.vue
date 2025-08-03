@@ -163,7 +163,7 @@
                 <div class="timeline-arrow">→</div>
                 <div class="timeline-item highlight">
                   <div class="timeline-date">March 2026</div>
-                  <div class="timeline-label">ERN 4.3 Only</div>
+                  <div class="timeline-label">ERN 4.3</div>
                 </div>
               </div>
             </div>
