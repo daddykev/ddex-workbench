@@ -1,3 +1,4 @@
+// main.js
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
@@ -38,7 +39,13 @@ import {
   faComment,
   faCopy,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+  faTrophy,
+  faMicrophone,
+  faLightbulb,
+  faUsers,
+  faEnvelope,
+  faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons'
 
 // Import brand icons
@@ -47,7 +54,8 @@ import {
   faPython,
   faPhp,
   faGithub,
-  faNode
+  faNode,
+  faLinkedin
 } from '@fortawesome/free-brands-svg-icons'
 
 // Add icons to the library
@@ -81,12 +89,19 @@ library.add(
   faCopy,
   faChevronLeft,
   faChevronRight,
+  faTrophy,
+  faMicrophone,
+  faLightbulb,
+  faUsers,
+  faEnvelope,
+  faSignOutAlt,
   // Brand icons
   faJs,
   faPython,
   faPhp,
   faGithub,
-  faNode
+  faNode,
+  faLinkedin
 )
 
 const app = createApp(App)

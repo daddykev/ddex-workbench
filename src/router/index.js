@@ -1,3 +1,4 @@
+// router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/pricing',
       name: 'pricing',
       component: () => import('@/views/PricingView.vue')
+    },
+    {
+      path: '/developer',
+      name: 'developer',
+      component: () => import('@/views/DeveloperView.vue')
     },
     // Auth pages
     {
@@ -66,8 +72,5 @@ const router = createRouter({
     }
   ]
 })
-
-// For now, let's remove the navigation guard to get the app working
-// We can add it back later with proper auth checking
 
 export default router
