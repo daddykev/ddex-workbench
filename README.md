@@ -4,7 +4,7 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
 
-> An open-source suite of modern, accessible tools for working with DDEX standards in the digital music industry.
+> An open-source suite of modern, accessible tools for working with DDEX standards.
 
 ## 🎯 Vision
 
@@ -12,7 +12,7 @@ DDEX Workbench aims to democratize access to the digital music supply chain by p
 
 ## 🚀 Project Overview
 
-### Phase 1: DDEX Connect (Current Focus)
+### Phase 1: DDEX Validation (Current Focus)
 A modern web-based ERN validator supporting multiple versions with community knowledge sharing capabilities.
 
 **Why it matters:**
