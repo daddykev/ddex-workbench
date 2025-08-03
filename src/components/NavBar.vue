@@ -23,120 +23,123 @@
 
         <!-- Right side actions -->
         <div class="nav-actions flex items-center gap-md">
-          <!-- Theme Switcher -->
-          <div class="theme-switcher">
-            <button 
-              @click="toggleThemeMenu" 
-              class="btn btn-secondary btn-sm flex items-center gap-xs"
-              :aria-label="`Current theme: ${themePreference}`"
-            >
-              <font-awesome-icon 
-                v-if="currentTheme === 'light'"
-                :icon="['fas', 'sun']" 
-              />
-              <font-awesome-icon 
-                v-else-if="currentTheme === 'dark'"
-                :icon="['fas', 'moon']" 
-              />
-              <font-awesome-icon 
-                v-else
-                :icon="['fas', 'desktop']" 
-              />
-              <font-awesome-icon 
-                :icon="['fas', 'chevron-down']" 
-                size="xs"
-              />
-            </button>
-            
-            <!-- Theme Menu Dropdown -->
-            <transition name="dropdown">
-              <div v-if="showThemeMenu" class="theme-menu card">
-                <button 
-                  v-for="theme in themes" 
-                  :key="theme.value"
-                  @click="selectTheme(theme.value)"
-                  class="theme-option"
-                  :class="{ active: themePreference === theme.value }"
-                >
-                  <font-awesome-icon 
-                    :icon="['fas', theme.icon]" 
-                  />
-                  <span>{{ theme.label }}</span>
-                </button>
-              </div>
-            </transition>
-          </div>
-
-          <!-- Auth Actions -->
-          <div v-if="!authLoading" class="auth-actions hidden-sm">
-            <!-- Authenticated User Menu -->
-            <div v-if="isAuthenticated" class="user-menu">
+          <!-- Desktop-only actions (theme + auth) -->
+          <div class="desktop-actions flex items-center gap-md">
+            <!-- Theme Switcher -->
+            <div class="theme-switcher">
               <button 
-                @click="toggleUserMenu"
-                class="user-menu-button flex items-center gap-xs"
+                @click="toggleThemeMenu" 
+                class="btn btn-secondary btn-sm flex items-center gap-xs"
+                :aria-label="`Current theme: ${themePreference}`"
               >
-                <span class="user-name">{{ displayName }}</span>
-                <div class="user-avatar">
-                  {{ userInitials }}
-                </div>
+                <font-awesome-icon 
+                  v-if="currentTheme === 'light'"
+                  :icon="['fas', 'sun']" 
+                />
+                <font-awesome-icon 
+                  v-else-if="currentTheme === 'dark'"
+                  :icon="['fas', 'moon']" 
+                />
+                <font-awesome-icon 
+                  v-else
+                  :icon="['fas', 'desktop']" 
+                />
                 <font-awesome-icon 
                   :icon="['fas', 'chevron-down']" 
                   size="xs"
                 />
               </button>
               
-              <!-- User Dropdown -->
+              <!-- Theme Menu Dropdown -->
               <transition name="dropdown">
-                <div v-if="showUserMenu" class="user-dropdown card">
-                  <div class="dropdown-header">
-                    <div class="user-info">
-                      <p class="user-info-name">{{ user.displayName || user.email }}</p>
-                      <p class="user-info-email">{{ user.email }}</p>
-                    </div>
-                  </div>
-                  <div class="dropdown-divider"></div>
-                  <router-link 
-                    to="/settings" 
-                    class="dropdown-item"
-                    @click="showUserMenu = false"
-                  >
-                    <font-awesome-icon :icon="['fas', 'wrench']" />
-                    <span>Settings</span>
-                  </router-link>
-                  <router-link 
-                    to="/api-keys" 
-                    class="dropdown-item"
-                    @click="showUserMenu = false"
-                  >
-                    <font-awesome-icon :icon="['fas', 'code']" />
-                    <span>API Keys</span>
-                  </router-link>
-                  <div class="dropdown-divider"></div>
+                <div v-if="showThemeMenu" class="theme-menu card">
                   <button 
-                    @click="handleLogout"
-                    class="dropdown-item text-error"
+                    v-for="theme in themes" 
+                    :key="theme.value"
+                    @click="selectTheme(theme.value)"
+                    class="theme-option"
+                    :class="{ active: themePreference === theme.value }"
                   >
-                    <font-awesome-icon :icon="['fas', 'sign-out-alt']" />
-                    <span>Sign Out</span>
+                    <font-awesome-icon 
+                      :icon="['fas', theme.icon]" 
+                    />
+                    <span>{{ theme.label }}</span>
                   </button>
                 </div>
               </transition>
             </div>
-            
-            <!-- Sign In Button (Guest) -->
-            <router-link v-else to="/login" class="btn btn-primary btn-sm">
-              <font-awesome-icon 
-                :icon="['fas', 'sign-in-alt']" 
-                class="mr-xs"
-              />
-              Sign In
-            </router-link>
+
+            <!-- Auth Actions -->
+            <div v-if="!authLoading" class="auth-actions">
+              <!-- Authenticated User Menu -->
+              <div v-if="isAuthenticated" class="user-menu">
+                <button 
+                  @click="toggleUserMenu"
+                  class="user-menu-button flex items-center gap-xs"
+                >
+                  <span class="user-name">{{ displayName }}</span>
+                  <div class="user-avatar">
+                    {{ userInitials }}
+                  </div>
+                  <font-awesome-icon 
+                    :icon="['fas', 'chevron-down']" 
+                    size="xs"
+                  />
+                </button>
+                
+                <!-- User Dropdown -->
+                <transition name="dropdown">
+                  <div v-if="showUserMenu" class="user-dropdown card">
+                    <div class="dropdown-header">
+                      <div class="user-info">
+                        <p class="user-info-name">{{ user.displayName || user.email }}</p>
+                        <p class="user-info-email">{{ user.email }}</p>
+                      </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <router-link 
+                      to="/settings" 
+                      class="dropdown-item"
+                      @click="showUserMenu = false"
+                    >
+                      <font-awesome-icon :icon="['fas', 'wrench']" />
+                      <span>Settings</span>
+                    </router-link>
+                    <router-link 
+                      to="/api-keys" 
+                      class="dropdown-item"
+                      @click="showUserMenu = false"
+                    >
+                      <font-awesome-icon :icon="['fas', 'code']" />
+                      <span>API Keys</span>
+                    </router-link>
+                    <div class="dropdown-divider"></div>
+                    <button 
+                      @click="handleLogout"
+                      class="dropdown-item text-error"
+                    >
+                      <font-awesome-icon :icon="['fas', 'sign-out-alt']" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </transition>
+              </div>
+              
+              <!-- Sign In Button (Guest) -->
+              <router-link v-else to="/login" class="btn btn-primary btn-sm">
+                <font-awesome-icon 
+                  :icon="['fas', 'sign-in-alt']" 
+                  class="mr-xs"
+                />
+                Sign In
+              </router-link>
+            </div>
           </div>
 
           <!-- Mobile Menu Toggle -->
           <button 
             @click="showMobileMenu = !showMobileMenu"
-            class="mobile-menu-toggle btn btn-secondary btn-sm hidden block-sm"
+            class="mobile-menu-toggle btn btn-secondary btn-sm"
             :aria-label="showMobileMenu ? 'Close menu' : 'Open menu'"
           >
             <font-awesome-icon 
@@ -161,6 +164,27 @@
             <router-link to="/api" class="mobile-nav-link" @click="showMobileMenu = false">
               API Docs
             </router-link>
+            
+            <div class="mobile-nav-divider"></div>
+            
+            <!-- Mobile Theme Section -->
+            <div class="mobile-theme-section">
+              <p class="mobile-section-label">Theme</p>
+              <div class="mobile-theme-options">
+                <button 
+                  v-for="theme in themes" 
+                  :key="theme.value"
+                  @click="selectTheme(theme.value)"
+                  class="mobile-theme-option"
+                  :class="{ active: themePreference === theme.value }"
+                >
+                  <font-awesome-icon 
+                    :icon="['fas', theme.icon]" 
+                  />
+                  <span>{{ theme.label }}</span>
+                </button>
+              </div>
+            </div>
             
             <div class="mobile-nav-divider"></div>
             
@@ -222,6 +246,7 @@
 </template>
 
 <script setup>
+// [Script section remains the same as before]
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
@@ -304,6 +329,7 @@ const toggleUserMenu = (e) => {
 const selectTheme = (theme) => {
   emit('theme-change', theme)
   showThemeMenu.value = false
+  showMobileMenu.value = false
 }
 
 const handleLogout = async () => {
@@ -397,6 +423,13 @@ onUnmounted(() => {
 .nav-link.router-link-active {
   color: var(--color-primary);
   background-color: var(--color-primary-light);
+}
+
+/* Desktop Actions Container - FIXED */
+.desktop-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 /* Auth Actions */
@@ -584,6 +617,49 @@ onUnmounted(() => {
   margin: var(--space-md) 0;
 }
 
+/* Mobile Theme Section */
+.mobile-theme-section {
+  padding: var(--space-sm) 0;
+}
+
+.mobile-section-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.mobile-theme-options {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.mobile-theme-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.mobile-theme-option:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.mobile-theme-option.active {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+/* Mobile Auth Section */
 .mobile-auth-section {
   padding-top: var(--space-sm);
 }
@@ -636,8 +712,14 @@ onUnmounted(() => {
   transform: translateY(-100%);
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive - THIS IS THE KEY FIX */
 @media (max-width: 768px) {
+  /* Hide desktop actions on mobile */
+  .desktop-actions {
+    display: none !important;
+  }
+  
+  /* Show mobile menu toggle on mobile */
   .mobile-menu-toggle {
     display: flex;
   }
