@@ -3,14 +3,14 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 
-// Import your CSS
+// Import CSS
 import './assets/main.css'
 
 // FontAwesome imports
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-// Import the icons you need from free-solid-svg-icons
+// Import solid icons
 import { 
   faCloudUploadAlt,
   faClipboard,
@@ -18,55 +18,7 @@ import {
   faFileCode,
   faCheckCircle,
   faExclamationCircle,
-  faSpinner,
-  faTimes,
-  faTrash,
-  faDownload,
-  faCode,
-  faExternalLinkAlt,
-  faCheck,
-  faWrench,
-  faSun,
-  faMoon,
-  faDesktop,
-  faChevronDown,
-  faBars,
-  faSignInAlt,
-  faSearch,
-  faPlus,
-  faFrown,
-  faArrowUp,
-  faComment,
-  faCopy,
-  faChevronLeft,
-  faChevronRight,
-  faTrophy,
-  faMicrophone,
-  faLightbulb,
-  faUsers,
-  faEnvelope,
-  faSignOutAlt
-} from '@fortawesome/free-solid-svg-icons'
-
-// Import brand icons
-import {
-  faJs,
-  faPython,
-  faPhp,
-  faGithub,
-  faNode,
-  faLinkedin
-} from '@fortawesome/free-brands-svg-icons'
-
-// Add icons to the library
-library.add(
-  // Solid icons
-  faCloudUploadAlt,
-  faClipboard,
-  faFile,
-  faFileCode,
-  faCheckCircle,
-  faExclamationCircle,
+  faExclamationTriangle,
   faSpinner,
   faTimes,
   faTrash,
@@ -95,6 +47,62 @@ library.add(
   faUsers,
   faEnvelope,
   faSignOutAlt,
+  faLink,
+  faSave,
+  faShare
+} from '@fortawesome/free-solid-svg-icons'
+
+// Import brand icons
+import {
+  faJs,
+  faPython,
+  faPhp,
+  faGithub,
+  faNode,
+  faLinkedin
+} from '@fortawesome/free-brands-svg-icons'
+
+// Add icons to the library
+library.add(
+  // Solid icons
+  faCloudUploadAlt,
+  faClipboard,
+  faFile,
+  faFileCode,
+  faCheckCircle,
+  faExclamationCircle,
+  faExclamationTriangle,
+  faSpinner,
+  faTimes,
+  faTrash,
+  faDownload,
+  faCode,
+  faExternalLinkAlt,
+  faCheck,
+  faWrench,
+  faSun,
+  faMoon,
+  faDesktop,
+  faChevronDown,
+  faBars,
+  faSignInAlt,
+  faSearch,
+  faPlus,
+  faFrown,
+  faArrowUp,
+  faComment,
+  faCopy,
+  faChevronLeft,
+  faChevronRight,
+  faTrophy,
+  faMicrophone,
+  faLightbulb,
+  faUsers,
+  faEnvelope,
+  faSignOutAlt,
+  faLink,
+  faSave,
+  faShare,
   // Brand icons
   faJs,
   faPython,

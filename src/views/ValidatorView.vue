@@ -1,3 +1,420 @@
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { validateERN, getSupportedFormats, getValidationHistory, exportValidationReport } from '@/services/api'
+import { debounce } from '@/utils/debounce'
+
+// Router
+const router = useRouter()
+
+// Auth
+const { user, isAuthenticated } = useAuth()
+
+// State
+const inputMethod = ref('upload')
+const isDragging = ref(false)
+const selectedFile = ref(null)
+const xmlContent = ref('')
+const xmlUrl = ref('')
+const isLoadingUrl = ref(false)
+const isValidating = ref(false)
+const isValidatingRealtime = ref(false)
+const validationResult = ref(null)
+const realtimeErrors = ref([])
+const errorTab = ref('all')
+const errorSearch = ref('')
+const errorGroupBy = ref('line')
+const collapsedGroups = ref({})
+const showAdvanced = ref(false)
+const validationHistory = ref([])
+
+// Dynamic profiles support
+const supportedFormats = ref(null)
+const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
+
+const validationOptions = ref({
+  version: '4.3',
+  profile: 'AudioAlbum',
+  mode: 'full',
+  realtime: false,
+  strictMode: false,
+  validateReferences: true
+})
+
+// Computed
+const canValidate = computed(() => {
+  if (inputMethod.value === 'upload') return selectedFile.value
+  if (inputMethod.value === 'paste') return xmlContent.value.trim()
+  if (inputMethod.value === 'url') return xmlUrl.value.trim()
+  return false
+})
+
+const totalIssues = computed(() => {
+  if (!validationResult.value) return 0
+  return (validationResult.value.errors?.length || 0) + (validationResult.value.warnings?.length || 0)
+})
+
+const displayedErrors = computed(() => {
+  if (!validationResult.value) return []
+  
+  let errors = []
+  if (errorTab.value === 'all') {
+    errors = [...(validationResult.value.errors || []), ...(validationResult.value.warnings || [])]
+  } else if (errorTab.value === 'errors') {
+    errors = validationResult.value.errors || []
+  } else if (errorTab.value === 'warnings') {
+    errors = validationResult.value.warnings || []
+  }
+  
+  // Apply search filter
+  if (errorSearch.value) {
+    const search = errorSearch.value.toLowerCase()
+    errors = errors.filter(error => 
+      error.message.toLowerCase().includes(search) ||
+      error.rule?.toLowerCase().includes(search)
+    )
+  }
+  
+  return errors
+})
+
+const groupedAndFilteredErrors = computed(() => {
+  const errors = displayedErrors.value
+  const groups = {}
+  
+  errors.forEach(error => {
+    let key
+    switch (errorGroupBy.value) {
+      case 'type':
+        key = error.rule?.split('-')[0] || 'Other'
+        break
+      case 'severity':
+        key = error.severity
+        break
+      case 'line':
+      default:
+        key = `Line ${error.line}`
+        break
+    }
+    
+    if (!groups[key]) groups[key] = []
+    groups[key].push(error)
+  })
+  
+  // Sort groups
+  const sortedGroups = {}
+  Object.keys(groups).sort((a, b) => {
+    if (errorGroupBy.value === 'line') {
+      return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1])
+    }
+    return a.localeCompare(b)
+  }).forEach(key => {
+    sortedGroups[key] = groups[key]
+  })
+  
+  return sortedGroups
+})
+
+// Real-time validation debounced function
+const validateRealtime = debounce(async () => {
+  if (!validationOptions.value.realtime || !xmlContent.value || xmlContent.value.length < 100) {
+    realtimeErrors.value = []
+    return
+  }
+  
+  isValidatingRealtime.value = true
+  
+  try {
+    const result = await validateERN({
+      content: xmlContent.value,
+      type: 'ERN',
+      version: validationOptions.value.version,
+      profile: validationOptions.value.profile,
+      mode: 'quick' // Quick mode for real-time
+    })
+    
+    realtimeErrors.value = result.errors || []
+  } catch (error) {
+    console.error('Real-time validation error:', error)
+    realtimeErrors.value = []
+  } finally {
+    isValidatingRealtime.value = false
+  }
+}, 500)
+
+// Load supported formats on mount
+onMounted(async () => {
+  try {
+    const formats = await getSupportedFormats()
+    supportedFormats.value = formats
+    updateAvailableProfiles()
+  } catch (error) {
+    console.error('Failed to load supported formats:', error)
+  }
+  
+  // Load validation history if authenticated
+  if (isAuthenticated.value) {
+    loadValidationHistory()
+  }
+})
+
+// Watch for version changes to update available profiles
+watch(() => validationOptions.value.version, () => {
+  updateAvailableProfiles()
+})
+
+// Watch for real-time validation
+watch(xmlContent, (newContent) => {
+  if (validationOptions.value.realtime && newContent) {
+    validateRealtime()
+  }
+})
+
+// Methods
+const updateAvailableProfiles = () => {
+  if (!supportedFormats.value) return
+  
+  const versionConfig = supportedFormats.value.versions.find(
+    v => v.version === validationOptions.value.version
+  )
+  
+  if (versionConfig) {
+    availableProfiles.value = versionConfig.profiles
+    // Reset profile if current selection is not available
+    if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
+      validationOptions.value.profile = versionConfig.profiles[0] || ''
+    }
+  }
+}
+
+const handleDrop = (e) => {
+  e.preventDefault()
+  isDragging.value = false
+  
+  const files = e.dataTransfer.files
+  if (files.length > 0) {
+    const file = files[0]
+    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+      selectedFile.value = file
+    } else {
+      alert('Please drop an XML file')
+    }
+  }
+}
+
+const handleFileSelect = (e) => {
+  const files = e.target.files
+  if (files.length > 0) {
+    selectedFile.value = files[0]
+  }
+}
+
+const clearFile = () => {
+  selectedFile.value = null
+  if ($refs.fileInput) {
+    $refs.fileInput.value = ''
+  }
+}
+
+const loadFromUrl = async () => {
+  if (!xmlUrl.value) return
+  
+  isLoadingUrl.value = true
+  try {
+    const response = await fetch(xmlUrl.value)
+    if (!response.ok) throw new Error('Failed to load URL')
+    
+    const content = await response.text()
+    xmlContent.value = content
+    inputMethod.value = 'paste'
+  } catch (error) {
+    alert(`Failed to load XML from URL: ${error.message}`)
+  } finally {
+    isLoadingUrl.value = false
+  }
+}
+
+const handleXmlInput = (e) => {
+  // Update line numbers if needed
+  if (validationOptions.value.realtime) {
+    validateRealtime()
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+const countLines = (text) => {
+  return text.split('\n').length
+}
+
+const validateXML = async () => {
+  isValidating.value = true
+  validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
+  
+  try {
+    let content = xmlContent.value
+    
+    if (inputMethod.value === 'upload' && selectedFile.value) {
+      content = await readFileAsText(selectedFile.value)
+    }
+    
+    const result = await validateERN({
+      content,
+      type: 'ERN',
+      version: validationOptions.value.version,
+      profile: validationOptions.value.profile,
+      options: {
+        mode: validationOptions.value.mode,
+        strictMode: validationOptions.value.strictMode,
+        validateReferences: validationOptions.value.validateReferences
+      }
+    })
+    
+    validationResult.value = result
+    
+    // Save to history if authenticated
+    if (isAuthenticated.value) {
+      saveToHistory()
+    }
+  } catch (error) {
+    console.error('Validation error:', error)
+    validationResult.value = {
+      valid: false,
+      errors: [{
+        line: 0,
+        column: 0,
+        message: error.message || 'An error occurred during validation',
+        severity: 'error',
+        rule: 'System Error'
+      }],
+      warnings: [],
+      metadata: {
+        processingTime: 0,
+        schemaVersion: `ERN ${validationOptions.value.version}`,
+        validatedAt: new Date().toISOString(),
+        errorCount: 1,
+        warningCount: 0
+      }
+    }
+  } finally {
+    isValidating.value = false
+  }
+}
+
+const readFileAsText = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.onerror = reject
+    reader.readAsText(file)
+  })
+}
+
+const clearResults = () => {
+  validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
+  collapsedGroups.value = {}
+}
+
+const toggleGroup = (key) => {
+  collapsedGroups.value[key] = !collapsedGroups.value[key]
+}
+
+const formatGroupHeader = (key, groupBy) => {
+  if (groupBy === 'severity') {
+    return key.charAt(0).toUpperCase() + key.slice(1) + 's'
+  }
+  return key
+}
+
+const formatValidationMode = (mode) => {
+  const modes = {
+    'full': 'Full Validation',
+    'xsd': 'XSD Schema Only',
+    'business': 'Business Rules Only',
+    'quick': 'Quick Check'
+  }
+  return modes[mode] || mode
+}
+
+const openDDEXReference = (rule) => {
+  // Extract the actual rule ID and open DDEX knowledge base
+  const ruleId = rule.split('-').pop()
+  window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
+}
+
+const downloadReport = async () => {
+  try {
+    const blob = await exportValidationReport(validationResult.value.id || 'current', 'pdf')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to download report:', error)
+    alert('Failed to download report')
+  }
+}
+
+const saveToHistory = async () => {
+  // This would be implemented with the API
+  console.log('Saving to history...')
+}
+
+const shareResult = () => {
+  // Generate shareable link
+  const shareData = {
+    title: 'DDEX Validation Result',
+    text: `DDEX ERN ${validationOptions.value.version} validation: ${validationResult.value.valid ? 'Valid' : 'Invalid'}`,
+    url: window.location.href
+  }
+  
+  if (navigator.share) {
+    navigator.share(shareData)
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(shareData.url)
+    alert('Link copied to clipboard!')
+  }
+}
+
+const loadValidationHistory = async () => {
+  try {
+    const history = await getValidationHistory({ limit: 5 })
+    validationHistory.value = history.items || []
+  } catch (error) {
+    console.error('Failed to load validation history:', error)
+  }
+}
+
+const loadHistoryItem = (item) => {
+  // Load the historical validation
+  validationOptions.value.version = item.version
+  validationOptions.value.profile = item.profile
+  // You'd load the actual content from storage
+}
+
+const formatDate = (date) => {
+  const d = date.toDate ? date.toDate() : new Date(date)
+  return d.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+</script>
+
 <template>
   <div class="validator-view">
     <!-- Hero Section -->
@@ -562,423 +979,6 @@
     </section>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
-import { validateERN, getSupportedFormats, getValidationHistory, exportValidationReport } from '@/services/api'
-import { debounce } from '@/utils/debounce'
-
-// Router
-const router = useRouter()
-
-// Auth
-const { user, isAuthenticated } = useAuth()
-
-// State
-const inputMethod = ref('upload')
-const isDragging = ref(false)
-const selectedFile = ref(null)
-const xmlContent = ref('')
-const xmlUrl = ref('')
-const isLoadingUrl = ref(false)
-const isValidating = ref(false)
-const isValidatingRealtime = ref(false)
-const validationResult = ref(null)
-const realtimeErrors = ref([])
-const errorTab = ref('all')
-const errorSearch = ref('')
-const errorGroupBy = ref('line')
-const collapsedGroups = ref({})
-const showAdvanced = ref(false)
-const validationHistory = ref([])
-
-// Dynamic profiles support
-const supportedFormats = ref(null)
-const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
-
-const validationOptions = ref({
-  version: '4.3',
-  profile: 'AudioAlbum',
-  mode: 'full',
-  realtime: false,
-  strictMode: false,
-  validateReferences: true
-})
-
-// Computed
-const canValidate = computed(() => {
-  if (inputMethod.value === 'upload') return selectedFile.value
-  if (inputMethod.value === 'paste') return xmlContent.value.trim()
-  if (inputMethod.value === 'url') return xmlUrl.value.trim()
-  return false
-})
-
-const totalIssues = computed(() => {
-  if (!validationResult.value) return 0
-  return (validationResult.value.errors?.length || 0) + (validationResult.value.warnings?.length || 0)
-})
-
-const displayedErrors = computed(() => {
-  if (!validationResult.value) return []
-  
-  let errors = []
-  if (errorTab.value === 'all') {
-    errors = [...(validationResult.value.errors || []), ...(validationResult.value.warnings || [])]
-  } else if (errorTab.value === 'errors') {
-    errors = validationResult.value.errors || []
-  } else if (errorTab.value === 'warnings') {
-    errors = validationResult.value.warnings || []
-  }
-  
-  // Apply search filter
-  if (errorSearch.value) {
-    const search = errorSearch.value.toLowerCase()
-    errors = errors.filter(error => 
-      error.message.toLowerCase().includes(search) ||
-      error.rule?.toLowerCase().includes(search)
-    )
-  }
-  
-  return errors
-})
-
-const groupedAndFilteredErrors = computed(() => {
-  const errors = displayedErrors.value
-  const groups = {}
-  
-  errors.forEach(error => {
-    let key
-    switch (errorGroupBy.value) {
-      case 'type':
-        key = error.rule?.split('-')[0] || 'Other'
-        break
-      case 'severity':
-        key = error.severity
-        break
-      case 'line':
-      default:
-        key = `Line ${error.line}`
-        break
-    }
-    
-    if (!groups[key]) groups[key] = []
-    groups[key].push(error)
-  })
-  
-  // Sort groups
-  const sortedGroups = {}
-  Object.keys(groups).sort((a, b) => {
-    if (errorGroupBy.value === 'line') {
-      return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1])
-    }
-    return a.localeCompare(b)
-  }).forEach(key => {
-    sortedGroups[key] = groups[key]
-  })
-  
-  return sortedGroups
-})
-
-// Real-time validation debounced function
-const validateRealtime = debounce(async () => {
-  if (!validationOptions.value.realtime || !xmlContent.value || xmlContent.value.length < 100) {
-    realtimeErrors.value = []
-    return
-  }
-  
-  isValidatingRealtime.value = true
-  
-  try {
-    const result = await validateERN({
-      content: xmlContent.value,
-      type: 'ERN',
-      version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      mode: 'quick' // Quick mode for real-time
-    })
-    
-    realtimeErrors.value = result.errors || []
-  } catch (error) {
-    console.error('Real-time validation error:', error)
-    realtimeErrors.value = []
-  } finally {
-    isValidatingRealtime.value = false
-  }
-}, 500)
-
-// Load supported formats on mount
-onMounted(async () => {
-  try {
-    const formats = await getSupportedFormats()
-    supportedFormats.value = formats
-    updateAvailableProfiles()
-  } catch (error) {
-    console.error('Failed to load supported formats:', error)
-  }
-  
-  // Load validation history if authenticated
-  if (isAuthenticated.value) {
-    loadValidationHistory()
-  }
-})
-
-// Watch for version changes to update available profiles
-watch(() => validationOptions.value.version, () => {
-  updateAvailableProfiles()
-})
-
-// Watch for real-time validation
-watch(xmlContent, (newContent) => {
-  if (validationOptions.value.realtime && newContent) {
-    validateRealtime()
-  }
-})
-
-// Methods
-const updateAvailableProfiles = () => {
-  if (!supportedFormats.value) return
-  
-  const versionConfig = supportedFormats.value.versions.find(
-    v => v.version === validationOptions.value.version
-  )
-  
-  if (versionConfig) {
-    availableProfiles.value = versionConfig.profiles
-    // Reset profile if current selection is not available
-    if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
-      validationOptions.value.profile = versionConfig.profiles[0] || ''
-    }
-  }
-}
-
-const handleDrop = (e) => {
-  e.preventDefault()
-  isDragging.value = false
-  
-  const files = e.dataTransfer.files
-  if (files.length > 0) {
-    const file = files[0]
-    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-      selectedFile.value = file
-    } else {
-      alert('Please drop an XML file')
-    }
-  }
-}
-
-const handleFileSelect = (e) => {
-  const files = e.target.files
-  if (files.length > 0) {
-    selectedFile.value = files[0]
-  }
-}
-
-const clearFile = () => {
-  selectedFile.value = null
-  if ($refs.fileInput) {
-    $refs.fileInput.value = ''
-  }
-}
-
-const loadFromUrl = async () => {
-  if (!xmlUrl.value) return
-  
-  isLoadingUrl.value = true
-  try {
-    const response = await fetch(xmlUrl.value)
-    if (!response.ok) throw new Error('Failed to load URL')
-    
-    const content = await response.text()
-    xmlContent.value = content
-    inputMethod.value = 'paste'
-  } catch (error) {
-    alert(`Failed to load XML from URL: ${error.message}`)
-  } finally {
-    isLoadingUrl.value = false
-  }
-}
-
-const handleXmlInput = (e) => {
-  // Update line numbers if needed
-  if (validationOptions.value.realtime) {
-    validateRealtime()
-  }
-}
-
-const formatFileSize = (bytes) => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-const countLines = (text) => {
-  return text.split('\n').length
-}
-
-const validateXML = async () => {
-  isValidating.value = true
-  validationResult.value = null
-  errorTab.value = 'all'
-  errorSearch.value = ''
-  
-  try {
-    let content = xmlContent.value
-    
-    if (inputMethod.value === 'upload' && selectedFile.value) {
-      content = await readFileAsText(selectedFile.value)
-    }
-    
-    const result = await validateERN({
-      content,
-      type: 'ERN',
-      version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      options: {
-        mode: validationOptions.value.mode,
-        strictMode: validationOptions.value.strictMode,
-        validateReferences: validationOptions.value.validateReferences
-      }
-    })
-    
-    validationResult.value = result
-    
-    // Save to history if authenticated
-    if (isAuthenticated.value) {
-      saveToHistory()
-    }
-  } catch (error) {
-    console.error('Validation error:', error)
-    validationResult.value = {
-      valid: false,
-      errors: [{
-        line: 0,
-        column: 0,
-        message: error.message || 'An error occurred during validation',
-        severity: 'error',
-        rule: 'System Error'
-      }],
-      warnings: [],
-      metadata: {
-        processingTime: 0,
-        schemaVersion: `ERN ${validationOptions.value.version}`,
-        validatedAt: new Date().toISOString(),
-        errorCount: 1,
-        warningCount: 0
-      }
-    }
-  } finally {
-    isValidating.value = false
-  }
-}
-
-const readFileAsText = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target.result)
-    reader.onerror = reject
-    reader.readAsText(file)
-  })
-}
-
-const clearResults = () => {
-  validationResult.value = null
-  errorTab.value = 'all'
-  errorSearch.value = ''
-  collapsedGroups.value = {}
-}
-
-const toggleGroup = (key) => {
-  collapsedGroups.value[key] = !collapsedGroups.value[key]
-}
-
-const formatGroupHeader = (key, groupBy) => {
-  if (groupBy === 'severity') {
-    return key.charAt(0).toUpperCase() + key.slice(1) + 's'
-  }
-  return key
-}
-
-const formatValidationMode = (mode) => {
-  const modes = {
-    'full': 'Full Validation',
-    'xsd': 'XSD Schema Only',
-    'business': 'Business Rules Only',
-    'quick': 'Quick Check'
-  }
-  return modes[mode] || mode
-}
-
-const openDDEXReference = (rule) => {
-  // Extract the actual rule ID and open DDEX knowledge base
-  const ruleId = rule.split('-').pop()
-  window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
-}
-
-const downloadReport = async () => {
-  try {
-    const blob = await exportValidationReport(validationResult.value.id || 'current', 'pdf')
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Failed to download report:', error)
-    alert('Failed to download report')
-  }
-}
-
-const saveToHistory = async () => {
-  // This would be implemented with the API
-  console.log('Saving to history...')
-}
-
-const shareResult = () => {
-  // Generate shareable link
-  const shareData = {
-    title: 'DDEX Validation Result',
-    text: `DDEX ERN ${validationOptions.value.version} validation: ${validationResult.value.valid ? 'Valid' : 'Invalid'}`,
-    url: window.location.href
-  }
-  
-  if (navigator.share) {
-    navigator.share(shareData)
-  } else {
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(shareData.url)
-    alert('Link copied to clipboard!')
-  }
-}
-
-const loadValidationHistory = async () => {
-  try {
-    const history = await getValidationHistory({ limit: 5 })
-    validationHistory.value = history.items || []
-  } catch (error) {
-    console.error('Failed to load validation history:', error)
-  }
-}
-
-const loadHistoryItem = (item) => {
-  // Load the historical validation
-  validationOptions.value.version = item.version
-  validationOptions.value.profile = item.profile
-  // You'd load the actual content from storage
-}
-
-const formatDate = (date) => {
-  const d = date.toDate ? date.toDate() : new Date(date)
-  return d.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-</script>
 
 <style scoped>
 /* Hero Section */
