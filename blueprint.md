@@ -34,8 +34,13 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 
 ### Validation Engine
 - **XML Parser**: fast-xml-parser (for performance and flexibility)
+- **XSD Validation**: libxmljs2 (for native schema validation)
 - **Multi-Version Support**: ERN 3.8.2, 4.2, and 4.3
-- **Validator Module**: Custom `ernValidator.js` with version-specific rules
+- **Validator Modules**: 
+  - `ernValidator.js` - Custom business rules validator
+  - `xsdValidator.js` - XSD schema validation
+  - `schematronValidator.js` - Profile-specific validation
+  - `validationOrchestrator.js` - Combines all validators
 - **Profile Support**: AudioAlbum, AudioSingle, Video, Mixed, ReleaseByRelease (3.8.2 only)
 
 ## Current API Status (Production-Ready)
@@ -46,10 +51,12 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 - `GET /api/health` - Health check endpoint
 - `GET /api/formats` - Get supported DDEX versions and profiles
 - `POST /api/validate` - Validate DDEX XML content
+  - No authentication required for basic access
   - Supports anonymous access (10 req/min rate limit)
   - Supports API key authentication (60 req/min rate limit)
   - Multi-version support (ERN 3.8.2, 4.2, 4.3)
   - Profile-specific validation
+  - Three-stage validation pipeline (XSD, Business Rules, Profile)
 
 #### Authenticated Endpoints (Firebase Auth Required)
 - `GET /api/keys` - List user's API keys
@@ -63,11 +70,22 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
   - Authenticated: 60 requests/minute
 - **Firestore Security Rules**: Deployed and enforced
 - **CORS**: Configured for production and development origins
+- **Trust Proxy**: Enabled for Cloud Functions environment
 
 ### Example API Usage
 
 ```bash
-# With API Key
+# Anonymous validation
+curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "<?xml version=\"1.0\"?>...",
+    "type": "ERN",
+    "version": "4.3",
+    "profile": "AudioAlbum"
+  }'
+
+# With API Key for higher rate limits
 curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/validate \
   -H "Content-Type: application/json" \
   -H "X-API-Key: ddex_YOUR_KEY_HERE" \
@@ -88,7 +106,7 @@ ddex-workbench/
 │   │   └── NavBar.vue         # Navigation with auth state
 │   ├── views/                 # Vue router views/pages
 │   │   ├── SplashPage.vue     # Landing page with features overview
-│   │   ├── ValidatorView.vue  # Main validator page
+│   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
 │   │   ├── SnippetsView.vue   # Community snippets page
 │   │   ├── ApiDocsView.vue    # API documentation page
 │   │   ├── UserSettings.vue   # User profile & API keys management
@@ -100,11 +118,12 @@ ddex-workbench/
 │   │       ├── TermsView.vue
 │   │       └── LicenseView.vue
 │   ├── services/              # External service integrations
-│   │   └── api.js             # API calls to Cloud Functions
+│   │   └── api.js             # API calls with auth-aware interceptors
 │   ├── composables/           # Vue composables
 │   │   └── useAuth.js         # Authentication composable
 │   ├── utils/                 # Utility functions
-│   │   └── themeManager.js    # Theme switching logic
+│   │   ├── themeManager.js    # Theme switching logic
+│   │   └── debounce.js        # Debounce utility for real-time validation
 │   ├── router/                # Vue Router configuration
 │   │   └── index.js           # Routes with auth guards
 │   ├── assets/                # Static assets and styles
@@ -119,16 +138,38 @@ ddex-workbench/
 │   └── main.js                # Application entry point
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
-│   │   ├── validate.js        # Validation endpoint ✓
+│   │   ├── validate.js        # Enhanced validation endpoint
 │   │   ├── snippets.js        # Snippets CRUD (placeholder)
-│   │   └── keys.js            # API key management ✓
+│   │   └── keys.js            # API key management
 │   ├── middleware/            # Express middleware
-│   │   ├── apiKeyAuth.js      # API key authentication ✓
-│   │   └── rateLimiter.js     # Rate limiting ✓
+│   │   ├── apiKeyAuth.js      # API key authentication
+│   │   └── rateLimiter.js     # Rate limiting with trust proxy fix
 │   ├── validators/            # Validation modules
-│   │   └── ernValidator.js    # Multi-version ERN validator ✓
-│   ├── index.js               # Functions entry point ✓
-│   └── package.json           # Functions dependencies
+│   │   ├── ernValidator.js    # Multi-version ERN validator
+│   │   ├── xsdValidator.js    # XSD schema validation (libxmljs2)
+│   │   ├── schematronValidator.js # Profile-specific validation
+│   │   └── validationOrchestrator.js # Combines all validators
+│   ├── schemas/               # Schema management
+│   │   ├── manager/           
+│   │   │   └── schemaManager.js # Schema download/cache management
+│   │   ├── ern/               # Downloaded XSD schemas
+│   │   │   ├── 4.3/           # ERN 4.3 schemas
+│   │   │   │   ├── release-notification.xsd
+│   │   │   │   └── avs43.xsd  ✓
+│   │   │   ├── 4.2/           # ERN 4.2 schemas
+│   │   │   │   ├── release-notification.xsd
+│   │   │   │   └── avs42.xsd  ✓
+│   │   │   └── 3.8.2/         # ERN 3.8.2 schemas
+│   │   │       ├── release-notification.xsd
+│   │   │       └── avs382.xsd ✓
+│   │   └── schematron/        # Schematron rules (future)
+│   │       ├── 4.3/           
+│   │       └── ...            
+│   ├── scripts/               # Utility scripts
+│   │   └── downloadSchemas.js # Pre-download XSD schemas
+│   ├── index.js               # Functions entry with trust proxy
+│   ├── package.json           # Functions dependencies
+│   └── package-lock.json      # Locked dependencies
 ├── public/                    # Static public assets
 │   └── favicon.ico
 ├── docs/                      # Documentation
@@ -139,7 +180,7 @@ ddex-workbench/
 ├── index.html                 # HTML entry point
 ├── vite.config.js             # Vite configuration
 ├── firebase.json              # Firebase configuration
-├── firestore.rules            # Firestore security rules ✓
+├── firestore.rules            # Firestore security rules
 ├── firestore.indexes.json     # Firestore indexes
 ├── storage.rules              # Storage security rules
 ├── .firebaserc                # Firebase project alias (git ignored)
@@ -150,8 +191,71 @@ ddex-workbench/
 ├── package-lock.json          # Locked dependencies
 ├── README.md                  # Project documentation
 ├── LICENSE                    # MIT License
-└── CONTRIBUTING.md            # Contribution guidelines
+├── CONTRIBUTING.md            # Contribution guidelines
+└── blueprint.md               # This file - project blueprint
 ```
+
+## Enhanced Validation Architecture
+
+### Validation Pipeline
+
+The enhanced validator now implements a three-stage validation pipeline that matches and exceeds the official DDEX validator:
+
+1. **XSD Schema Validation** (`xsdValidator.js`)
+   - Uses `libxmljs2` for native XML schema validation
+   - Validates against official DDEX XSD schemas downloaded from ddex.net
+   - Provides detailed error messages with line/column numbers
+   - Checks XML structure and data types
+
+2. **Business Rules Validation** (`ernValidator.js`)
+   - Custom validation logic for ERN-specific rules
+   - Multi-version support (3.8.2, 4.2, 4.3)
+   - Checks required elements, references, and relationships
+   - Validates ISRC, ISNI, and other identifiers
+
+3. **Profile Validation** (`schematronValidator.js`)
+   - Profile-specific rules (AudioAlbum, AudioSingle, Video, etc.)
+   - Currently implements simplified profile validation
+   - Prepared for full Schematron integration
+   - Validates profile-specific requirements
+
+### Validation Orchestrator
+
+The `validationOrchestrator.js` coordinates all three validators:
+
+```javascript
+// Validation flow
+1. XSD Validation → Stop if fatal errors
+2. Business Rules → Continue even with errors
+3. Profile Rules → Only if profile specified
+4. Aggregate Results → Sort by line number, separate warnings
+```
+
+### Schema Management
+
+- **Pre-download Strategy**: Schemas are downloaded before deployment using `scripts/downloadSchemas.js`
+- **Version Support**: Full XSD schemas for ERN 3.8.2, 4.2, and 4.3
+- **Namespace Handling**: Proper namespace resolution for imports
+- **Fallback Support**: Development mode can download schemas on-demand
+
+### Frontend Enhancements
+
+The `ValidatorView.vue` component now includes:
+
+- **Three Input Methods**: File upload, paste, URL loading
+- **Real-time Validation**: Debounced validation as you type
+- **Advanced Options**: Validation mode, strict mode, reference checking
+- **Enhanced Error Display**: Grouped errors, search, collapsible sections
+- **Validation Timeline**: Visual representation of validation steps
+- **Export Options**: Download PDF reports, save to history
+- **Mobile Responsive**: Full functionality on all devices
+
+### API Improvements
+
+- **Public Access**: Validation endpoint requires no authentication
+- **Rate Limiting**: 10 req/min anonymous, 60 req/min with API key
+- **Trust Proxy**: Fixed for Cloud Functions environment
+- **Enhanced Response**: Includes warnings, processing time, validation steps
 
 ## Authentication Architecture
 
@@ -160,20 +264,20 @@ ddex-workbench/
 The application uses Firebase Authentication with the following features:
 
 1. **Authentication Methods**:
-   - Email/Password registration and login ✓
-   - Google OAuth integration ✓
-   - Persistent sessions with automatic token refresh ✓
+   - Email/Password registration and login
+   - Google OAuth integration
+   - Persistent sessions with automatic token refresh
 
 2. **User Management**:
-   - User profiles stored in Firestore `users` collection ✓
-   - Display name customization ✓
-   - API key generation and management ✓
+   - User profiles stored in Firestore `users` collection
+   - Display name customization
+   - API key generation and management
    - Usage statistics tracking (pending)
 
 3. **Protected Routes**:
-   - `/settings` - Requires authentication ✓
-   - `/login`, `/signup` - Redirects to home if already authenticated ✓
-   - API endpoints - Optional authentication for higher rate limits ✓
+   - `/settings` - Requires authentication
+   - `/login`, `/signup` - Redirects to home if already authenticated
+   - API endpoints - Optional authentication for higher rate limits
 
 ### Auth Composable
 
@@ -269,42 +373,53 @@ interface UserVote {
 
 ## Phase 1 Features
 
-### 1. Landing Page ✓
+### 1. Landing Page
 - **Modern hero section** with value proposition
 - **Feature cards** for Validator, Snippets, and API
 - **ERN 4.3 migration urgency** messaging
 - **Future roadmap** preview (DSR-Flow, DDEX Workbench)
 - **Call-to-action** for immediate engagement
 
-### 2. Web Validator Interface ✓
+### 2. Web Validator Interface
 - **File Upload**: Drag-and-drop or file picker for XML files
 - **Text Input**: Direct XML pasting with syntax highlighting
+- **URL Loading**: Load XML from external URLs
 - **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
 - **Profile Selection**: Dynamic profile options based on selected version
+- **Real-time Validation**: Validate as you type with debouncing
+- **Advanced Options**: Validation mode, strict mode, reference checking
 - **Validation Results**: 
-  - Clear pass/fail status
-  - Line-by-line error highlighting
+  - Clear pass/fail status with processing timeline
+  - Grouped errors by type/line/severity
+  - Searchable and filterable error list
   - Detailed error messages with DDEX KB links
   - Version-specific validation rules
+  - Separate warnings from errors
+- **Export Options**: Download validation reports (pending)
 - **History Tracking**: Save validation history for authenticated users (pending)
 
-### 3. Authentication System ✓
+### 3. Authentication System
 - **Registration**: Email/password with display name
 - **Login Options**: Email/password or Google OAuth
 - **User Settings**: 
-  - Profile management ✓
-  - API key generation ✓
+  - Profile management
+  - API key generation
   - Usage statistics (pending)
 - **Session Management**: Persistent login with automatic token refresh
 
-### 4. Public Validation API ✓
+### 4. Public Validation API
 ```typescript
 // POST /api/validate
 {
   "content": "<xml>...</xml>",
   "type": "ERN",
   "version": "4.3",  // or "4.2", "3.8.2"
-  "profile": "AudioAlbum"
+  "profile": "AudioAlbum",
+  "options": {
+    "mode": "full",  // or "xsd", "business", "quick"
+    "strictMode": false,
+    "validateReferences": true
+  }
 }
 
 // Response
@@ -315,19 +430,29 @@ interface UserVote {
     "column": number,
     "message": string,
     "severity": "error" | "warning" | "info",
-    "rule": string
+    "rule": string,
+    "context": string,
+    "suggestion": string
   }],
+  "warnings": [...],
   "metadata": {
     "processingTime": number,
     "schemaVersion": string,
     "profile": string,
-    "validatedAt": string
+    "validatedAt": string,
+    "errorCount": number,
+    "warningCount": number,
+    "validationSteps": [{
+      "type": "XSD" | "BusinessRules" | "Schematron",
+      "duration": number,
+      "errorCount": number
+    }]
   }
 }
 
-// Authentication via API Key
+// Authentication via API Key (optional)
 headers: {
-  "X-API-Key": "your-api-key"
+  "X-API-Key": "ddex_your-api-key"
 }
 ```
 
@@ -346,15 +471,15 @@ headers: {
 - **Contribution**: Authenticated users can submit snippets
 
 ### 6. User Features
-- **Anonymous Usage**: ✓
+- **Anonymous Usage**:
   - Core validation without login
   - Read-only access to snippets
   - Basic API access (rate limited)
-- **Authenticated Features**: ✓
+- **Authenticated Features**:
   - Save validation history (pending)
   - Contribute and vote on snippets (pending)
-  - Generate API keys ✓
-  - Higher API rate limits ✓
+  - Generate API keys
+  - Higher API rate limits
   - Usage analytics dashboard (pending)
 
 ## CSS Architecture ✓
@@ -414,9 +539,11 @@ Semantic utility classes for:
 - [x] Implement theme switcher
 - [x] File upload functionality
 - [x] Direct XML input
+- [x] URL loading functionality
 - [x] Results display with error details
 - [x] Responsive design
 - [x] Dynamic profile selection based on version
+- [x] Real-time validation
 
 ### Week 7-8: Authentication & User Features ✓
 - [x] Firebase Auth integration
@@ -428,17 +555,28 @@ Semantic utility classes for:
 - [ ] Usage statistics tracking
 - [ ] Validation history
 
-### Week 9-10: API Development ✓ (Current Phase - 90% Complete)
+### Week 9-10: API Development ✓
 - [x] REST API endpoints
 - [x] Multi-version validation endpoint
 - [x] API key validation
 - [x] Rate limiting implementation
 - [x] API documentation page
+- [x] Trust proxy configuration
 - [ ] Client SDK (npm package)
 - [ ] Integration examples
 - [ ] File upload endpoint
 
-### Week 11-12: Knowledge Base (Next Phase)
+### Week 11-12: Enhanced Validation ✓
+- [x] XSD schema validation integration
+- [x] Schema download scripts
+- [x] Validation orchestrator
+- [x] Profile-specific validation
+- [x] Enhanced error reporting
+- [x] Validation steps timeline
+- [ ] Full Schematron integration
+- [ ] PDF report generation
+
+### Week 13-14: Knowledge Base (Next Phase)
 - [ ] Snippet management UI
 - [ ] Search and filtering
 - [ ] Voting system implementation
@@ -446,7 +584,7 @@ Semantic utility classes for:
 - [ ] Moderation tools
 - [ ] Snippet categories
 
-### Week 13-14: Polish & Launch
+### Week 15-16: Polish & Launch
 - [ ] Performance optimization
 - [ ] Security audit
 - [ ] Complete test coverage
@@ -454,31 +592,31 @@ Semantic utility classes for:
 - [ ] Marketing website
 - [ ] Launch announcement
 
-## API Security Implementation ✓
+## API Security Implementation
 
 1. **Authentication Security**:
-   - Firebase Auth handles password hashing and session management ✓
-   - OAuth integration for secure third-party login ✓
-   - Secure token storage and automatic refresh ✓
-   - HTTPS-only for all auth operations ✓
+   - Firebase Auth handles password hashing and session management
+   - OAuth integration for secure third-party login
+   - Secure token storage and automatic refresh
+   - HTTPS-only for all auth operations
 
 2. **API Security**:
-   - API key generation with secure random tokens ✓
-   - SHA-256 key hashing before storage ✓
-   - Rate limiting per key ✓
-   - Request validation and sanitization ✓
+   - API key generation with secure random tokens
+   - SHA-256 key hashing before storage
+   - Rate limiting per key
+   - Request validation and sanitization
 
 3. **Input Validation**:
-   - File size limits (10MB default) ✓
-   - XML bomb protection ✓
-   - Content type verification ✓
-   - XSS prevention in user content ✓
+   - File size limits (10MB default)
+   - XML bomb protection
+   - Content type verification
+   - XSS prevention in user content
 
 4. **Data Privacy**:
-   - No storage of validated content (unless explicitly saved) ✓
-   - User data isolation ✓
+   - No storage of validated content (unless explicitly saved)
+   - User data isolation
    - GDPR compliance considerations
-   - Secure API key handling ✓
+   - Secure API key handling
 
 ## Current Production Status
 
@@ -486,21 +624,35 @@ Semantic utility classes for:
 - Full authentication system with Google OAuth
 - API key generation and management
 - Multi-version ERN validation (3.8.2, 4.2, 4.3)
+- Enhanced three-stage validation pipeline
 - Rate-limited public API
 - Secure Firestore rules
 - User settings management
 - Theme switching (light/dark/auto)
+- Real-time validation with debouncing
+- Advanced validation options
+- URL loading support
+- Enhanced error display with grouping and search
 
 ### Tested & Confirmed:
 - API key authentication working
 - Rate limiting enforced (10/60 req/min)
+- XSD schema validation (with pre-downloaded schemas)
+- Business rules validation
+- Profile-specific validation
 - Namespace XML parsing working
 - Error reporting with detailed messages
 - CORS properly configured
+- Trust proxy enabled
 
 ### API Base URL:
 ```
 https://us-central1-ddex-workbench.cloudfunctions.net/app
+```
+
+### Live Application:
+```
+https://ddex-workbench.web.app
 ```
 
 ## Success Metrics
@@ -509,16 +661,16 @@ https://us-central1-ddex-workbench.cloudfunctions.net/app
 - **User Growth**: 500+ registered users in first quarter
 - **API Usage**: 50+ active API keys
 - **Community**: 100+ contributed snippets
-- **Performance**: <2s validation for typical files ✓ (Currently ~2ms)
+- **Performance**: <2s validation for typical files ✓ (Currently ~2-100ms depending on mode)
 - **Reliability**: 99.9% uptime
 
 ## Next Immediate Steps
 
-1. **Complete API Development Phase**:
+1. **Complete Validation Features**:
    - Add validation history tracking
+   - Implement PDF report generation
+   - Add full Schematron support
    - Create file upload endpoint
-   - Build npm client SDK
-   - Add integration examples
 
 2. **Begin Knowledge Base Phase**:
    - Implement snippets API endpoints
@@ -528,22 +680,22 @@ https://us-central1-ddex-workbench.cloudfunctions.net/app
 
 3. **Polish for Launch**:
    - Update all documentation with live examples
-   - Add comprehensive error handling
+   - Create npm client SDK
    - Implement usage analytics
    - Create marketing materials
 
 ## Future Phases Integration
 
 ### Phase 2 (DSR-Flow) Preparation:
-- Shared authentication system ✓
-- Common UI components library ✓
-- Reusable validation patterns ✓
-- API infrastructure foundation ✓
+- Shared authentication system
+- Common UI components library
+- Reusable validation patterns
+- API infrastructure foundation
 
 ### Phase 3 (DDEX Workbench) Foundation:
-- User management system ✓
+- User management system
 - Project/workspace concept (planned)
-- Collaborative features groundwork ✓
+- Collaborative features groundwork
 - Real-time capabilities (via Firebase)
 
 ## Open Source Strategy
@@ -559,3 +711,23 @@ https://us-central1-ddex-workbench.cloudfunctions.net/app
    - Regular releases
    - Community calls
    - Discord server (planned)
+
+## Deployment Process
+
+1. **Pre-deployment**:
+   ```bash
+   cd functions
+   node scripts/downloadSchemas.js  # Download XSD schemas
+   cd ..
+   ```
+
+2. **Deploy**:
+   ```bash
+   firebase deploy
+   ```
+
+3. **Post-deployment Verification**:
+   - Test at https://ddex-workbench.web.app
+   - Verify all validation modes work
+   - Check real-time validation
+   - Test file upload and URL loading

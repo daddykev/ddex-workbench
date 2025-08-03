@@ -1,11 +1,20 @@
+// functions/api/validate.js
 const express = require('express');
 const router = express.Router();
 const { ERNValidator } = require('../validators/ernValidator');
 
-// Validation endpoint
+// Validation endpoint - NO AUTHENTICATION REQUIRED
 router.post('/', async (req, res) => {
   try {
     const { content, type, version, profile } = req.body;
+    
+    // Log request for debugging
+    console.log('Validation request:', { 
+      type, 
+      version, 
+      profile, 
+      contentLength: content?.length 
+    });
     
     if (!content) {
       return res.status(400).json({
@@ -64,7 +73,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get supported versions and profiles
+// Get supported versions and profiles - PUBLIC ENDPOINT
 router.get('/formats', (req, res) => {
   const { ERN_CONFIGS } = require('../validators/ernValidator');
   

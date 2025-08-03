@@ -29,21 +29,34 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      // Get current user token if authenticated
-      const user = auth.currentUser
-      if (user) {
-        const token = await user.getIdToken()
-        config.headers.Authorization = `Bearer ${token}`
+      // Only add auth token for endpoints that require it
+      const authRequiredEndpoints = [
+        '/api/snippets',
+        '/api/keys',
+        '/api/validations/history',
+        '/api/validations/*/export'
+      ];
+      
+      const requiresAuth = authRequiredEndpoints.some(endpoint => 
+        config.url.includes(endpoint)
+      );
+      
+      if (requiresAuth) {
+        const user = auth.currentUser;
+        if (user) {
+          const token = await user.getIdToken();
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (error) {
-      console.warn('Failed to get auth token:', error)
+      console.warn('Failed to get auth token:', error);
     }
-    return config
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(

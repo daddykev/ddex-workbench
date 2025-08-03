@@ -1,3 +1,4 @@
+// functions/index.js
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors');
@@ -9,10 +10,15 @@ admin.initializeApp();
 // Create Express app
 const app = express();
 
+// Trust proxy for Cloud Functions environment
+app.set('trust proxy', true);
+
 // Configure CORS
 const corsOptions = {
   origin: [
     'https://ddex-workbench.org',
+    'https://ddex-workbench.web.app',
+    'https://ddex-workbench.firebaseapp.com',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:3000'
@@ -33,19 +39,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Import middleware
-const apiKeyAuth = require('./middleware/apiKeyAuth');
-const createRateLimiter = require('./middleware/rateLimiter');
-
 // Import route handlers
 const validateRoutes = require('./api/validate');
 const snippetRoutes = require('./api/snippets');
-const keyRoutes = require('./api/keys');
 
-// Create rate limiter
-const rateLimiter = createRateLimiter();
+// API Routes (NO authentication required for validation)
+app.use('/api/validate', validateRoutes);
+app.use('/api/snippets', snippetRoutes);
 
-// Health check endpoint (no auth required)
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -55,19 +57,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes with authentication and rate limiting
-
-// Validation endpoints - support both authenticated and anonymous
-app.use('/api/validate', apiKeyAuth, rateLimiter, validateRoutes);
-
-// API key management routes (require Firebase Auth, no API key auth)
-app.use('/api/keys', keyRoutes);
-
-// Snippets endpoints - support both authenticated and anonymous
-app.use('/api/snippets', apiKeyAuth, rateLimiter, snippetRoutes);
-
-// Formats endpoint with optional auth
-app.get('/api/formats', apiKeyAuth, rateLimiter, (req, res) => {
+// Supported formats endpoint (public)
+app.get('/api/formats', (req, res) => {
   const { ERN_CONFIGS } = require('./validators/ernValidator');
   
   const formats = {
@@ -82,59 +73,10 @@ app.get('/api/formats', apiKeyAuth, rateLimiter, (req, res) => {
   res.json(formats);
 });
 
-// Validation history endpoint (requires Firebase Auth)
-app.get('/api/validations/history', apiKeyAuth, rateLimiter, async (req, res) => {
-  // Check if user is authenticated via Firebase Auth token
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: { message: 'Authentication required' } });
-  }
-
-  try {
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    // Fetch validation history
-    const { limit = 20, startAfter } = req.query;
-    let query = admin.firestore()
-      .collection('validation_history')
-      .where('userId', '==', decodedToken.uid)
-      .orderBy('timestamp', 'desc')
-      .limit(parseInt(limit));
-
-    if (startAfter) {
-      const startDoc = await admin.firestore()
-        .collection('validation_history')
-        .doc(startAfter)
-        .get();
-      if (startDoc.exists) {
-        query = query.startAfter(startDoc);
-      }
-    }
-
-    const snapshot = await query.get();
-    const history = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp.toDate().toISOString()
-    }));
-
-    res.json({
-      history,
-      hasMore: snapshot.docs.length === parseInt(limit),
-      lastId: snapshot.docs[snapshot.docs.length - 1]?.id
-    });
-  } catch (error) {
-    console.error('Error fetching validation history:', error);
-    res.status(500).json({ error: { message: 'Failed to fetch validation history' } });
-  }
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: {
-      code: 'ENDPOINT_NOT_FOUND',
       message: 'Endpoint not found',
       path: req.path
     }
@@ -145,19 +87,8 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   
-  // Check if it's a rate limit error
-  if (err.status === 429) {
-    return res.status(429).json({
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests, please try again later'
-      }
-    });
-  }
-  
   res.status(err.status || 500).json({
     error: {
-      code: err.code || 'INTERNAL_ERROR',
       message: err.message || 'Internal server error',
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     }

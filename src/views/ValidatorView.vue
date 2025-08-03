@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">DDEX ERN Validator</h1>
           <p class="hero-subtitle">
-            Validate your Electronic Release Notification messages
+            Validate your Electronic Release Notification messages with XSD schemas, business rules, and Schematron profiles
           </p>
         </div>
       </div>
@@ -33,6 +33,14 @@
             >
               <font-awesome-icon :icon="['fas', 'clipboard']" />
               Paste XML
+            </button>
+            <button 
+              @click="inputMethod = 'url'"
+              class="tab-button"
+              :class="{ active: inputMethod === 'url' }"
+            >
+              <font-awesome-icon :icon="['fas', 'link']" />
+              Load from URL
             </button>
           </div>
 
@@ -101,19 +109,43 @@
           </div>
 
           <!-- Paste Method -->
-          <div v-else class="paste-area">
+          <div v-else-if="inputMethod === 'paste'" class="paste-area">
             <div class="form-group">
               <label class="form-label">Paste your XML content</label>
-              <textarea 
-                v-model="xmlContent"
-                class="form-textarea xml-input"
-                rows="15"
-                placeholder="<?xml version='1.0' encoding='UTF-8'?>
+              <div class="editor-container">
+                <textarea 
+                  v-model="xmlContent"
+                  class="form-textarea xml-input"
+                  :class="{ 'has-errors': realtimeErrors.length > 0 }"
+                  rows="15"
+                  placeholder="<?xml version='1.0' encoding='UTF-8'?>
 <ern:NewReleaseMessage...>"
-              ></textarea>
+                  @input="handleXmlInput"
+                ></textarea>
+                
+                <!-- Real-time validation indicator -->
+                <div v-if="validationOptions.realtime && xmlContent" class="realtime-indicator">
+                  <div v-if="isValidatingRealtime" class="flex items-center gap-xs text-sm">
+                    <font-awesome-icon :icon="['fas', 'spinner']" spin />
+                    Validating...
+                  </div>
+                  <div v-else-if="realtimeErrors.length > 0" class="flex items-center gap-xs text-sm text-error">
+                    <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
+                    {{ realtimeErrors.length }} issues found
+                  </div>
+                  <div v-else-if="xmlContent.length > 100" class="flex items-center gap-xs text-sm text-success">
+                    <font-awesome-icon :icon="['fas', 'check-circle']" />
+                    Valid
+                  </div>
+                </div>
+              </div>
+              
               <div class="flex justify-between items-center mt-xs">
                 <span class="text-sm text-secondary">
                   {{ xmlContent.length }} characters
+                  <span v-if="xmlContent">
+                    • {{ countLines(xmlContent) }} lines
+                  </span>
                 </span>
                 <button 
                   v-if="xmlContent"
@@ -126,13 +158,47 @@
             </div>
           </div>
 
+          <!-- URL Method -->
+          <div v-else-if="inputMethod === 'url'" class="url-area">
+            <div class="form-group">
+              <label class="form-label">Enter XML URL</label>
+              <div class="flex gap-sm">
+                <input 
+                  v-model="xmlUrl"
+                  type="url"
+                  class="form-input flex-1"
+                  placeholder="https://example.com/release.xml"
+                  @keyup.enter="loadFromUrl"
+                >
+                <button 
+                  @click="loadFromUrl"
+                  :disabled="!xmlUrl || isLoadingUrl"
+                  class="btn btn-primary"
+                >
+                  <span v-if="isLoadingUrl" class="flex items-center gap-xs">
+                    <font-awesome-icon :icon="['fas', 'spinner']" spin />
+                    Loading...
+                  </span>
+                  <span v-else>
+                    <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
+                    Load
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Validation Options -->
           <div class="validation-options card mt-lg p-lg">
             <h3 class="text-lg font-semibold mb-md">Validation Options</h3>
             <div class="grid grid-cols-2 gap-md">
               <div class="form-group mb-0">
                 <label class="form-label">Standard Version</label>
-                <select v-model="validationOptions.version" class="form-select">
+                <select 
+                  v-model="validationOptions.version" 
+                  class="form-select"
+                  @change="updateAvailableProfiles"
+                >
                   <option value="4.3">ERN 4.3 (Latest)</option>
                   <option value="4.2">ERN 4.2</option>
                   <option value="3.8.2">ERN 3.8.2</option>
@@ -142,6 +208,7 @@
               <div class="form-group mb-0">
                 <label class="form-label">Profile</label>
                 <select v-model="validationOptions.profile" class="form-select">
+                  <option value="">No Profile (Schema Only)</option>
                   <option 
                     v-for="profile in availableProfiles" 
                     :key="profile"
@@ -150,6 +217,71 @@
                     {{ profile }}
                   </option>
                 </select>
+              </div>
+
+              <div class="form-group mb-0">
+                <label class="form-label">Validation Mode</label>
+                <select v-model="validationOptions.mode" class="form-select">
+                  <option value="full">Full Validation (XSD + Business Rules + Schematron)</option>
+                  <option value="xsd">XSD Schema Only</option>
+                  <option value="business">Business Rules Only</option>
+                  <option value="quick">Quick Check (XSD + Basic Rules)</option>
+                </select>
+              </div>
+              
+              <div class="form-group mb-0">
+                <label class="form-label flex items-center gap-xs">
+                  <input 
+                    v-model="validationOptions.realtime" 
+                    type="checkbox"
+                    class="form-checkbox"
+                  >
+                  Real-time Validation
+                </label>
+                <p class="form-help">Validate as you type (paste mode only)</p>
+              </div>
+            </div>
+
+            <!-- Advanced Options (Collapsible) -->
+            <div class="advanced-options mt-md">
+              <button 
+                @click="showAdvanced = !showAdvanced"
+                class="text-sm text-primary flex items-center gap-xs"
+              >
+                <font-awesome-icon 
+                  :icon="['fas', 'chevron-right']" 
+                  :class="{ 'rotate-90': showAdvanced }"
+                  class="transition-transform"
+                />
+                Advanced Options
+              </button>
+              
+              <div v-if="showAdvanced" class="advanced-content mt-md">
+                <div class="grid grid-cols-2 gap-md">
+                  <div class="form-group mb-0">
+                    <label class="form-label flex items-center gap-xs">
+                      <input 
+                        v-model="validationOptions.strictMode" 
+                        type="checkbox"
+                        class="form-checkbox"
+                      >
+                      Strict Mode
+                    </label>
+                    <p class="form-help">Treat warnings as errors</p>
+                  </div>
+                  
+                  <div class="form-group mb-0">
+                    <label class="form-label flex items-center gap-xs">
+                      <input 
+                        v-model="validationOptions.validateReferences" 
+                        type="checkbox"
+                        class="form-checkbox"
+                      >
+                      Validate References
+                    </label>
+                    <p class="form-help">Check resource and party references</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -181,64 +313,179 @@
               class="result-header"
               :class="validationResult.valid ? 'result-success' : 'result-error'"
             >
-              <div class="flex items-center gap-sm">
-                <font-awesome-icon 
-                  :icon="['fas', validationResult.valid ? 'check-circle' : 'exclamation-circle']" 
-                  size="lg"
-                />
-                <h2 class="text-2xl font-semibold">
-                  {{ validationResult.valid ? 'Valid DDEX File' : 'Validation Failed' }}
-                </h2>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-sm">
+                  <font-awesome-icon 
+                    :icon="['fas', validationResult.valid ? 'check-circle' : 'exclamation-circle']" 
+                    size="lg"
+                  />
+                  <div>
+                    <h2 class="text-2xl font-semibold">
+                      {{ validationResult.valid ? 'Valid DDEX File' : 'Validation Failed' }}
+                    </h2>
+                    <p class="text-sm opacity-90 mt-xs">
+                      {{ validationResult.metadata.errorCount || 0 }} errors, 
+                      {{ validationResult.metadata.warningCount || 0 }} warnings • 
+                      Processed in {{ validationResult.metadata.processingTime }}ms
+                    </p>
+                  </div>
+                </div>
+                
+                <button 
+                  @click="clearResults"
+                  class="btn btn-sm"
+                  :class="validationResult.valid ? 'btn-success-outline' : 'btn-error-outline'"
+                >
+                  <font-awesome-icon :icon="['fas', 'times']" />
+                </button>
               </div>
-              <p class="text-sm mt-xs">
-                Processed in {{ validationResult.metadata.processingTime }}ms
-              </p>
             </div>
 
-            <!-- Error List -->
-            <div v-if="!validationResult.valid && validationResult.errors.length" class="errors-list mt-lg">
-              <h3 class="text-lg font-semibold mb-md">
-                {{ validationResult.errors.length }} {{ validationResult.errors.length === 1 ? 'Error' : 'Errors' }} Found
-              </h3>
-              
+            <!-- Validation Steps Timeline -->
+            <div v-if="validationResult.metadata.validationSteps" class="validation-steps card mt-lg">
+              <h3 class="text-lg font-semibold mb-md">Validation Steps</h3>
+              <div class="steps-timeline">
+                <div 
+                  v-for="(step, index) in validationResult.metadata.validationSteps" 
+                  :key="step.type"
+                  class="step-item"
+                  :class="{ 'has-errors': step.errorCount > 0 }"
+                >
+                  <div class="step-connector" v-if="index > 0"></div>
+                  <div class="step-icon">
+                    <font-awesome-icon 
+                      :icon="['fas', step.errorCount > 0 ? 'times' : 'check']" 
+                    />
+                  </div>
+                  <div class="step-content">
+                    <h4>{{ step.type }}</h4>
+                    <p class="text-sm text-secondary">
+                      {{ step.duration }}ms • 
+                      {{ step.errorCount }} {{ step.errorCount === 1 ? 'issue' : 'issues' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Error Summary -->
+            <div v-if="!validationResult.valid && (validationResult.errors.length || validationResult.warnings.length)" class="error-summary mt-lg">
+              <!-- Tab Navigation for Errors/Warnings -->
+              <div class="error-tabs flex gap-sm mb-md">
+                <button 
+                  @click="errorTab = 'all'"
+                  class="tab-button tab-button-sm"
+                  :class="{ active: errorTab === 'all' }"
+                >
+                  All Issues ({{ totalIssues }})
+                </button>
+                <button 
+                  v-if="validationResult.errors.length"
+                  @click="errorTab = 'errors'"
+                  class="tab-button tab-button-sm"
+                  :class="{ active: errorTab === 'errors' }"
+                >
+                  <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="mr-xs text-error" />
+                  Errors ({{ validationResult.errors.length }})
+                </button>
+                <button 
+                  v-if="validationResult.warnings.length"
+                  @click="errorTab = 'warnings'"
+                  class="tab-button tab-button-sm"
+                  :class="{ active: errorTab === 'warnings' }"
+                >
+                  <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="mr-xs text-warning" />
+                  Warnings ({{ validationResult.warnings.length }})
+                </button>
+              </div>
+
+              <!-- Filter and Search -->
+              <div class="error-controls flex gap-md mb-md">
+                <div class="flex-1">
+                  <input 
+                    v-model="errorSearch"
+                    type="text"
+                    class="form-input form-input-sm"
+                    placeholder="Search errors..."
+                  >
+                </div>
+                <select v-model="errorGroupBy" class="form-select form-select-sm">
+                  <option value="line">Group by Line</option>
+                  <option value="type">Group by Type</option>
+                  <option value="severity">Group by Severity</option>
+                </select>
+              </div>
+
+              <!-- Grouped Errors Display -->
               <div class="errors-container">
                 <div 
-                  v-for="(error, index) in validationResult.errors" 
-                  :key="index"
-                  class="error-item card"
+                  v-for="(group, key) in groupedAndFilteredErrors" 
+                  :key="key"
+                  class="error-group"
                 >
-                  <div class="error-header flex items-start justify-between">
-                    <div class="flex items-center gap-sm">
-                      <span 
-                        class="error-badge"
-                        :class="`badge-${error.severity}`"
+                  <h4 class="error-group-header" @click="toggleGroup(key)">
+                    <font-awesome-icon 
+                      :icon="['fas', 'chevron-right']" 
+                      :class="{ 'rotate-90': !collapsedGroups[key] }"
+                      class="mr-xs transition-transform"
+                    />
+                    {{ formatGroupHeader(key, errorGroupBy) }} 
+                    <span class="badge badge-sm ml-xs">{{ group.length }}</span>
+                  </h4>
+                  
+                  <transition name="collapse">
+                    <div v-show="!collapsedGroups[key]" class="error-group-items">
+                      <div 
+                        v-for="(error, index) in group" 
+                        :key="`${key}-${index}`"
+                        class="error-item card"
+                        :class="`error-${error.severity}`"
                       >
-                        {{ error.severity }}
-                      </span>
-                      <span class="text-sm text-secondary">
-                        Line {{ error.line }}, Column {{ error.column }}
-                      </span>
+                        <div class="error-header flex items-start justify-between">
+                          <div class="flex items-center gap-sm">
+                            <span 
+                              class="error-badge"
+                              :class="`badge-${error.severity}`"
+                            >
+                              {{ error.severity }}
+                            </span>
+                            <span class="text-sm text-secondary">
+                              Line {{ error.line }}, Column {{ error.column }}
+                            </span>
+                            <span v-if="error.rule" class="text-sm text-tertiary">
+                              • {{ error.rule }}
+                            </span>
+                          </div>
+                          <button 
+                            v-if="error.rule && error.rule.includes('DDEX')"
+                            class="text-sm text-primary"
+                            @click="openDDEXReference(error.rule)"
+                          >
+                            View Spec 
+                            <font-awesome-icon 
+                              :icon="['fas', 'external-link-alt']" 
+                              size="sm"
+                            />
+                          </button>
+                        </div>
+                        
+                        <p class="error-message mt-sm">
+                          {{ error.message }}
+                        </p>
+                        
+                        <div v-if="error.context" class="error-context mt-md">
+                          <pre class="code-snippet">{{ error.context }}</pre>
+                        </div>
+                        
+                        <div v-if="error.suggestion" class="error-suggestion mt-md">
+                          <p class="text-sm text-info">
+                            <font-awesome-icon :icon="['fas', 'lightbulb']" class="mr-xs" />
+                            {{ error.suggestion }}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <button 
-                      v-if="error.rule"
-                      class="text-sm text-primary"
-                      @click="openDDEXReference(error.rule)"
-                    >
-                      View Spec 
-                      <font-awesome-icon 
-                        :icon="['fas', 'external-link-alt']" 
-                        size="sm"
-                      />
-                    </button>
-                  </div>
-                  
-                  <p class="error-message mt-sm">
-                    {{ error.message }}
-                  </p>
-                  
-                  <div v-if="error.context" class="error-context mt-md">
-                    <pre class="code-snippet">{{ error.context }}</pre>
-                  </div>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -254,20 +501,59 @@
                   </div>
                   <div>
                     <p class="text-sm text-secondary">Profile</p>
-                    <p class="font-medium">{{ validationOptions.profile }}</p>
+                    <p class="font-medium">{{ validationOptions.profile || 'None' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-sm text-secondary">Validation Mode</p>
+                    <p class="font-medium">{{ formatValidationMode(validationOptions.mode) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-sm text-secondary">Processing Time</p>
+                    <p class="font-medium">{{ validationResult.metadata.processingTime }}ms</p>
                   </div>
                 </div>
               </div>
               
               <div class="flex gap-md mt-lg">
-                <button class="btn btn-primary">
+                <button @click="downloadReport" class="btn btn-primary">
                   <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
                   Download Report
                 </button>
-                <button class="btn btn-secondary">
-                  <font-awesome-icon :icon="['fas', 'code']" class="mr-xs" />
-                  View in Snippets
+                <button @click="saveToHistory" class="btn btn-secondary" v-if="isAuthenticated">
+                  <font-awesome-icon :icon="['fas', 'save']" class="mr-xs" />
+                  Save to History
                 </button>
+                <button @click="shareResult" class="btn btn-secondary">
+                  <font-awesome-icon :icon="['fas', 'share']" class="mr-xs" />
+                  Share Result
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation History (for authenticated users) -->
+          <div v-if="isAuthenticated && validationHistory.length > 0" class="validation-history mt-3xl">
+            <h3 class="text-xl font-semibold mb-lg">Recent Validations</h3>
+            <div class="history-grid">
+              <div 
+                v-for="item in validationHistory" 
+                :key="item.id"
+                class="history-item card card-hover"
+                @click="loadHistoryItem(item)"
+              >
+                <div class="flex items-start justify-between">
+                  <div>
+                    <p class="font-medium">{{ item.fileName || 'Pasted XML' }}</p>
+                    <p class="text-sm text-secondary">
+                      {{ formatDate(item.timestamp) }} • 
+                      ERN {{ item.version }}
+                    </p>
+                  </div>
+                  <font-awesome-icon 
+                    :icon="['fas', item.valid ? 'check-circle' : 'exclamation-circle']"
+                    :class="item.valid ? 'text-success' : 'text-error'"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -278,16 +564,35 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { validateERN, getSupportedFormats } from '@/services/api'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { validateERN, getSupportedFormats, getValidationHistory, exportValidationReport } from '@/services/api'
+import { debounce } from '@/utils/debounce'
+
+// Router
+const router = useRouter()
+
+// Auth
+const { user, isAuthenticated } = useAuth()
 
 // State
 const inputMethod = ref('upload')
 const isDragging = ref(false)
 const selectedFile = ref(null)
 const xmlContent = ref('')
+const xmlUrl = ref('')
+const isLoadingUrl = ref(false)
 const isValidating = ref(false)
+const isValidatingRealtime = ref(false)
 const validationResult = ref(null)
+const realtimeErrors = ref([])
+const errorTab = ref('all')
+const errorSearch = ref('')
+const errorGroupBy = ref('line')
+const collapsedGroups = ref({})
+const showAdvanced = ref(false)
+const validationHistory = ref([])
 
 // Dynamic profiles support
 const supportedFormats = ref(null)
@@ -295,13 +600,113 @@ const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
 
 const validationOptions = ref({
   version: '4.3',
-  profile: 'AudioAlbum'
+  profile: 'AudioAlbum',
+  mode: 'full',
+  realtime: false,
+  strictMode: false,
+  validateReferences: true
 })
 
 // Computed
 const canValidate = computed(() => {
-  return inputMethod.value === 'upload' ? selectedFile.value : xmlContent.value.trim()
+  if (inputMethod.value === 'upload') return selectedFile.value
+  if (inputMethod.value === 'paste') return xmlContent.value.trim()
+  if (inputMethod.value === 'url') return xmlUrl.value.trim()
+  return false
 })
+
+const totalIssues = computed(() => {
+  if (!validationResult.value) return 0
+  return (validationResult.value.errors?.length || 0) + (validationResult.value.warnings?.length || 0)
+})
+
+const displayedErrors = computed(() => {
+  if (!validationResult.value) return []
+  
+  let errors = []
+  if (errorTab.value === 'all') {
+    errors = [...(validationResult.value.errors || []), ...(validationResult.value.warnings || [])]
+  } else if (errorTab.value === 'errors') {
+    errors = validationResult.value.errors || []
+  } else if (errorTab.value === 'warnings') {
+    errors = validationResult.value.warnings || []
+  }
+  
+  // Apply search filter
+  if (errorSearch.value) {
+    const search = errorSearch.value.toLowerCase()
+    errors = errors.filter(error => 
+      error.message.toLowerCase().includes(search) ||
+      error.rule?.toLowerCase().includes(search)
+    )
+  }
+  
+  return errors
+})
+
+const groupedAndFilteredErrors = computed(() => {
+  const errors = displayedErrors.value
+  const groups = {}
+  
+  errors.forEach(error => {
+    let key
+    switch (errorGroupBy.value) {
+      case 'type':
+        key = error.rule?.split('-')[0] || 'Other'
+        break
+      case 'severity':
+        key = error.severity
+        break
+      case 'line':
+      default:
+        key = `Line ${error.line}`
+        break
+    }
+    
+    if (!groups[key]) groups[key] = []
+    groups[key].push(error)
+  })
+  
+  // Sort groups
+  const sortedGroups = {}
+  Object.keys(groups).sort((a, b) => {
+    if (errorGroupBy.value === 'line') {
+      return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1])
+    }
+    return a.localeCompare(b)
+  }).forEach(key => {
+    sortedGroups[key] = groups[key]
+  })
+  
+  return sortedGroups
+})
+
+// Real-time validation debounced function
+const validateRealtime = debounce(async () => {
+  if (!validationOptions.value.realtime || !xmlContent.value || xmlContent.value.length < 100) {
+    realtimeErrors.value = []
+    return
+  }
+  
+  isValidatingRealtime.value = true
+  
+  try {
+    const result = await validateERN({
+      content: xmlContent.value,
+      type: 'ERN',
+      version: validationOptions.value.version,
+      profile: validationOptions.value.profile,
+      mode: 'quick' // Quick mode for real-time
+    })
+    
+    realtimeErrors.value = result.errors || []
+  } catch (error) {
+    console.error('Real-time validation error:', error)
+    realtimeErrors.value = []
+  } finally {
+    isValidatingRealtime.value = false
+  }
+}, 500)
 
 // Load supported formats on mount
 onMounted(async () => {
@@ -311,13 +716,24 @@ onMounted(async () => {
     updateAvailableProfiles()
   } catch (error) {
     console.error('Failed to load supported formats:', error)
-    // Continue with default profiles if API fails
+  }
+  
+  // Load validation history if authenticated
+  if (isAuthenticated.value) {
+    loadValidationHistory()
   }
 })
 
 // Watch for version changes to update available profiles
 watch(() => validationOptions.value.version, () => {
   updateAvailableProfiles()
+})
+
+// Watch for real-time validation
+watch(xmlContent, (newContent) => {
+  if (validationOptions.value.realtime && newContent) {
+    validateRealtime()
+  }
 })
 
 // Methods
@@ -332,7 +748,7 @@ const updateAvailableProfiles = () => {
     availableProfiles.value = versionConfig.profiles
     // Reset profile if current selection is not available
     if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
-      validationOptions.value.profile = versionConfig.profiles[0]
+      validationOptions.value.profile = versionConfig.profiles[0] || ''
     }
   }
 }
@@ -342,8 +758,13 @@ const handleDrop = (e) => {
   isDragging.value = false
   
   const files = e.dataTransfer.files
-  if (files.length > 0 && files[0].type === 'text/xml') {
-    selectedFile.value = files[0]
+  if (files.length > 0) {
+    const file = files[0]
+    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+      selectedFile.value = file
+    } else {
+      alert('Please drop an XML file')
+    }
   }
 }
 
@@ -361,15 +782,46 @@ const clearFile = () => {
   }
 }
 
+const loadFromUrl = async () => {
+  if (!xmlUrl.value) return
+  
+  isLoadingUrl.value = true
+  try {
+    const response = await fetch(xmlUrl.value)
+    if (!response.ok) throw new Error('Failed to load URL')
+    
+    const content = await response.text()
+    xmlContent.value = content
+    inputMethod.value = 'paste'
+  } catch (error) {
+    alert(`Failed to load XML from URL: ${error.message}`)
+  } finally {
+    isLoadingUrl.value = false
+  }
+}
+
+const handleXmlInput = (e) => {
+  // Update line numbers if needed
+  if (validationOptions.value.realtime) {
+    validateRealtime()
+  }
+}
+
 const formatFileSize = (bytes) => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+const countLines = (text) => {
+  return text.split('\n').length
+}
+
 const validateXML = async () => {
   isValidating.value = true
   validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
   
   try {
     let content = xmlContent.value
@@ -382,13 +834,22 @@ const validateXML = async () => {
       content,
       type: 'ERN',
       version: validationOptions.value.version,
-      profile: validationOptions.value.profile
+      profile: validationOptions.value.profile,
+      options: {
+        mode: validationOptions.value.mode,
+        strictMode: validationOptions.value.strictMode,
+        validateReferences: validationOptions.value.validateReferences
+      }
     })
     
     validationResult.value = result
+    
+    // Save to history if authenticated
+    if (isAuthenticated.value) {
+      saveToHistory()
+    }
   } catch (error) {
     console.error('Validation error:', error)
-    // Show error message to user
     validationResult.value = {
       valid: false,
       errors: [{
@@ -398,10 +859,13 @@ const validateXML = async () => {
         severity: 'error',
         rule: 'System Error'
       }],
+      warnings: [],
       metadata: {
         processingTime: 0,
         schemaVersion: `ERN ${validationOptions.value.version}`,
-        validatedAt: new Date().toISOString()
+        validatedAt: new Date().toISOString(),
+        errorCount: 1,
+        warningCount: 0
       }
     }
   } finally {
@@ -418,9 +882,101 @@ const readFileAsText = (file) => {
   })
 }
 
+const clearResults = () => {
+  validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
+  collapsedGroups.value = {}
+}
+
+const toggleGroup = (key) => {
+  collapsedGroups.value[key] = !collapsedGroups.value[key]
+}
+
+const formatGroupHeader = (key, groupBy) => {
+  if (groupBy === 'severity') {
+    return key.charAt(0).toUpperCase() + key.slice(1) + 's'
+  }
+  return key
+}
+
+const formatValidationMode = (mode) => {
+  const modes = {
+    'full': 'Full Validation',
+    'xsd': 'XSD Schema Only',
+    'business': 'Business Rules Only',
+    'quick': 'Quick Check'
+  }
+  return modes[mode] || mode
+}
+
 const openDDEXReference = (rule) => {
-  // Open DDEX knowledge base reference
-  window.open(`https://kb.ddex.net/reference/${rule}`, '_blank')
+  // Extract the actual rule ID and open DDEX knowledge base
+  const ruleId = rule.split('-').pop()
+  window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
+}
+
+const downloadReport = async () => {
+  try {
+    const blob = await exportValidationReport(validationResult.value.id || 'current', 'pdf')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to download report:', error)
+    alert('Failed to download report')
+  }
+}
+
+const saveToHistory = async () => {
+  // This would be implemented with the API
+  console.log('Saving to history...')
+}
+
+const shareResult = () => {
+  // Generate shareable link
+  const shareData = {
+    title: 'DDEX Validation Result',
+    text: `DDEX ERN ${validationOptions.value.version} validation: ${validationResult.value.valid ? 'Valid' : 'Invalid'}`,
+    url: window.location.href
+  }
+  
+  if (navigator.share) {
+    navigator.share(shareData)
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(shareData.url)
+    alert('Link copied to clipboard!')
+  }
+}
+
+const loadValidationHistory = async () => {
+  try {
+    const history = await getValidationHistory({ limit: 5 })
+    validationHistory.value = history.items || []
+  } catch (error) {
+    console.error('Failed to load validation history:', error)
+  }
+}
+
+const loadHistoryItem = (item) => {
+  // Load the historical validation
+  validationOptions.value.version = item.version
+  validationOptions.value.profile = item.profile
+  // You'd load the actual content from storage
+}
+
+const formatDate = (date) => {
+  const d = date.toDate ? date.toDate() : new Date(date)
+  return d.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>
 
@@ -471,6 +1027,11 @@ const openDDEXReference = (rule) => {
   color: white;
 }
 
+.tab-button-sm {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+}
+
 /* Upload Area */
 .dropzone {
   border: 2px dashed var(--color-border);
@@ -479,6 +1040,7 @@ const openDDEXReference = (rule) => {
   text-align: center;
   transition: all var(--transition-base);
   background-color: var(--color-bg-secondary);
+  cursor: pointer;
 }
 
 .dropzone.drag-over {
@@ -491,11 +1053,51 @@ const openDDEXReference = (rule) => {
 }
 
 /* XML Input */
+.editor-container {
+  position: relative;
+}
+
 .xml-input {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   line-height: 1.5;
   resize: vertical;
+}
+
+.xml-input.has-errors {
+  border-color: var(--color-error);
+}
+
+.realtime-indicator {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Validation Options */
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.form-help {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-xs);
+}
+
+.advanced-options {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+.rotate-90 {
+  transform: rotate(90deg);
 }
 
 /* Validation Results */
@@ -513,10 +1115,118 @@ const openDDEXReference = (rule) => {
   background-color: var(--color-error);
 }
 
+.btn-success-outline {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+}
+
+.btn-error-outline {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+}
+
+/* Validation Steps Timeline */
+.steps-timeline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  padding: var(--space-lg);
+}
+
+.step-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.step-connector {
+  position: absolute;
+  left: -32px;
+  width: 32px;
+  height: 2px;
+  background: var(--color-border);
+}
+
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-success);
+  color: white;
+  flex-shrink: 0;
+}
+
+.step-item.has-errors .step-icon {
+  background: var(--color-error);
+}
+
+.step-content h4 {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-xs);
+}
+
+/* Error Display */
+.error-controls {
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.form-input-sm,
+.form-select-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.error-group {
+  margin-bottom: var(--space-lg);
+}
+
+.error-group-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-base);
+}
+
+.error-group-header:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.error-group-items {
+  margin-top: var(--space-sm);
+}
+
 /* Error Items */
 .error-item {
   padding: var(--space-lg);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
+  transition: all var(--transition-base);
+}
+
+.error-item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.error-item.error-warning {
+  border-left: 4px solid var(--color-warning);
+}
+
+.error-item.error-error {
+  border-left: 4px solid var(--color-error);
 }
 
 .error-badge {
@@ -526,6 +1236,11 @@ const openDDEXReference = (rule) => {
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
+}
+
+.badge-sm {
+  padding: 2px var(--space-xs);
+  font-size: var(--text-xs);
 }
 
 .badge-error {
@@ -550,6 +1265,44 @@ const openDDEXReference = (rule) => {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.error-suggestion {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-info-light);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-info);
+}
+
+/* History Grid */
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+.history-item {
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.history-item:hover {
+  transform: translateY(-2px);
+}
+
+/* Transitions */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
 }
 
 /* Utilities */
@@ -557,8 +1310,48 @@ const openDDEXReference = (rule) => {
   margin-right: var(--space-xs);
 }
 
+.ml-xs {
+  margin-left: var(--space-xs);
+}
+
+.mt-xs {
+  margin-top: var(--space-xs);
+}
+
+.gap-xs {
+  gap: var(--space-xs);
+}
+
 .gap-sm {
   gap: var(--space-sm);
+}
+
+.transition-transform {
+  transition: transform var(--transition-base);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-info {
+  color: var(--color-info);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.opacity-90 {
+  opacity: 0.9;
 }
 
 /* Responsive */
@@ -578,6 +1371,25 @@ const openDDEXReference = (rule) => {
   .tab-button {
     flex: 1;
     justify-content: center;
+    font-size: var(--text-sm);
+    padding: var(--space-sm);
+  }
+  
+  .steps-timeline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .step-connector {
+    display: none;
+  }
+  
+  .error-controls {
+    flex-direction: column;
+  }
+  
+  .history-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

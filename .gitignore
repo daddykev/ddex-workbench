@@ -34,3 +34,5 @@ coverage
 
 .env
 .env.local
+
+functions/schemas/ern/
