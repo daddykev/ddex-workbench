@@ -1,3 +1,304 @@
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+
+// State
+const activeSection = ref('introduction')
+const activeLanguage = ref('curl')
+const activeEndpointLang = ref('curl')
+
+// Language options
+const languages = [
+  { id: 'curl', name: 'cURL' },
+  { id: 'javascript', name: 'JavaScript' },
+  { id: 'python', name: 'Python' },
+  { id: 'php', name: 'PHP' }
+]
+
+// Code examples
+const codeExamples = {
+  quickstart: {
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/api/validate \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{
+    "content": "<?xml version=\\"1.0\\"?>...",
+    "type": "ERN",
+    "version": "4.3",
+    "profile": "AudioAlbum"
+  }'`,
+    javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    content: '<?xml version="1.0"?>...',
+    type: 'ERN',
+    version: '4.3',
+    profile: 'AudioAlbum'
+  })
+});
+
+const result = await response.json();`,
+    python: `import requests
+
+response = requests.post(
+    'https://api.ddex-workbench.org/v1/validate',
+    headers={
+        'Authorization': 'Bearer YOUR_API_KEY'
+    },
+    json={
+        'content': '<?xml version="1.0"?>...',
+        'type': 'ERN',
+        'version': '4.3',
+        'profile': 'AudioAlbum'
+    }
+)
+
+result = response.json()`,
+    php: `$client = new \\GuzzleHttp\\Client();
+$response = $client->post('https://api.ddex-workbench.org/v1/validate', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY'
+    ],
+    'json' => [
+        'content' => '<?xml version="1.0"?>...',
+        'type' => 'ERN',
+        'version' => '4.3',
+        'profile' => 'AudioAlbum'
+    ]
+]);
+
+$result = json_decode($response->getBody(), true);`
+  },
+  errorFormat: {
+    json: `{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "The provided XML does not conform to ERN 4.3 schema",
+    "details": {
+      "errors": [
+        {
+          "line": 45,
+          "column": 12,
+          "message": "Element 'ReleaseDate' is missing required child element 'Date'"
+        }
+      ]
+    }
+  }
+}`
+  },
+  validateEndpoint: {
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d @- << 'EOF'
+{
+  "content": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<ern:NewReleaseMessage...>",
+  "type": "ERN",
+  "version": "4.3",
+  "profile": "AudioAlbum"
+}
+EOF`,
+    javascript: `// Using the official SDK
+import { DDEXClient } from '@ddex-workbench/api-client';
+
+const client = new DDEXClient({ apiKey: 'YOUR_API_KEY' });
+
+const result = await client.validate({
+  content: xmlContent,
+  type: 'ERN',
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
+
+if (result.valid) {
+  console.log('✓ Valid DDEX file');
+} else {
+  console.error('✗ Validation errors:', result.errors);
+}`,
+    python: `# Using the official SDK
+from ddex_connect import Client
+
+client = Client(api_key="YOUR_API_KEY")
+
+result = client.validate(
+    content=xml_content,
+    type="ERN",
+    version="4.3",
+    profile="AudioAlbum"
+)
+
+if result.valid:
+    print("✓ Valid DDEX file")
+else:
+    for error in result.errors:
+        print(f"✗ Line {error.line}: {error.message}")`,
+    php: `// Using raw HTTP client
+use GuzzleHttp\\Client;
+
+$client = new Client();
+
+try {
+    $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
+        'headers' => [
+            'Authorization' => 'Bearer YOUR_API_KEY',
+            'Content-Type' => 'application/json'
+        ],
+        'json' => [
+            'content' => $xmlContent,
+            'type' => 'ERN',
+            'version' => '4.3',
+            'profile' => 'AudioAlbum'
+        ]
+    ]);
+    
+    $result = json_decode($response->getBody(), true);
+    
+    if ($result['valid']) {
+        echo "✓ Valid DDEX file\\n";
+    } else {
+        foreach ($result['errors'] as $error) {
+            echo "✗ Line {$error['line']}: {$error['message']}\\n";
+        }
+    }
+} catch (\\Exception $e) {
+    echo "Error: " . $e->getMessage();
+}`
+  },
+  validateResponse: {
+    json: `{
+  "valid": false,
+  "errors": [
+    {
+      "line": 45,
+      "column": 12,
+      "message": "Element 'ReleaseDate' is missing required child element 'Date'",
+      "severity": "error",
+      "rule": "ERN-4.3-ReleaseDate",
+      "context": "    <ReleaseDate>\\n      <!-- Missing Date element -->\\n    </ReleaseDate>"
+    },
+    {
+      "line": 78,
+      "column": 8,
+      "message": "Invalid ISRC format. Expected: XX-XXX-XX-XXXXX",
+      "severity": "error",
+      "rule": "ERN-4.3-ISRC-Format"
+    }
+  ],
+  "metadata": {
+    "processingTime": 234,
+    "schemaVersion": "ern/43/2024-03-29",
+    "validatedAt": "2025-01-15T10:30:00Z"
+  }
+}`
+  },
+  fileUpload: {
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate/file \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -F "file=@release.xml" \\
+  -F "type=ERN" \\
+  -F "version=4.3" \\
+  -F "profile=AudioAlbum"`,
+    javascript: `const formData = new FormData();
+formData.append('file', xmlFile);
+formData.append('type', 'ERN');
+formData.append('version', '4.3');
+formData.append('profile', 'AudioAlbum');
+
+const response = await fetch('https://api.ddex-workbench.org/v1/validate/file', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: formData
+});
+
+const result = await response.json();`,
+    python: `import requests
+
+with open('release.xml', 'rb') as f:
+    files = {'file': f}
+    data = {
+        'type': 'ERN',
+        'version': '4.3',
+        'profile': 'AudioAlbum'
+    }
+    
+    response = requests.post(
+        'https://api.ddex-workbench.org/v1/validate/file',
+        headers={'Authorization': 'Bearer YOUR_API_KEY'},
+        files=files,
+        data=data
+    )
+    
+result = response.json()`,
+    php: `$client = new \\GuzzleHttp\\Client();
+
+$response = $client->post('https://api.ddex-workbench.org/v1/validate/file', [
+    'headers' => [
+        'Authorization' => 'Bearer YOUR_API_KEY'
+    ],
+    'multipart' => [
+        [
+            'name' => 'file',
+            'contents' => fopen('release.xml', 'r')
+        ],
+        [
+            'name' => 'type',
+            'contents' => 'ERN'
+        ],
+        [
+            'name' => 'version',
+            'contents' => '4.3'
+        ],
+        [
+            'name' => 'profile',
+            'contents' => 'AudioAlbum'
+        ]
+    ]
+]);`
+  }
+}
+
+// Methods
+const getCodeExample = (example, language) => {
+  return codeExamples[example]?.[language] || '// Example not available'
+}
+
+const scrollToSection = (sectionId) => {
+  const element = document.getElementById(sectionId)
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    activeSection.value = sectionId
+  }
+}
+
+const handleScroll = () => {
+  const sections = document.querySelectorAll('.doc-section')
+  const scrollPosition = window.scrollY + 100
+
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop
+    const sectionHeight = section.offsetHeight
+    
+    if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+      activeSection.value = section.id
+    }
+  })
+}
+
+// Lifecycle
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+</script>
+
 <template>
   <div class="api-docs-view">
     <!-- Hero Section -->
@@ -395,307 +696,6 @@ X-RateLimit-Reset: 1642521600</code></pre>
     </section>
   </div>
 </template>
-
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-
-// State
-const activeSection = ref('introduction')
-const activeLanguage = ref('curl')
-const activeEndpointLang = ref('curl')
-
-// Language options
-const languages = [
-  { id: 'curl', name: 'cURL' },
-  { id: 'javascript', name: 'JavaScript' },
-  { id: 'python', name: 'Python' },
-  { id: 'php', name: 'PHP' }
-]
-
-// Code examples
-const codeExamples = {
-  quickstart: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-    "content": "<?xml version=\\"1.0\\"?>...",
-    "type": "ERN",
-    "version": "4.3",
-    "profile": "AudioAlbum"
-  }'`,
-    javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: JSON.stringify({
-    content: '<?xml version="1.0"?>...',
-    type: 'ERN',
-    version: '4.3',
-    profile: 'AudioAlbum'
-  })
-});
-
-const result = await response.json();`,
-    python: `import requests
-
-response = requests.post(
-    'https://api.ddex-workbench.org/v1/validate',
-    headers={
-        'Authorization': 'Bearer YOUR_API_KEY'
-    },
-    json={
-        'content': '<?xml version="1.0"?>...',
-        'type': 'ERN',
-        'version': '4.3',
-        'profile': 'AudioAlbum'
-    }
-)
-
-result = response.json()`,
-    php: `$client = new \\GuzzleHttp\\Client();
-$response = $client->post('https://api.ddex-workbench.org/v1/validate', [
-    'headers' => [
-        'Authorization' => 'Bearer YOUR_API_KEY'
-    ],
-    'json' => [
-        'content' => '<?xml version="1.0"?>...',
-        'type' => 'ERN',
-        'version' => '4.3',
-        'profile' => 'AudioAlbum'
-    ]
-]);
-
-$result = json_decode($response->getBody(), true);`
-  },
-  errorFormat: {
-    json: `{
-  "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "The provided XML does not conform to ERN 4.3 schema",
-    "details": {
-      "errors": [
-        {
-          "line": 45,
-          "column": 12,
-          "message": "Element 'ReleaseDate' is missing required child element 'Date'"
-        }
-      ]
-    }
-  }
-}`
-  },
-  validateEndpoint: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d @- << 'EOF'
-{
-  "content": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<ern:NewReleaseMessage...>",
-  "type": "ERN",
-  "version": "4.3",
-  "profile": "AudioAlbum"
-}
-EOF`,
-    javascript: `// Using the official SDK
-import { DDEXClient } from '@ddex-workbench/api-client';
-
-const client = new DDEXClient({ apiKey: 'YOUR_API_KEY' });
-
-const result = await client.validate({
-  content: xmlContent,
-  type: 'ERN',
-  version: '4.3',
-  profile: 'AudioAlbum'
-});
-
-if (result.valid) {
-  console.log('✓ Valid DDEX file');
-} else {
-  console.error('✗ Validation errors:', result.errors);
-}`,
-    python: `# Using the official SDK
-from ddex_connect import Client
-
-client = Client(api_key="YOUR_API_KEY")
-
-result = client.validate(
-    content=xml_content,
-    type="ERN",
-    version="4.3",
-    profile="AudioAlbum"
-)
-
-if result.valid:
-    print("✓ Valid DDEX file")
-else:
-    for error in result.errors:
-        print(f"✗ Line {error.line}: {error.message}")`,
-    php: `// Using raw HTTP client
-use GuzzleHttp\\Client;
-
-$client = new Client();
-
-try {
-    $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
-        'headers' => [
-            'Authorization' => 'Bearer YOUR_API_KEY',
-            'Content-Type' => 'application/json'
-        ],
-        'json' => [
-            'content' => $xmlContent,
-            'type' => 'ERN',
-            'version' => '4.3',
-            'profile' => 'AudioAlbum'
-        ]
-    ]);
-    
-    $result = json_decode($response->getBody(), true);
-    
-    if ($result['valid']) {
-        echo "✓ Valid DDEX file\\n";
-    } else {
-        foreach ($result['errors'] as $error) {
-            echo "✗ Line {$error['line']}: {$error['message']}\\n";
-        }
-    }
-} catch (\\Exception $e) {
-    echo "Error: " . $e->getMessage();
-}`
-  },
-  validateResponse: {
-    json: `{
-  "valid": false,
-  "errors": [
-    {
-      "line": 45,
-      "column": 12,
-      "message": "Element 'ReleaseDate' is missing required child element 'Date'",
-      "severity": "error",
-      "rule": "ERN-4.3-ReleaseDate",
-      "context": "    <ReleaseDate>\\n      <!-- Missing Date element -->\\n    </ReleaseDate>"
-    },
-    {
-      "line": 78,
-      "column": 8,
-      "message": "Invalid ISRC format. Expected: XX-XXX-XX-XXXXX",
-      "severity": "error",
-      "rule": "ERN-4.3-ISRC-Format"
-    }
-  ],
-  "metadata": {
-    "processingTime": 234,
-    "schemaVersion": "ern/43/2024-03-29",
-    "validatedAt": "2025-01-15T10:30:00Z"
-  }
-}`
-  },
-  fileUpload: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate/file \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -F "file=@release.xml" \\
-  -F "type=ERN" \\
-  -F "version=4.3" \\
-  -F "profile=AudioAlbum"`,
-    javascript: `const formData = new FormData();
-formData.append('file', xmlFile);
-formData.append('type', 'ERN');
-formData.append('version', '4.3');
-formData.append('profile', 'AudioAlbum');
-
-const response = await fetch('https://api.ddex-workbench.org/v1/validate/file', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: formData
-});
-
-const result = await response.json();`,
-    python: `import requests
-
-with open('release.xml', 'rb') as f:
-    files = {'file': f}
-    data = {
-        'type': 'ERN',
-        'version': '4.3',
-        'profile': 'AudioAlbum'
-    }
-    
-    response = requests.post(
-        'https://api.ddex-workbench.org/v1/validate/file',
-        headers={'Authorization': 'Bearer YOUR_API_KEY'},
-        files=files,
-        data=data
-    )
-    
-result = response.json()`,
-    php: `$client = new \\GuzzleHttp\\Client();
-
-$response = $client->post('https://api.ddex-workbench.org/v1/validate/file', [
-    'headers' => [
-        'Authorization' => 'Bearer YOUR_API_KEY'
-    ],
-    'multipart' => [
-        [
-            'name' => 'file',
-            'contents' => fopen('release.xml', 'r')
-        ],
-        [
-            'name' => 'type',
-            'contents' => 'ERN'
-        ],
-        [
-            'name' => 'version',
-            'contents' => '4.3'
-        ],
-        [
-            'name' => 'profile',
-            'contents' => 'AudioAlbum'
-        ]
-    ]
-]);`
-  }
-}
-
-// Methods
-const getCodeExample = (example, language) => {
-  return codeExamples[example]?.[language] || '// Example not available'
-}
-
-const scrollToSection = (sectionId) => {
-  const element = document.getElementById(sectionId)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    activeSection.value = sectionId
-  }
-}
-
-const handleScroll = () => {
-  const sections = document.querySelectorAll('.doc-section')
-  const scrollPosition = window.scrollY + 100
-
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop
-    const sectionHeight = section.offsetHeight
-    
-    if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-      activeSection.value = section.id
-    }
-  })
-}
-
-// Lifecycle
-onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-})
-</script>
 
 <style scoped>
 /* Hero Section */

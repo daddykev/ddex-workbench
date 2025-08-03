@@ -1,14 +1,17 @@
+// services/api.js
 import axios from 'axios'
 import { auth } from '../firebase'
 
 // API configuration
 const API_CONFIG = {
   development: {
+    // Still use Firebase Functions directly in development
     baseURL: 'http://localhost:5001/ddex-workbench/us-central1/app',
     timeout: 30000
   },
   production: {
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://us-central1-ddex-workbench.cloudfunctions.net/app',
+    // Use the branded API domain in production
+    baseURL: 'https://api.ddex-workbench.org/v1',
     timeout: 30000
   }
 }
