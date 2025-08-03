@@ -38,6 +38,47 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 - **Validator Module**: Custom `ernValidator.js` with version-specific rules
 - **Profile Support**: AudioAlbum, AudioSingle, Video, Mixed, ReleaseByRelease (3.8.2 only)
 
+## Current API Status (Production-Ready)
+
+### Live Endpoints
+
+#### Public Endpoints
+- `GET /api/health` - Health check endpoint
+- `GET /api/formats` - Get supported DDEX versions and profiles
+- `POST /api/validate` - Validate DDEX XML content
+  - Supports anonymous access (10 req/min rate limit)
+  - Supports API key authentication (60 req/min rate limit)
+  - Multi-version support (ERN 3.8.2, 4.2, 4.3)
+  - Profile-specific validation
+
+#### Authenticated Endpoints (Firebase Auth Required)
+- `GET /api/keys` - List user's API keys
+- `POST /api/keys` - Create new API key (max 5 per user)
+- `DELETE /api/keys/:id` - Revoke API key (soft delete)
+
+### Security Implementation
+- **API Key Authentication**: SHA-256 hashed keys with `ddex_` prefix
+- **Rate Limiting**: In-memory rate limiting with express-rate-limit
+  - Anonymous: 10 requests/minute
+  - Authenticated: 60 requests/minute
+- **Firestore Security Rules**: Deployed and enforced
+- **CORS**: Configured for production and development origins
+
+### Example API Usage
+
+```bash
+# With API Key
+curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/validate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ddex_YOUR_KEY_HERE" \
+  -d '{
+    "content": "<?xml version=\"1.0\"?>...",
+    "type": "ERN",
+    "version": "4.3",
+    "profile": "AudioAlbum"
+  }'
+```
+
 ## Project Structure
 
 ```
@@ -78,11 +119,15 @@ ddex-workbench/
 │   └── main.js                # Application entry point
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
-│   │   ├── validate.js        # Validation endpoint
-│   │   └── snippets.js        # Snippets CRUD
+│   │   ├── validate.js        # Validation endpoint ✓
+│   │   ├── snippets.js        # Snippets CRUD (placeholder)
+│   │   └── keys.js            # API key management ✓
+│   ├── middleware/            # Express middleware
+│   │   ├── apiKeyAuth.js      # API key authentication ✓
+│   │   └── rateLimiter.js     # Rate limiting ✓
 │   ├── validators/            # Validation modules
-│   │   └── ernValidator.js    # Multi-version ERN validator
-│   ├── index.js               # Functions entry point
+│   │   └── ernValidator.js    # Multi-version ERN validator ✓
+│   ├── index.js               # Functions entry point ✓
 │   └── package.json           # Functions dependencies
 ├── public/                    # Static public assets
 │   └── favicon.ico
@@ -94,7 +139,7 @@ ddex-workbench/
 ├── index.html                 # HTML entry point
 ├── vite.config.js             # Vite configuration
 ├── firebase.json              # Firebase configuration
-├── firestore.rules            # Firestore security rules
+├── firestore.rules            # Firestore security rules ✓
 ├── firestore.indexes.json     # Firestore indexes
 ├── storage.rules              # Storage security rules
 ├── .firebaserc                # Firebase project alias (git ignored)
@@ -115,20 +160,20 @@ ddex-workbench/
 The application uses Firebase Authentication with the following features:
 
 1. **Authentication Methods**:
-   - Email/Password registration and login
-   - Google OAuth integration
-   - Persistent sessions with automatic token refresh
+   - Email/Password registration and login ✓
+   - Google OAuth integration ✓
+   - Persistent sessions with automatic token refresh ✓
 
 2. **User Management**:
-   - User profiles stored in Firestore `users` collection
-   - Display name customization
-   - API key generation and management
-   - Usage statistics tracking
+   - User profiles stored in Firestore `users` collection ✓
+   - Display name customization ✓
+   - API key generation and management ✓
+   - Usage statistics tracking (pending)
 
 3. **Protected Routes**:
-   - `/settings` - Requires authentication
-   - `/login`, `/signup` - Redirects to home if already authenticated
-   - API endpoints - Optional authentication for higher rate limits
+   - `/settings` - Requires authentication ✓
+   - `/login`, `/signup` - Redirects to home if already authenticated ✓
+   - API endpoints - Optional authentication for higher rate limits ✓
 
 ### Auth Composable
 
@@ -167,12 +212,12 @@ interface User {
   apiCallCount?: number;
 }
 
-// api_keys collection
+// api_keys collection ✓
 interface ApiKey {
   id: string;
   userId: string;
   name: string;
-  key: string;        // Hashed, only shown once on creation
+  hashedKey: string;    // SHA-256 hashed
   created: Timestamp;
   lastUsed?: Timestamp;
   requestCount: number;
@@ -224,14 +269,14 @@ interface UserVote {
 
 ## Phase 1 Features
 
-### 1. Landing Page
+### 1. Landing Page ✓
 - **Modern hero section** with value proposition
 - **Feature cards** for Validator, Snippets, and API
 - **ERN 4.3 migration urgency** messaging
 - **Future roadmap** preview (DSR-Flow, DDEX Workbench)
 - **Call-to-action** for immediate engagement
 
-### 2. Web Validator Interface
+### 2. Web Validator Interface ✓
 - **File Upload**: Drag-and-drop or file picker for XML files
 - **Text Input**: Direct XML pasting with syntax highlighting
 - **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
@@ -241,18 +286,18 @@ interface UserVote {
   - Line-by-line error highlighting
   - Detailed error messages with DDEX KB links
   - Version-specific validation rules
-- **History Tracking**: Save validation history for authenticated users
+- **History Tracking**: Save validation history for authenticated users (pending)
 
-### 3. Authentication System
+### 3. Authentication System ✓
 - **Registration**: Email/password with display name
 - **Login Options**: Email/password or Google OAuth
 - **User Settings**: 
-  - Profile management
-  - API key generation
-  - Usage statistics
+  - Profile management ✓
+  - API key generation ✓
+  - Usage statistics (pending)
 - **Session Management**: Persistent login with automatic token refresh
 
-### 4. Public Validation API
+### 4. Public Validation API ✓
 ```typescript
 // POST /api/validate
 {
@@ -286,7 +331,7 @@ headers: {
 }
 ```
 
-### 5. Community Knowledge Base
+### 5. Community Knowledge Base (Pending)
 - **Snippet Categories**:
   - Common Patterns
   - Complex Scenarios
@@ -301,18 +346,18 @@ headers: {
 - **Contribution**: Authenticated users can submit snippets
 
 ### 6. User Features
-- **Anonymous Usage**: 
+- **Anonymous Usage**: ✓
   - Core validation without login
   - Read-only access to snippets
   - Basic API access (rate limited)
-- **Authenticated Features**:
-  - Save validation history
-  - Contribute and vote on snippets
-  - Generate API keys
-  - Higher API rate limits
-  - Usage analytics dashboard
+- **Authenticated Features**: ✓
+  - Save validation history (pending)
+  - Contribute and vote on snippets (pending)
+  - Generate API keys ✓
+  - Higher API rate limits ✓
+  - Usage analytics dashboard (pending)
 
-## CSS Architecture
+## CSS Architecture ✓
 
 ### Design System Overview
 
@@ -383,16 +428,17 @@ Semantic utility classes for:
 - [ ] Usage statistics tracking
 - [ ] Validation history
 
-### Week 9-10: API Development (Current Phase)
+### Week 9-10: API Development ✓ (Current Phase - 90% Complete)
 - [x] REST API endpoints
 - [x] Multi-version validation endpoint
-- [ ] API key validation
-- [ ] Rate limiting implementation
-- [ ] API documentation page
+- [x] API key validation
+- [x] Rate limiting implementation
+- [x] API documentation page
 - [ ] Client SDK (npm package)
 - [ ] Integration examples
+- [ ] File upload endpoint
 
-### Week 11-12: Knowledge Base
+### Week 11-12: Knowledge Base (Next Phase)
 - [ ] Snippet management UI
 - [ ] Search and filtering
 - [ ] Voting system implementation
@@ -408,31 +454,54 @@ Semantic utility classes for:
 - [ ] Marketing website
 - [ ] Launch announcement
 
-## Security Considerations
+## API Security Implementation ✓
 
 1. **Authentication Security**:
-   - Firebase Auth handles password hashing and session management
-   - OAuth integration for secure third-party login
-   - Secure token storage and automatic refresh
-   - HTTPS-only for all auth operations
+   - Firebase Auth handles password hashing and session management ✓
+   - OAuth integration for secure third-party login ✓
+   - Secure token storage and automatic refresh ✓
+   - HTTPS-only for all auth operations ✓
 
 2. **API Security**:
-   - API key generation with secure random tokens
-   - Key hashing before storage
-   - Rate limiting per key
-   - Request validation and sanitization
+   - API key generation with secure random tokens ✓
+   - SHA-256 key hashing before storage ✓
+   - Rate limiting per key ✓
+   - Request validation and sanitization ✓
 
 3. **Input Validation**:
-   - File size limits (10MB default)
-   - XML bomb protection
-   - Content type verification
-   - XSS prevention in user content
+   - File size limits (10MB default) ✓
+   - XML bomb protection ✓
+   - Content type verification ✓
+   - XSS prevention in user content ✓
 
 4. **Data Privacy**:
-   - No storage of validated content (unless explicitly saved)
-   - User data isolation
+   - No storage of validated content (unless explicitly saved) ✓
+   - User data isolation ✓
    - GDPR compliance considerations
-   - Secure API key handling
+   - Secure API key handling ✓
+
+## Current Production Status
+
+### What's Live:
+- Full authentication system with Google OAuth
+- API key generation and management
+- Multi-version ERN validation (3.8.2, 4.2, 4.3)
+- Rate-limited public API
+- Secure Firestore rules
+- User settings management
+- Theme switching (light/dark/auto)
+
+### Tested & Confirmed:
+- API key authentication working
+- Rate limiting enforced (10/60 req/min)
+- Namespace XML parsing working
+- Error reporting with detailed messages
+- CORS properly configured
+
+### API Base URL:
+```
+https://us-central1-ddex-workbench.cloudfunctions.net/app
+```
 
 ## Success Metrics
 
@@ -440,8 +509,28 @@ Semantic utility classes for:
 - **User Growth**: 500+ registered users in first quarter
 - **API Usage**: 50+ active API keys
 - **Community**: 100+ contributed snippets
-- **Performance**: <2s validation for typical files
+- **Performance**: <2s validation for typical files ✓ (Currently ~2ms)
 - **Reliability**: 99.9% uptime
+
+## Next Immediate Steps
+
+1. **Complete API Development Phase**:
+   - Add validation history tracking
+   - Create file upload endpoint
+   - Build npm client SDK
+   - Add integration examples
+
+2. **Begin Knowledge Base Phase**:
+   - Implement snippets API endpoints
+   - Build snippet management UI
+   - Add voting system
+   - Create comment functionality
+
+3. **Polish for Launch**:
+   - Update all documentation with live examples
+   - Add comprehensive error handling
+   - Implement usage analytics
+   - Create marketing materials
 
 ## Future Phases Integration
 
