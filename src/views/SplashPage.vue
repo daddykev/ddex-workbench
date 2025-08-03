@@ -9,7 +9,7 @@
           </h1>
           <p class="hero-subtitle">
             Open-source DDEX validation, processing, and creation tools that bridge the gap 
-            between independent artists and global music platforms
+            between distributors and global music platforms
           </p>
           <div class="hero-actions">
             <router-link to="/validator" class="btn btn-primary btn-lg">
@@ -178,7 +178,7 @@
         <div class="text-center mb-2xl">
           <h2 class="text-3xl font-semibold mb-md">Coming Soon</h2>
           <p class="text-lg text-secondary">
-            Building the complete DDEX ecosystem, one tool at a time
+            Building a better DDEX ecosystem, one tool at a time
           </p>
         </div>
 
