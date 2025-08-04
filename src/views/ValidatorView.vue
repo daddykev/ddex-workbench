@@ -157,6 +157,36 @@ onMounted(async () => {
   if (isAuthenticated.value) {
     loadValidationHistory()
   }
+
+  // Check if coming from snippets with content
+  const storedContent = sessionStorage.getItem('validatorContent')
+  const storedVersion = sessionStorage.getItem('validatorVersion')
+  const storedInputMethod = sessionStorage.getItem('validatorInputMethod')
+
+  if (storedContent) {
+    // Set the input method to paste
+    inputMethod.value = storedInputMethod || 'paste'
+    
+    // Load the content
+    xmlContent.value = storedContent
+    
+    // Set the version if provided
+    if (storedVersion) {
+      validationOptions.value.version = storedVersion
+      // Update available profiles for the new version
+      updateAvailableProfiles()
+    }
+    
+    // Clear the session storage to prevent reloading on refresh
+    sessionStorage.removeItem('validatorContent')
+    sessionStorage.removeItem('validatorVersion')
+    sessionStorage.removeItem('validatorInputMethod')
+    
+    // If real-time validation is enabled, trigger it
+    if (validationOptions.value.realtime) {
+      validateRealtime()
+    }
+  }
 })
 
 // Watch for version changes to update available profiles

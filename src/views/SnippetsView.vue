@@ -583,6 +583,7 @@ const openInValidator = (snippet) => {
   // Store snippet in session storage
   sessionStorage.setItem('validatorContent', snippet.content)
   sessionStorage.setItem('validatorVersion', snippet.ernVersion || '4.3')
+  sessionStorage.setItem('validatorInputMethod', 'paste') // Add this line
   
   // Navigate to validator
   router.push('/validator')
