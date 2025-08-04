@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { validateERN, getSupportedFormats, getValidationHistory, exportValidationReport } from '@/services/api'
+import { validateERN, getSupportedFormats, getValidationHistory } from '@/services/api'
 import { debounce } from '@/utils/debounce'
 
 // Router
@@ -28,6 +28,7 @@ const errorGroupBy = ref('line')
 const collapsedGroups = ref({})
 const showAdvanced = ref(false)
 const validationHistory = ref([])
+const showExportMenu = ref(false)
 
 // Dynamic profiles support
 const supportedFormats = ref(null)
@@ -192,6 +193,13 @@ onMounted(async () => {
       validateRealtime()
     }
   }
+  
+  // Click outside handler for export menu
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // Watch for version changes to update available profiles
@@ -207,6 +215,12 @@ watch(xmlContent, (newContent) => {
 })
 
 // Methods
+const handleClickOutside = (e) => {
+  if (!e.target.closest('.export-menu-container')) {
+    showExportMenu.value = false
+  }
+}
+
 const updateAvailableProfiles = () => {
   if (!supportedFormats.value) return
   
@@ -247,8 +261,9 @@ const handleFileSelect = (e) => {
 
 const clearFile = () => {
   selectedFile.value = null
-  if ($refs.fileInput) {
-    $refs.fileInput.value = ''
+  const fileInput = document.querySelector('input[type="file"]')
+  if (fileInput) {
+    fileInput.value = ''
   }
 }
 
@@ -425,19 +440,139 @@ const openDDEXReference = (rule) => {
   window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
 }
 
-const downloadReport = async () => {
-  try {
-    const blob = await exportValidationReport(validationResult.value.id || 'current', 'pdf')
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Failed to download report:', error)
-    alert('Failed to download report')
+const exportAsJSON = () => {
+  showExportMenu.value = false
+  
+  // Create a comprehensive export object
+  const exportData = {
+    metadata: {
+      exportedAt: new Date().toISOString(),
+      validatedAt: validationResult.value.metadata.validatedAt,
+      tool: 'DDEX Workbench Validator',
+      version: '1.0.0'
+    },
+    validation: {
+      valid: validationResult.value.valid,
+      ernVersion: validationOptions.value.version,
+      profile: validationOptions.value.profile || 'None',
+      mode: validationOptions.value.mode,
+      processingTime: validationResult.value.metadata.processingTime + 'ms',
+      errorCount: validationResult.value.metadata.errorCount,
+      warningCount: validationResult.value.metadata.warningCount
+    },
+    validationSteps: validationResult.value.metadata.validationSteps,
+    errors: validationResult.value.errors || [],
+    warnings: validationResult.value.warnings || []
   }
+  
+  // Create and download the file
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ddex-validation-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportAsText = () => {
+  showExportMenu.value = false
+  
+  // Create a human-readable text report
+  let report = `DDEX VALIDATION REPORT
+======================
+Generated: ${new Date().toLocaleString()}
+
+SUMMARY
+-------
+Status: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
+ERN Version: ${validationOptions.value.version}
+Profile: ${validationOptions.value.profile || 'None'}
+Validation Mode: ${formatValidationMode(validationOptions.value.mode)}
+Processing Time: ${validationResult.value.metadata.processingTime}ms
+Total Errors: ${validationResult.value.metadata.errorCount}
+Total Warnings: ${validationResult.value.metadata.warningCount}
+
+VALIDATION STEPS
+----------------
+`
+
+  if (validationResult.value.metadata.validationSteps) {
+    validationResult.value.metadata.validationSteps.forEach(step => {
+      report += `${step.type}: ${step.duration}ms (${step.errorCount} issues)\n`
+    })
+  }
+
+  if (validationResult.value.errors?.length > 0) {
+    report += `
+ERRORS
+------
+`
+    validationResult.value.errors.forEach((error, index) => {
+      report += `
+${index + 1}. Line ${error.line}, Column ${error.column}
+   Rule: ${error.rule}
+   Message: ${error.message}
+`
+      if (error.context) {
+        report += `   Context: ${error.context}\n`
+      }
+      if (error.suggestion) {
+        report += `   Suggestion: ${error.suggestion}\n`
+      }
+    })
+  }
+
+  if (validationResult.value.warnings?.length > 0) {
+    report += `
+WARNINGS
+--------
+`
+    validationResult.value.warnings.forEach((warning, index) => {
+      report += `
+${index + 1}. Line ${warning.line}, Column ${warning.column}
+   Rule: ${warning.rule}
+   Message: ${warning.message}
+`
+      if (warning.context) {
+        report += `   Context: ${warning.context}\n`
+      }
+      if (warning.suggestion) {
+        report += `   Suggestion: ${warning.suggestion}\n`
+      }
+    })
+  }
+
+  // Create and download the file
+  const blob = new Blob([report], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const copyResultsToClipboard = () => {
+  showExportMenu.value = false
+  
+  const summary = `DDEX Validation: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
+ERN ${validationOptions.value.version} • ${validationOptions.value.profile || 'No Profile'}
+${validationResult.value.metadata.errorCount} errors, ${validationResult.value.metadata.warningCount} warnings
+Processed in ${validationResult.value.metadata.processingTime}ms`
+  
+  navigator.clipboard.writeText(summary).then(() => {
+    // Show a temporary success message
+    const button = event.target.closest('button')
+    const originalText = button.innerHTML
+    button.innerHTML = '<i class="fas fa-check mr-xs"></i>Copied!'
+    button.classList.add('text-success')
+    
+    setTimeout(() => {
+      button.innerHTML = originalText
+      button.classList.remove('text-success')
+    }, 2000)
+  })
 }
 
 const saveToHistory = async () => {
@@ -1025,10 +1160,58 @@ const formatDate = (date) => {
               </div>
               
               <div class="flex gap-md mt-lg">
-                <button @click="downloadReport" class="btn btn-primary">
-                  <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
-                  Download Report
-                </button>
+                <!-- Export Menu Container -->
+                <div class="export-menu-container">
+                  <button 
+                    @click="showExportMenu = !showExportMenu"
+                    class="btn btn-primary"
+                  >
+                    <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
+                    Export Report
+                    <font-awesome-icon 
+                      :icon="['fas', 'chevron-down']" 
+                      size="sm"
+                      class="ml-xs"
+                    />
+                  </button>
+                  
+                  <!-- Export Dropdown Menu -->
+                  <transition name="dropdown">
+                    <div v-if="showExportMenu" class="export-menu card">
+                      <button 
+                        @click="exportAsJSON"
+                        class="export-option"
+                      >
+                        <font-awesome-icon :icon="['fas', 'file-code']" class="mr-sm" />
+                        Export as JSON
+                      </button>
+                      <button 
+                        @click="exportAsText"
+                        class="export-option"
+                      >
+                        <font-awesome-icon :icon="['fas', 'file']" class="mr-sm" />
+                        Export as Text
+                      </button>
+                      <button 
+                        class="export-option disabled"
+                        disabled
+                      >
+                        <font-awesome-icon :icon="['fas', 'file']" class="mr-sm" />
+                        Export as PDF
+                        <span class="badge badge-sm ml-auto">Coming Soon</span>
+                      </button>
+                      <div class="export-divider"></div>
+                      <button 
+                        @click="copyResultsToClipboard"
+                        class="export-option"
+                      >
+                        <font-awesome-icon :icon="['fas', 'copy']" class="mr-sm" />
+                        Copy Summary
+                      </button>
+                    </div>
+                  </transition>
+                </div>
+                
                 <button @click="saveToHistory" class="btn btn-secondary" v-if="isAuthenticated">
                   <font-awesome-icon :icon="['fas', 'save']" class="mr-xs" />
                   Save to History
@@ -1276,6 +1459,61 @@ const formatDate = (date) => {
   padding: 0;
 }
 
+/* Export Menu */
+.export-menu-container {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  min-width: 200px;
+  padding: var(--space-xs);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.export-option:hover:not(:disabled) {
+  background-color: var(--color-bg-secondary);
+}
+
+.export-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: var(--space-xs) 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
 /* Error Display */
 .error-controls {
   padding: var(--space-md);
@@ -1408,6 +1646,17 @@ const formatDate = (date) => {
   max-height: 0;
 }
 
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
 /* Utilities */
 .mr-xs {
   margin-right: var(--space-xs);
@@ -1419,6 +1668,14 @@ const formatDate = (date) => {
 
 .ml-sm {
   margin-left: var(--space-sm);
+}
+
+.mr-sm {
+  margin-right: var(--space-sm);
+}
+
+.ml-auto {
+  margin-left: auto;
 }
 
 .mt-xs {
@@ -1501,6 +1758,11 @@ const formatDate = (date) => {
   
   .history-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .export-menu {
+    left: auto;
+    right: 0;
   }
 }
 </style>
