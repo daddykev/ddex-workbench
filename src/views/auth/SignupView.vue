@@ -6,7 +6,7 @@
           <div class="card-body">
             <div class="auth-header">
               <h1 class="auth-title">Create Account</h1>
-              <p class="auth-subtitle">Join the DDEX community</p>
+              <p class="auth-subtitle">Join DDEX Workbench</p>
             </div>
 
             <form @submit.prevent="handleSubmit" class="auth-form">
