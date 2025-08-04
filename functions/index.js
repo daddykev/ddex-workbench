@@ -42,10 +42,12 @@ app.use((req, res, next) => {
 // Import route handlers
 const validateRoutes = require('./api/validate');
 const snippetRoutes = require('./api/snippets');
+const keysRoutes = require('./api/keys'); // ADD THIS LINE
 
-// API Routes (NO authentication required for validation)
+// API Routes
 app.use('/api/validate', validateRoutes);
 app.use('/api/snippets', snippetRoutes);
+app.use('/api/keys', keysRoutes); // ADD THIS LINE
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

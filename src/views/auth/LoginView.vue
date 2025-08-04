@@ -5,24 +5,11 @@
         <div class="auth-card card">
           <div class="card-body">
             <div class="auth-header">
-              <h1 class="auth-title">Create Account</h1>
-              <p class="auth-subtitle">Join the DDEX community</p>
+              <h1 class="auth-title">Welcome Back</h1>
+              <p class="auth-subtitle">Sign in to your account</p>
             </div>
 
             <form @submit.prevent="handleSubmit" class="auth-form">
-              <!-- Display Name Input -->
-              <div class="form-group">
-                <label class="form-label">Display Name</label>
-                <input
-                  v-model="form.displayName"
-                  type="text"
-                  class="form-input"
-                  placeholder="John Doe"
-                  required
-                  :disabled="loading"
-                />
-              </div>
-
               <!-- Email Input -->
               <div class="form-group">
                 <label class="form-label">Email</label>
@@ -46,64 +33,48 @@
                   placeholder="••••••••"
                   required
                   :disabled="loading"
-                  minlength="6"
                 />
-                <p class="form-help">Minimum 6 characters</p>
               </div>
 
-              <!-- Confirm Password Input -->
-              <div class="form-group">
-                <label class="form-label">Confirm Password</label>
-                <input
-                  v-model="form.confirmPassword"
-                  type="password"
-                  class="form-input"
-                  placeholder="••••••••"
-                  required
-                  :disabled="loading"
-                />
+              <!-- Remember Me & Forgot Password -->
+              <div class="form-options">
+                <div class="form-checkbox">
+                  <input
+                    v-model="form.rememberMe"
+                    type="checkbox"
+                    id="remember"
+                    :disabled="loading"
+                  />
+                  <label for="remember">Remember me</label>
+                </div>
+                <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
+                  Forgot password?
+                </a>
               </div>
 
               <!-- Error Message -->
-              <div v-if="error || passwordError" class="alert alert-error">
-                {{ error || passwordError }}
-              </div>
-
-              <!-- Terms Checkbox -->
-              <div class="form-checkbox">
-                <input
-                  v-model="form.acceptTerms"
-                  type="checkbox"
-                  id="terms"
-                  required
-                  :disabled="loading"
-                />
-                <label for="terms">
-                  I agree to the 
-                  <router-link to="/terms" target="_blank">Terms of Service</router-link>
-                  and 
-                  <router-link to="/privacy" target="_blank">Privacy Policy</router-link>
-                </label>
+              <div v-if="error" class="alert alert-error">
+                {{ error }}
               </div>
 
               <!-- Submit Button -->
-              <button type="submit" class="btn btn-primary btn-block" :disabled="loading || !canSubmit">
+              <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
                 <span v-if="loading" class="flex items-center justify-center gap-sm">
                   <font-awesome-icon :icon="['fas', 'spinner']" spin />
-                  Creating account...
+                  Signing in...
                 </span>
-                <span v-else>Create Account</span>
+                <span v-else>Sign In</span>
               </button>
 
               <!-- Divider -->
               <div class="auth-divider">
-                <span>or sign up with</span>
+                <span>or sign in with</span>
               </div>
 
-              <!-- Google Sign Up -->
+              <!-- Google Sign In -->
               <button
                 type="button"
-                @click="handleGoogleSignUp"
+                @click="handleGoogleSignIn"
                 class="btn btn-secondary btn-block"
                 :disabled="loading"
               >
@@ -112,12 +83,12 @@
               </button>
             </form>
 
-            <!-- Sign In Link -->
+            <!-- Sign Up Link -->
             <div class="auth-footer">
               <p class="text-center text-secondary">
-                Already have an account? 
-                <router-link to="/login" class="text-primary font-medium">
-                  Sign in
+                Don't have an account? 
+                <router-link to="/signup" class="text-primary font-medium">
+                  Create one
                 </router-link>
               </p>
             </div>
@@ -129,42 +100,29 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { signup, loginWithGoogle, error } = useAuth()
+const { login, loginWithGoogle, error } = useAuth()
 
 const loading = ref(false)
 const form = reactive({
-  displayName: '',
   email: '',
   password: '',
-  confirmPassword: '',
-  acceptTerms: false
-})
-
-const passwordError = computed(() => {
-  if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
-    return 'Passwords do not match'
-  }
-  return null
-})
-
-const canSubmit = computed(() => {
-  return form.acceptTerms && !passwordError.value
+  rememberMe: true
 })
 
 const handleSubmit = async () => {
-  if (!canSubmit.value) return
-  
   loading.value = true
   error.value = null
   
   try {
-    await signup(form.email, form.password, form.displayName)
-    router.push('/')
+    await login(form.email, form.password)
+    // Redirect to the page they were trying to access, or home
+    const redirectTo = router.currentRoute.value.query.redirect || '/'
+    router.push(redirectTo)
   } catch (err) {
     // Error is handled by useAuth composable
   } finally {
@@ -172,18 +130,24 @@ const handleSubmit = async () => {
   }
 }
 
-const handleGoogleSignUp = async () => {
+const handleGoogleSignIn = async () => {
   loading.value = true
   error.value = null
   
   try {
     await loginWithGoogle()
-    router.push('/')
+    const redirectTo = router.currentRoute.value.query.redirect || '/'
+    router.push(redirectTo)
   } catch (err) {
     // Error is handled by useAuth composable
   } finally {
     loading.value = false
   }
+}
+
+const handleForgotPassword = () => {
+  // TODO: Implement password reset
+  console.log('Password reset not implemented yet')
 }
 </script>
 
@@ -221,30 +185,33 @@ const handleGoogleSignUp = async () => {
   gap: var(--space-lg);
 }
 
-.form-help {
-  font-size: var(--text-sm);
-  color: var(--color-text-tertiary);
-  margin-top: var(--space-xs);
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .form-checkbox {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-sm);
-}
-
-.form-checkbox input[type="checkbox"] {
-  margin-top: 4px;
 }
 
 .form-checkbox label {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  cursor: pointer;
 }
 
-.form-checkbox a {
+.forgot-link {
+  font-size: var(--text-sm);
   color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.forgot-link:hover {
+  color: var(--color-primary-hover);
   text-decoration: underline;
 }
 
