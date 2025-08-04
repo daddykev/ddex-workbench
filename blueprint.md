@@ -283,8 +283,7 @@ The `ValidatorView.vue` component now includes:
   - Error context with XML snippets
   - DDEX Knowledge Base links
 - **Validation Timeline**: Visual representation of validation steps with timing
-- **Export Options**: Download PDF reports (pending), share results, copy response
-- **Validation History**: View recent validations (authenticated users)
+- **Export Options**: Download JSON and text reports, share results, copy response
 - **Mobile Responsive**: Full functionality on all devices
 
 ### API Documentation Page
@@ -395,23 +394,6 @@ interface Snippet {
   updated: Timestamp;
 }
 
-// validation_history collection (authenticated users)
-interface ValidationHistory {
-  id: string;
-  userId: string;
-  timestamp: Timestamp;
-  fileName?: string;
-  valid: boolean;
-  errorCount: number;
-  warningCount: number;
-  version: string;      // ERN version used
-  profile: string;
-  metadata?: {
-    fileSize?: number;
-    processingTime: number;
-  };
-}
-
 // user_votes subcollection (under users)
 interface UserVote {
   snippetId: string;
@@ -484,8 +466,7 @@ interface ValidationStep {
   - Version-specific validation rules
   - Separate warnings from errors
   - Share results functionality
-- **Export Options**: Download validation reports (pending)
-- **History Tracking**: View recent validations for authenticated users (UI complete, backend pending)
+- **Export Options**: Download validation reports
 
 ### 3. Authentication System
 - **Registration**: Email/password with display name
@@ -569,7 +550,6 @@ headers: {
   - Read API documentation
   - Basic API access (rate limited to 10 req/min)
 - **Authenticated Features**:
-  - View validation history (UI ready)
   - Generate and manage API keys
   - Higher API rate limits (60 req/min)
   - Contribute and vote on snippets (pending)
@@ -646,7 +626,6 @@ Semantic utility classes for:
 - [x] Protected routes
 - [x] Auth state in navigation
 - [ ] Usage statistics tracking (backend)
-- [ ] Validation history (backend)
 
 ### Week 9-10: API Development
 - [x] REST API endpoints
@@ -670,15 +649,15 @@ Semantic utility classes for:
 - [x] Error search and filtering
 - [x] DDEX KB links integration
 - [x] Schematron-equivalent validation (built-in rules)
-- [ ] PDF report generation
+- [x] JSON and text report generation
 
 ### Week 13-14: Knowledge Base (Next Phase)
-- [ ] Snippet management UI
-- [ ] Search and filtering
+- [x] Snippet management UI
+- [x] Search and filtering
+- [x] Snippet categories
 - [ ] Voting system implementation
 - [ ] Comment system
 - [ ] Moderation tools
-- [ ] Snippet categories
 
 ### Week 15-16: Polish & Launch
 - [ ] Performance optimization
@@ -759,7 +738,7 @@ https://api.ddex-workbench.org/v1
 
 ### Live Application:
 ```
-https://ddex-workbench.web.app
+https://ddex-workbench.org
 ```
 
 ## Success Metrics
@@ -770,26 +749,6 @@ https://ddex-workbench.web.app
 - **Community**: 100+ contributed snippets
 - **Performance**: <2s validation for typical files ✓ (Currently ~2-100ms depending on mode)
 - **Reliability**: 99.9% uptime
-
-## Next Immediate Steps
-
-1. **Complete Backend Features**:
-   - Implement validation history storage
-   - Add usage statistics tracking
-   - Create file upload endpoint
-   - Build PDF report generation
-
-2. **Begin Knowledge Base Phase**:
-   - Implement snippets API endpoints
-   - Build snippet management UI
-   - Add voting system
-   - Create comment functionality
-
-3. **Polish for Launch**:
-   - Create npm client SDK
-   - Performance optimization
-   - Security audit
-   - Create marketing materials
 
 ## Future Phases Integration
 

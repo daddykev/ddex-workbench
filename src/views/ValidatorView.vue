@@ -1,629 +1,3 @@
-<script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
-import { validateERN, getSupportedFormats, getValidationHistory } from '@/services/api'
-import { debounce } from '@/utils/debounce'
-
-// Router
-const router = useRouter()
-
-// Auth
-const { user, isAuthenticated } = useAuth()
-
-// State
-const inputMethod = ref('upload')
-const isDragging = ref(false)
-const selectedFile = ref(null)
-const xmlContent = ref('')
-const xmlUrl = ref('')
-const isLoadingUrl = ref(false)
-const isValidating = ref(false)
-const isValidatingRealtime = ref(false)
-const validationResult = ref(null)
-const realtimeErrors = ref([])
-const errorTab = ref('all')
-const errorSearch = ref('')
-const errorGroupBy = ref('line')
-const collapsedGroups = ref({})
-const showAdvanced = ref(false)
-const validationHistory = ref([])
-const showExportMenu = ref(false)
-
-// Dynamic profiles support
-const supportedFormats = ref(null)
-const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
-
-const validationOptions = ref({
-  version: '4.3',
-  profile: 'AudioAlbum',
-  mode: 'full',
-  realtime: false,
-  strictMode: false,
-  validateReferences: true
-})
-
-// Computed
-const canValidate = computed(() => {
-  if (inputMethod.value === 'upload') return selectedFile.value
-  if (inputMethod.value === 'paste') return xmlContent.value.trim()
-  if (inputMethod.value === 'url') return xmlUrl.value.trim()
-  return false
-})
-
-const totalIssues = computed(() => {
-  if (!validationResult.value) return 0
-  const errors = validationResult.value.errors?.length || 0
-  const warnings = validationResult.value.warnings?.length || 0
-  return errors + warnings
-})
-
-const displayedErrors = computed(() => {
-  if (!validationResult.value) return []
-  
-  let errors = []
-  if (errorTab.value === 'all') {
-    errors = [
-      ...(validationResult.value.errors || []), 
-      ...(validationResult.value.warnings || [])
-    ]
-  } else if (errorTab.value === 'errors') {
-    errors = validationResult.value.errors || []
-  } else if (errorTab.value === 'warnings') {
-    errors = validationResult.value.warnings || []
-  }
-  
-  // Apply search filter
-  if (errorSearch.value) {
-    const search = errorSearch.value.toLowerCase()
-    errors = errors.filter(error => 
-      (error.message && error.message.toLowerCase().includes(search)) ||
-      (error.rule && error.rule.toLowerCase().includes(search))
-    )
-  }
-  
-  return errors
-})
-
-const groupedAndFilteredErrors = computed(() => {
-  const errors = displayedErrors.value
-  const groups = {}
-  
-  errors.forEach(error => {
-    let key
-    switch (errorGroupBy.value) {
-      case 'type':
-        key = error.rule?.split('-')[0] || 'Other'
-        break
-      case 'severity':
-        key = error.severity
-        break
-      case 'line':
-      default:
-        key = `Line ${error.line}`
-        break
-    }
-    
-    if (!groups[key]) groups[key] = []
-    groups[key].push(error)
-  })
-  
-  // Sort groups
-  const sortedGroups = {}
-  Object.keys(groups).sort((a, b) => {
-    if (errorGroupBy.value === 'line') {
-      return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1])
-    }
-    return a.localeCompare(b)
-  }).forEach(key => {
-    sortedGroups[key] = groups[key]
-  })
-  
-  return sortedGroups
-})
-
-// Real-time validation debounced function
-const validateRealtime = debounce(async () => {
-  if (!validationOptions.value.realtime || !xmlContent.value || xmlContent.value.length < 100) {
-    realtimeErrors.value = []
-    return
-  }
-  
-  isValidatingRealtime.value = true
-  
-  try {
-    const result = await validateERN({
-      content: xmlContent.value,
-      type: 'ERN',
-      version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      mode: 'quick' // Quick mode for real-time
-    })
-    
-    realtimeErrors.value = result.errors || []
-  } catch (error) {
-    console.error('Real-time validation error:', error)
-    realtimeErrors.value = []
-  } finally {
-    isValidatingRealtime.value = false
-  }
-}, 500)
-
-// Load supported formats on mount
-onMounted(async () => {
-  try {
-    const formats = await getSupportedFormats()
-    supportedFormats.value = formats
-    updateAvailableProfiles()
-  } catch (error) {
-    console.error('Failed to load supported formats:', error)
-  }
-  
-  // Load validation history if authenticated
-  if (isAuthenticated.value) {
-    loadValidationHistory()
-  }
-
-  // Check if coming from snippets with content
-  const storedContent = sessionStorage.getItem('validatorContent')
-  const storedVersion = sessionStorage.getItem('validatorVersion')
-  const storedInputMethod = sessionStorage.getItem('validatorInputMethod')
-
-  if (storedContent) {
-    // Set the input method to paste
-    inputMethod.value = storedInputMethod || 'paste'
-    
-    // Load the content
-    xmlContent.value = storedContent
-    
-    // Set the version if provided
-    if (storedVersion) {
-      validationOptions.value.version = storedVersion
-      // Update available profiles for the new version
-      updateAvailableProfiles()
-    }
-    
-    // Clear the session storage to prevent reloading on refresh
-    sessionStorage.removeItem('validatorContent')
-    sessionStorage.removeItem('validatorVersion')
-    sessionStorage.removeItem('validatorInputMethod')
-    
-    // If real-time validation is enabled, trigger it
-    if (validationOptions.value.realtime) {
-      validateRealtime()
-    }
-  }
-  
-  // Click outside handler for export menu
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
-// Watch for version changes to update available profiles
-watch(() => validationOptions.value.version, () => {
-  updateAvailableProfiles()
-})
-
-// Watch for real-time validation
-watch(xmlContent, (newContent) => {
-  if (validationOptions.value.realtime && newContent) {
-    validateRealtime()
-  }
-})
-
-// Methods
-const handleClickOutside = (e) => {
-  if (!e.target.closest('.export-menu-container')) {
-    showExportMenu.value = false
-  }
-}
-
-const updateAvailableProfiles = () => {
-  if (!supportedFormats.value) return
-  
-  const versionConfig = supportedFormats.value.versions.find(
-    v => v.version === validationOptions.value.version
-  )
-  
-  if (versionConfig) {
-    availableProfiles.value = versionConfig.profiles
-    // Reset profile if current selection is not available
-    if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
-      validationOptions.value.profile = versionConfig.profiles[0] || ''
-    }
-  }
-}
-
-const handleDrop = (e) => {
-  e.preventDefault()
-  isDragging.value = false
-  
-  const files = e.dataTransfer.files
-  if (files.length > 0) {
-    const file = files[0]
-    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-      selectedFile.value = file
-    } else {
-      alert('Please drop an XML file')
-    }
-  }
-}
-
-const handleFileSelect = (e) => {
-  const files = e.target.files
-  if (files.length > 0) {
-    selectedFile.value = files[0]
-  }
-}
-
-const clearFile = () => {
-  selectedFile.value = null
-  const fileInput = document.querySelector('input[type="file"]')
-  if (fileInput) {
-    fileInput.value = ''
-  }
-}
-
-const loadFromUrl = async () => {
-  if (!xmlUrl.value) return
-  
-  isLoadingUrl.value = true
-  try {
-    const response = await fetch(xmlUrl.value)
-    if (!response.ok) throw new Error('Failed to load URL')
-    
-    const content = await response.text()
-    xmlContent.value = content
-    inputMethod.value = 'paste'
-  } catch (error) {
-    alert(`Failed to load XML from URL: ${error.message}`)
-  } finally {
-    isLoadingUrl.value = false
-  }
-}
-
-const handleXmlInput = (e) => {
-  // Update line numbers if needed
-  if (validationOptions.value.realtime) {
-    validateRealtime()
-  }
-}
-
-const formatFileSize = (bytes) => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-const countLines = (text) => {
-  return text.split('\n').length
-}
-
-const validateXML = async () => {
-  isValidating.value = true
-  validationResult.value = null
-  errorTab.value = 'all'
-  errorSearch.value = ''
-  
-  try {
-    let content = xmlContent.value
-    
-    if (inputMethod.value === 'upload' && selectedFile.value) {
-      content = await readFileAsText(selectedFile.value)
-    }
-    
-    const result = await validateERN({
-      content,
-      type: 'ERN',
-      version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      mode: validationOptions.value.mode,
-      strictMode: validationOptions.value.strictMode,
-      validateReferences: validationOptions.value.validateReferences
-    })
-    
-    // Ensure validation steps are populated
-    const validationSteps = result.metadata?.validationSteps || []
-    
-    // If no steps returned but validation succeeded, create mock steps
-    if (validationSteps.length === 0 && result.valid) {
-      const totalTime = result.metadata?.processingTime || 25
-      validationSteps.push(
-        {
-          type: 'XSD',
-          duration: Math.floor(totalTime * 0.4),
-          errorCount: 0
-        },
-        {
-          type: 'BusinessRules',
-          duration: Math.floor(totalTime * 0.4),
-          errorCount: 0
-        }
-      )
-      
-      // Add Schematron step if profile is selected
-      if (validationOptions.value.profile) {
-        validationSteps.push({
-          type: 'Schematron',
-          duration: Math.floor(totalTime * 0.2),
-          errorCount: 0
-        })
-      }
-    }
-    
-    // Ensure arrays are always defined
-    validationResult.value = {
-      valid: result.valid || false,
-      errors: result.errors || [],
-      warnings: result.warnings || [],
-      metadata: {
-        ...result.metadata,
-        errorCount: (result.errors || []).length,
-        warningCount: (result.warnings || []).length,
-        validationSteps
-      }
-    }
-    
-    // Save to history if authenticated
-    if (isAuthenticated.value) {
-      saveToHistory()
-    }
-  } catch (error) {
-    console.error('Validation error:', error)
-    validationResult.value = {
-      valid: false,
-      errors: [{
-        line: 0,
-        column: 0,
-        message: error.message || 'An error occurred during validation',
-        severity: 'error',
-        rule: 'System Error'
-      }],
-      warnings: [],
-      metadata: {
-        processingTime: 0,
-        schemaVersion: `ERN ${validationOptions.value.version}`,
-        validatedAt: new Date().toISOString(),
-        errorCount: 1,
-        warningCount: 0,
-        validationSteps: []
-      }
-    }
-  } finally {
-    isValidating.value = false
-  }
-}
-
-const readFileAsText = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target.result)
-    reader.onerror = reject
-    reader.readAsText(file)
-  })
-}
-
-const clearResults = () => {
-  validationResult.value = null
-  errorTab.value = 'all'
-  errorSearch.value = ''
-  collapsedGroups.value = {}
-}
-
-const toggleGroup = (key) => {
-  collapsedGroups.value[key] = !collapsedGroups.value[key]
-}
-
-const formatGroupHeader = (key, groupBy) => {
-  if (groupBy === 'severity') {
-    return key.charAt(0).toUpperCase() + key.slice(1) + 's'
-  }
-  return key
-}
-
-const formatValidationMode = (mode) => {
-  const modes = {
-    'full': 'Full Validation',
-    'xsd': 'XSD Schema Only',
-    'business': 'Business Rules Only',
-    'quick': 'Quick Check'
-  }
-  return modes[mode] || mode
-}
-
-const openDDEXReference = (rule) => {
-  // Extract the actual rule ID and open DDEX knowledge base
-  const ruleId = rule.split('-').pop()
-  window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
-}
-
-const exportAsJSON = () => {
-  showExportMenu.value = false
-  
-  // Create a comprehensive export object
-  const exportData = {
-    metadata: {
-      exportedAt: new Date().toISOString(),
-      validatedAt: validationResult.value.metadata.validatedAt,
-      tool: 'DDEX Workbench Validator',
-      version: '1.0.0'
-    },
-    validation: {
-      valid: validationResult.value.valid,
-      ernVersion: validationOptions.value.version,
-      profile: validationOptions.value.profile || 'None',
-      mode: validationOptions.value.mode,
-      processingTime: validationResult.value.metadata.processingTime + 'ms',
-      errorCount: validationResult.value.metadata.errorCount,
-      warningCount: validationResult.value.metadata.warningCount
-    },
-    validationSteps: validationResult.value.metadata.validationSteps,
-    errors: validationResult.value.errors || [],
-    warnings: validationResult.value.warnings || []
-  }
-  
-  // Create and download the file
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ddex-validation-${new Date().toISOString().split('T')[0]}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-const exportAsText = () => {
-  showExportMenu.value = false
-  
-  // Create a human-readable text report
-  let report = `DDEX VALIDATION REPORT
-======================
-Generated: ${new Date().toLocaleString()}
-
-SUMMARY
--------
-Status: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
-ERN Version: ${validationOptions.value.version}
-Profile: ${validationOptions.value.profile || 'None'}
-Validation Mode: ${formatValidationMode(validationOptions.value.mode)}
-Processing Time: ${validationResult.value.metadata.processingTime}ms
-Total Errors: ${validationResult.value.metadata.errorCount}
-Total Warnings: ${validationResult.value.metadata.warningCount}
-
-VALIDATION STEPS
-----------------
-`
-
-  if (validationResult.value.metadata.validationSteps) {
-    validationResult.value.metadata.validationSteps.forEach(step => {
-      report += `${step.type}: ${step.duration}ms (${step.errorCount} issues)\n`
-    })
-  }
-
-  if (validationResult.value.errors?.length > 0) {
-    report += `
-ERRORS
-------
-`
-    validationResult.value.errors.forEach((error, index) => {
-      report += `
-${index + 1}. Line ${error.line}, Column ${error.column}
-   Rule: ${error.rule}
-   Message: ${error.message}
-`
-      if (error.context) {
-        report += `   Context: ${error.context}\n`
-      }
-      if (error.suggestion) {
-        report += `   Suggestion: ${error.suggestion}\n`
-      }
-    })
-  }
-
-  if (validationResult.value.warnings?.length > 0) {
-    report += `
-WARNINGS
---------
-`
-    validationResult.value.warnings.forEach((warning, index) => {
-      report += `
-${index + 1}. Line ${warning.line}, Column ${warning.column}
-   Rule: ${warning.rule}
-   Message: ${warning.message}
-`
-      if (warning.context) {
-        report += `   Context: ${warning.context}\n`
-      }
-      if (warning.suggestion) {
-        report += `   Suggestion: ${warning.suggestion}\n`
-      }
-    })
-  }
-
-  // Create and download the file
-  const blob = new Blob([report], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-const copyResultsToClipboard = () => {
-  showExportMenu.value = false
-  
-  const summary = `DDEX Validation: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
-ERN ${validationOptions.value.version} • ${validationOptions.value.profile || 'No Profile'}
-${validationResult.value.metadata.errorCount} errors, ${validationResult.value.metadata.warningCount} warnings
-Processed in ${validationResult.value.metadata.processingTime}ms`
-  
-  navigator.clipboard.writeText(summary).then(() => {
-    // Show a temporary success message
-    const button = event.target.closest('button')
-    const originalText = button.innerHTML
-    button.innerHTML = '<i class="fas fa-check mr-xs"></i>Copied!'
-    button.classList.add('text-success')
-    
-    setTimeout(() => {
-      button.innerHTML = originalText
-      button.classList.remove('text-success')
-    }, 2000)
-  })
-}
-
-const saveToHistory = async () => {
-  // This would be implemented with the API
-  console.log('Saving to history...')
-}
-
-const shareResult = () => {
-  // Generate shareable link
-  const shareData = {
-    title: 'DDEX Validation Result',
-    text: `DDEX ERN ${validationOptions.value.version} validation: ${validationResult.value.valid ? 'Valid' : 'Invalid'}`,
-    url: window.location.href
-  }
-  
-  if (navigator.share) {
-    navigator.share(shareData)
-  } else {
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(shareData.url)
-    alert('Link copied to clipboard!')
-  }
-}
-
-const loadValidationHistory = async () => {
-  try {
-    const history = await getValidationHistory({ limit: 5 })
-    validationHistory.value = history.items || []
-  } catch (error) {
-    console.error('Failed to load validation history:', error)
-  }
-}
-
-const loadHistoryItem = (item) => {
-  // Load the historical validation
-  validationOptions.value.version = item.version
-  validationOptions.value.profile = item.profile
-  // You'd load the actual content from storage
-}
-
-const formatDate = (date) => {
-  const d = date.toDate ? date.toDate() : new Date(date)
-  return d.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-</script>
-
 <template>
   <div class="validator-view">
     <!-- Hero Section -->
@@ -1202,7 +576,7 @@ const formatDate = (date) => {
                       </button>
                       <div class="export-divider"></div>
                       <button 
-                        @click="copyResultsToClipboard"
+                        @click="copyResultsToClipboard($event)"
                         class="export-option"
                       >
                         <font-awesome-icon :icon="['fas', 'copy']" class="mr-sm" />
@@ -1212,41 +586,10 @@ const formatDate = (date) => {
                   </transition>
                 </div>
                 
-                <button @click="saveToHistory" class="btn btn-secondary" v-if="isAuthenticated">
-                  <font-awesome-icon :icon="['fas', 'save']" class="mr-xs" />
-                  Save to History
-                </button>
                 <button @click="shareResult" class="btn btn-secondary">
                   <font-awesome-icon :icon="['fas', 'share']" class="mr-xs" />
                   Share Result
                 </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Validation History (for authenticated users) -->
-          <div v-if="isAuthenticated && validationHistory.length > 0" class="validation-history mt-3xl">
-            <h3 class="text-xl font-semibold mb-lg">Recent Validations</h3>
-            <div class="history-grid">
-              <div 
-                v-for="item in validationHistory" 
-                :key="item.id"
-                class="history-item card card-hover"
-                @click="loadHistoryItem(item)"
-              >
-                <div class="flex items-start justify-between">
-                  <div>
-                    <p class="font-medium">{{ item.fileName || 'Pasted XML' }}</p>
-                    <p class="text-sm text-secondary">
-                      {{ formatDate(item.timestamp) }} • 
-                      ERN {{ item.version }}
-                    </p>
-                  </div>
-                  <font-awesome-icon 
-                    :icon="['fas', item.valid ? 'check-circle' : 'exclamation-circle']"
-                    :class="item.valid ? 'text-success' : 'text-error'"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -1255,6 +598,590 @@ const formatDate = (date) => {
     </section>
   </div>
 </template>
+
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { validateERN, getSupportedFormats } from '@/services/api'
+import { debounce } from '@/utils/debounce'
+
+// Router
+const router = useRouter()
+
+// Auth
+const { user, isAuthenticated } = useAuth()
+
+// State
+const inputMethod = ref('upload')
+const isDragging = ref(false)
+const selectedFile = ref(null)
+const xmlContent = ref('')
+const xmlUrl = ref('')
+const isLoadingUrl = ref(false)
+const isValidating = ref(false)
+const isValidatingRealtime = ref(false)
+const validationResult = ref(null)
+const realtimeErrors = ref([])
+const errorTab = ref('all')
+const errorSearch = ref('')
+const errorGroupBy = ref('line')
+const collapsedGroups = ref({})
+const showAdvanced = ref(false)
+const showExportMenu = ref(false)
+
+// Dynamic profiles support
+const supportedFormats = ref(null)
+const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
+
+const validationOptions = ref({
+  version: '4.3',
+  profile: 'AudioAlbum',
+  mode: 'full',
+  realtime: false,
+  strictMode: false,
+  validateReferences: true
+})
+
+// Computed
+const canValidate = computed(() => {
+  if (inputMethod.value === 'upload') return selectedFile.value
+  if (inputMethod.value === 'paste') return xmlContent.value.trim()
+  if (inputMethod.value === 'url') return xmlUrl.value.trim()
+  return false
+})
+
+const totalIssues = computed(() => {
+  if (!validationResult.value) return 0
+  const errors = validationResult.value.errors?.length || 0
+  const warnings = validationResult.value.warnings?.length || 0
+  return errors + warnings
+})
+
+const displayedErrors = computed(() => {
+  if (!validationResult.value) return []
+  
+  let errors = []
+  if (errorTab.value === 'all') {
+    errors = [
+      ...(validationResult.value.errors || []), 
+      ...(validationResult.value.warnings || [])
+    ]
+  } else if (errorTab.value === 'errors') {
+    errors = validationResult.value.errors || []
+  } else if (errorTab.value === 'warnings') {
+    errors = validationResult.value.warnings || []
+  }
+  
+  // Apply search filter
+  if (errorSearch.value) {
+    const search = errorSearch.value.toLowerCase()
+    errors = errors.filter(error => 
+      (error.message && error.message.toLowerCase().includes(search)) ||
+      (error.rule && error.rule.toLowerCase().includes(search))
+    )
+  }
+  
+  return errors
+})
+
+const groupedAndFilteredErrors = computed(() => {
+  const errors = displayedErrors.value
+  const groups = {}
+  
+  errors.forEach(error => {
+    let key
+    switch (errorGroupBy.value) {
+      case 'type':
+        key = error.rule?.split('-')[0] || 'Other'
+        break
+      case 'severity':
+        key = error.severity
+        break
+      case 'line':
+      default:
+        key = `Line ${error.line}`
+        break
+    }
+    
+    if (!groups[key]) groups[key] = []
+    groups[key].push(error)
+  })
+  
+  // Sort groups
+  const sortedGroups = {}
+  Object.keys(groups).sort((a, b) => {
+    if (errorGroupBy.value === 'line') {
+      return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1])
+    }
+    return a.localeCompare(b)
+  }).forEach(key => {
+    sortedGroups[key] = groups[key]
+  })
+  
+  return sortedGroups
+})
+
+// Real-time validation debounced function
+const validateRealtime = debounce(async () => {
+  if (!validationOptions.value.realtime || !xmlContent.value || xmlContent.value.length < 100) {
+    realtimeErrors.value = []
+    return
+  }
+  
+  isValidatingRealtime.value = true
+  
+  try {
+    const result = await validateERN({
+      content: xmlContent.value,
+      type: 'ERN',
+      version: validationOptions.value.version,
+      profile: validationOptions.value.profile,
+      mode: 'quick' // Quick mode for real-time
+    })
+    
+    realtimeErrors.value = result.errors || []
+  } catch (error) {
+    console.error('Real-time validation error:', error)
+    realtimeErrors.value = []
+  } finally {
+    isValidatingRealtime.value = false
+  }
+}, 500)
+
+// Load supported formats on mount
+onMounted(async () => {
+  try {
+    const formats = await getSupportedFormats()
+    supportedFormats.value = formats
+    updateAvailableProfiles()
+  } catch (error) {
+    console.error('Failed to load supported formats:', error)
+  }
+
+  // Check if coming from snippets with content
+  const storedContent = sessionStorage.getItem('validatorContent')
+  const storedVersion = sessionStorage.getItem('validatorVersion')
+  const storedInputMethod = sessionStorage.getItem('validatorInputMethod')
+
+  if (storedContent) {
+    // Set the input method to paste
+    inputMethod.value = storedInputMethod || 'paste'
+    
+    // Load the content
+    xmlContent.value = storedContent
+    
+    // Set the version if provided
+    if (storedVersion) {
+      validationOptions.value.version = storedVersion
+      // Update available profiles for the new version
+      updateAvailableProfiles()
+    }
+    
+    // Clear the session storage to prevent reloading on refresh
+    sessionStorage.removeItem('validatorContent')
+    sessionStorage.removeItem('validatorVersion')
+    sessionStorage.removeItem('validatorInputMethod')
+    
+    // If real-time validation is enabled, trigger it
+    if (validationOptions.value.realtime) {
+      validateRealtime()
+    }
+  }
+  
+  // Click outside handler for export menu
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// Watch for version changes to update available profiles
+watch(() => validationOptions.value.version, () => {
+  updateAvailableProfiles()
+})
+
+// Watch for real-time validation
+watch(xmlContent, (newContent) => {
+  if (validationOptions.value.realtime && newContent) {
+    validateRealtime()
+  }
+})
+
+// Methods
+const handleClickOutside = (e) => {
+  if (!e.target.closest('.export-menu-container')) {
+    showExportMenu.value = false
+  }
+}
+
+const updateAvailableProfiles = () => {
+  if (!supportedFormats.value) return
+  
+  const versionConfig = supportedFormats.value.versions.find(
+    v => v.version === validationOptions.value.version
+  )
+  
+  if (versionConfig) {
+    availableProfiles.value = versionConfig.profiles
+    // Reset profile if current selection is not available
+    if (!versionConfig.profiles.includes(validationOptions.value.profile)) {
+      validationOptions.value.profile = versionConfig.profiles[0] || ''
+    }
+  }
+}
+
+const handleDrop = (e) => {
+  e.preventDefault()
+  isDragging.value = false
+  
+  const files = e.dataTransfer.files
+  if (files.length > 0) {
+    const file = files[0]
+    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+      selectedFile.value = file
+    } else {
+      alert('Please drop an XML file')
+    }
+  }
+}
+
+const handleFileSelect = (e) => {
+  const files = e.target.files
+  if (files.length > 0) {
+    selectedFile.value = files[0]
+  }
+}
+
+const clearFile = () => {
+  selectedFile.value = null
+  const fileInput = document.querySelector('input[type="file"]')
+  if (fileInput) {
+    fileInput.value = ''
+  }
+}
+
+const loadFromUrl = async () => {
+  if (!xmlUrl.value) return
+  
+  isLoadingUrl.value = true
+  try {
+    const response = await fetch(xmlUrl.value)
+    if (!response.ok) throw new Error('Failed to load URL')
+    
+    const content = await response.text()
+    xmlContent.value = content
+    inputMethod.value = 'paste'
+  } catch (error) {
+    alert(`Failed to load XML from URL: ${error.message}`)
+  } finally {
+    isLoadingUrl.value = false
+  }
+}
+
+const handleXmlInput = (e) => {
+  // Update line numbers if needed
+  if (validationOptions.value.realtime) {
+    validateRealtime()
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+const countLines = (text) => {
+  return text.split('\n').length
+}
+
+const validateXML = async () => {
+  isValidating.value = true
+  validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
+  
+  try {
+    let content = xmlContent.value
+    
+    if (inputMethod.value === 'upload' && selectedFile.value) {
+      content = await readFileAsText(selectedFile.value)
+    }
+    
+    const result = await validateERN({
+      content,
+      type: 'ERN',
+      version: validationOptions.value.version,
+      profile: validationOptions.value.profile,
+      mode: validationOptions.value.mode,
+      strictMode: validationOptions.value.strictMode,
+      validateReferences: validationOptions.value.validateReferences
+    })
+    
+    // Ensure validation steps are populated
+    const validationSteps = result.metadata?.validationSteps || []
+    
+    // If no steps returned but validation succeeded, create mock steps
+    if (validationSteps.length === 0 && result.valid) {
+      const totalTime = result.metadata?.processingTime || 25
+      validationSteps.push(
+        {
+          type: 'XSD',
+          duration: Math.floor(totalTime * 0.4),
+          errorCount: 0
+        },
+        {
+          type: 'BusinessRules',
+          duration: Math.floor(totalTime * 0.4),
+          errorCount: 0
+        }
+      )
+      
+      // Add Schematron step if profile is selected
+      if (validationOptions.value.profile) {
+        validationSteps.push({
+          type: 'Schematron',
+          duration: Math.floor(totalTime * 0.2),
+          errorCount: 0
+        })
+      }
+    }
+    
+    // Ensure arrays are always defined
+    validationResult.value = {
+      valid: result.valid || false,
+      errors: result.errors || [],
+      warnings: result.warnings || [],
+      metadata: {
+        ...result.metadata,
+        errorCount: (result.errors || []).length,
+        warningCount: (result.warnings || []).length,
+        validationSteps
+      }
+    }
+  } catch (error) {
+    console.error('Validation error:', error)
+    validationResult.value = {
+      valid: false,
+      errors: [{
+        line: 0,
+        column: 0,
+        message: error.message || 'An error occurred during validation',
+        severity: 'error',
+        rule: 'System Error'
+      }],
+      warnings: [],
+      metadata: {
+        processingTime: 0,
+        schemaVersion: `ERN ${validationOptions.value.version}`,
+        validatedAt: new Date().toISOString(),
+        errorCount: 1,
+        warningCount: 0,
+        validationSteps: []
+      }
+    }
+  } finally {
+    isValidating.value = false
+  }
+}
+
+const readFileAsText = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.onerror = reject
+    reader.readAsText(file)
+  })
+}
+
+const clearResults = () => {
+  validationResult.value = null
+  errorTab.value = 'all'
+  errorSearch.value = ''
+  collapsedGroups.value = {}
+}
+
+const toggleGroup = (key) => {
+  collapsedGroups.value[key] = !collapsedGroups.value[key]
+}
+
+const formatGroupHeader = (key, groupBy) => {
+  if (groupBy === 'severity') {
+    return key.charAt(0).toUpperCase() + key.slice(1) + 's'
+  }
+  return key
+}
+
+const formatValidationMode = (mode) => {
+  const modes = {
+    'full': 'Full Validation',
+    'xsd': 'XSD Schema Only',
+    'business': 'Business Rules Only',
+    'quick': 'Quick Check'
+  }
+  return modes[mode] || mode
+}
+
+const openDDEXReference = (rule) => {
+  // Extract the actual rule ID and open DDEX knowledge base
+  const ruleId = rule.split('-').pop()
+  window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
+}
+
+const exportAsJSON = () => {
+  showExportMenu.value = false
+  
+  // Create a comprehensive export object
+  const exportData = {
+    metadata: {
+      exportedAt: new Date().toISOString(),
+      validatedAt: validationResult.value.metadata.validatedAt,
+      tool: 'DDEX Workbench Validator',
+      version: '1.0.0'
+    },
+    validation: {
+      valid: validationResult.value.valid,
+      ernVersion: validationOptions.value.version,
+      profile: validationOptions.value.profile || 'None',
+      mode: validationOptions.value.mode,
+      processingTime: validationResult.value.metadata.processingTime + 'ms',
+      errorCount: validationResult.value.metadata.errorCount,
+      warningCount: validationResult.value.metadata.warningCount
+    },
+    validationSteps: validationResult.value.metadata.validationSteps,
+    errors: validationResult.value.errors || [],
+    warnings: validationResult.value.warnings || []
+  }
+  
+  // Create and download the file
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ddex-validation-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportAsText = () => {
+  showExportMenu.value = false
+  
+  // Create a human-readable text report
+  let report = `DDEX VALIDATION REPORT
+======================
+Generated: ${new Date().toLocaleString()}
+
+SUMMARY
+-------
+Status: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
+ERN Version: ${validationOptions.value.version}
+Profile: ${validationOptions.value.profile || 'None'}
+Validation Mode: ${formatValidationMode(validationOptions.value.mode)}
+Processing Time: ${validationResult.value.metadata.processingTime}ms
+Total Errors: ${validationResult.value.metadata.errorCount}
+Total Warnings: ${validationResult.value.metadata.warningCount}
+
+VALIDATION STEPS
+----------------
+`
+
+  if (validationResult.value.metadata.validationSteps) {
+    validationResult.value.metadata.validationSteps.forEach(step => {
+      report += `${step.type}: ${step.duration}ms (${step.errorCount} issues)\n`
+    })
+  }
+
+  if (validationResult.value.errors?.length > 0) {
+    report += `
+ERRORS
+------
+`
+    validationResult.value.errors.forEach((error, index) => {
+      report += `
+${index + 1}. Line ${error.line}, Column ${error.column}
+   Rule: ${error.rule}
+   Message: ${error.message}
+`
+      if (error.context) {
+        report += `   Context: ${error.context}\n`
+      }
+      if (error.suggestion) {
+        report += `   Suggestion: ${error.suggestion}\n`
+      }
+    })
+  }
+
+  if (validationResult.value.warnings?.length > 0) {
+    report += `
+WARNINGS
+--------
+`
+    validationResult.value.warnings.forEach((warning, index) => {
+      report += `
+${index + 1}. Line ${warning.line}, Column ${warning.column}
+   Rule: ${warning.rule}
+   Message: ${warning.message}
+`
+      if (warning.context) {
+        report += `   Context: ${warning.context}\n`
+      }
+      if (warning.suggestion) {
+        report += `   Suggestion: ${warning.suggestion}\n`
+      }
+    })
+  }
+
+  // Create and download the file
+  const blob = new Blob([report], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ddex-validation-report-${new Date().toISOString().split('T')[0]}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const copyResultsToClipboard = (event) => {
+  showExportMenu.value = false
+  
+  const summary = `DDEX Validation: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
+ERN ${validationOptions.value.version} • ${validationOptions.value.profile || 'No Profile'}
+${validationResult.value.metadata.errorCount} errors, ${validationResult.value.metadata.warningCount} warnings
+Processed in ${validationResult.value.metadata.processingTime}ms`
+  
+  navigator.clipboard.writeText(summary).then(() => {
+    // Show a temporary success message
+    const button = event.target.closest('button')
+    const originalText = button.innerHTML
+    button.innerHTML = '<i class="fas fa-check mr-xs"></i>Copied!'
+    button.classList.add('text-success')
+    
+    setTimeout(() => {
+      button.innerHTML = originalText
+      button.classList.remove('text-success')
+    }, 2000)
+  })
+}
+
+const shareResult = () => {
+  // Generate shareable link
+  const shareData = {
+    title: 'DDEX Validation Result',
+    text: `DDEX ERN ${validationOptions.value.version} validation: ${validationResult.value.valid ? 'Valid' : 'Invalid'}`,
+    url: window.location.href
+  }
+  
+  if (navigator.share) {
+    navigator.share(shareData)
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(shareData.url)
+    alert('Link copied to clipboard!')
+  }
+}
+</script>
 
 <style scoped>
 /* Hero Section */
@@ -1616,23 +1543,6 @@ const formatDate = (date) => {
   border-left: 3px solid var(--color-info);
 }
 
-/* History Grid */
-.history-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-md);
-}
-
-.history-item {
-  padding: var(--space-md);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.history-item:hover {
-  transform: translateY(-2px);
-}
-
 /* Transitions */
 .collapse-enter-active,
 .collapse-leave-active {
@@ -1754,10 +1664,6 @@ const formatDate = (date) => {
   
   .error-controls {
     flex-direction: column;
-  }
-  
-  .history-grid {
-    grid-template-columns: 1fr;
   }
   
   .export-menu {
