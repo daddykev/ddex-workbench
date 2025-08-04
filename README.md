@@ -6,7 +6,7 @@
 
 > Modern, open-source DDEX validation tools for the music industry.
 
-**Live at: [https://ddex-workbench.web.app](https://ddex-workbench.web.app)**
+**Live at: [https://ddex-workbench.org](https://ddex-workbench.org)**
 
 ## 🎯 Vision
 
