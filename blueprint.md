@@ -446,7 +446,7 @@ interface ValidationStep {
 - **Modern hero section** with value proposition
 - **Feature cards** for Validator, Snippets, and API
 - **ERN 4.3 migration urgency** messaging
-- **Future roadmap** preview (DSR-Flow, DDEX Workbench)
+- **Future roadmap** preview
 - **Call-to-action** for immediate engagement
 
 ### 2. Web Validator Interface
@@ -456,9 +456,13 @@ interface ValidationStep {
 - **Version Selection**: Choose between ERN 3.8.2, 4.2, or 4.3
 - **Profile Selection**: Dynamic profile options based on selected version
 - **Real-time Validation**: Validate as you type with debouncing
-- **Advanced Options**: Validation mode, strict mode, reference checking
+- **Advanced Options**: 
+  - Validation mode (full, XSD only, business rules only, quick check)
+  - Strict mode (treat warnings as errors)
+  - Reference validation checking
 - **Validation Results**: 
   - Clear pass/fail status with processing timeline
+  - Validation steps visualization (XSD, Business Rules, Schematron) with timing
   - Grouped errors by type/line/severity with collapsible sections
   - Searchable and filterable error list
   - Detailed error messages with DDEX KB links
@@ -466,7 +470,10 @@ interface ValidationStep {
   - Version-specific validation rules
   - Separate warnings from errors
   - Share results functionality
-- **Export Options**: Download validation reports
+- **Export Options**: 
+  - JSON report download
+  - Text report download
+  - Copy summary to clipboard
 
 ### 3. Authentication System
 - **Registration**: Email/password with display name
@@ -530,30 +537,26 @@ headers: {
 - **Version Support**: Detailed ERN version information
 - **Error Reference**: Complete error response documentation
 
-### 6. Community Knowledge Base (Pending)
-- **Snippet Categories**:
-  - Common Patterns
-  - Complex Scenarios
-  - Migration Examples (ERN 3.8.2 to 4.3)
-  - Version-specific examples
+### 6. Community Snippets Library
+- **Direct Firestore Integration**: No API required, uses Firebase SDK
 - **Features**:
-  - Search and filter by version
-  - Upvote/downvote (authenticated)
-  - Comments (authenticated)
-  - Copy to validator button
-  - Tags for discovery
-- **Contribution**: Authenticated users can submit snippets
+  - Create, edit, delete snippets (authenticated users)
+  - Search and filter by category, tags, version
+  - Copy snippet to validator
+  - Vote system (UI complete, implementation pending)
+- **Categories**: Common Patterns, Complex Scenarios, Migration Examples
 
 ### 7. User Features
 - **Anonymous Usage**:
   - Core validation without login
   - Read API documentation
+  - View community snippets
   - Basic API access (rate limited to 10 req/min)
 - **Authenticated Features**:
   - Generate and manage API keys
   - Higher API rate limits (60 req/min)
-  - Contribute and vote on snippets (pending)
-  - Usage analytics dashboard (UI ready)
+  - Create, edit, and manage snippets
+  - Vote on snippets (pending implementation)
 
 ## CSS Architecture
 
@@ -625,7 +628,6 @@ Semantic utility classes for:
 - [x] API key management UI
 - [x] Protected routes
 - [x] Auth state in navigation
-- [ ] Usage statistics tracking (backend)
 
 ### Week 9-10: API Development
 - [x] REST API endpoints
@@ -651,21 +653,20 @@ Semantic utility classes for:
 - [x] Schematron-equivalent validation (built-in rules)
 - [x] JSON and text report generation
 
-### Week 13-14: Knowledge Base (Next Phase)
+### Week 13-14: Community Features
 - [x] Snippet management UI
+- [x] Direct Firestore integration for snippets
 - [x] Search and filtering
 - [x] Snippet categories
+- [x] Copy to validator functionality
 - [ ] Voting system implementation
-- [ ] Comment system
-- [ ] Moderation tools
+- [ ] Usage analytics tracking
 
 ### Week 15-16: Polish & Launch
+- [x] JSON and text report generation
 - [ ] Performance optimization
 - [ ] Security audit
 - [ ] Complete test coverage
-- [ ] Documentation site
-- [ ] Marketing website
-- [ ] Launch announcement
 
 ## API Security Implementation
 

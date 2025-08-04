@@ -45,6 +45,12 @@ A production-ready web-based ERN validator supporting multiple versions with com
   - Searchable and filterable
   - Error context with XML snippets
   - Direct links to DDEX Knowledge Base
+- **Validation steps visualization**: Shows timing for each validation stage
+- **Export capabilities**:
+  - JSON report download
+  - Text report download
+  - Copy summary to clipboard
+  - Share results functionality
 - **Theme system** with light/dark/auto modes
 - **Fully responsive** for all devices
 
@@ -53,6 +59,13 @@ A production-ready web-based ERN validator supporting multiple versions with com
 - **API key management** for programmatic access
 - **User profiles** with customization options
 - **Rate limiting**: 10 req/min (anonymous), 60 req/min (authenticated)
+
+#### ✅ Community Snippets Library
+- **Browse** validated DDEX examples
+- **Create and manage** snippets (authenticated users)
+- **Search and filter** by category, tags, or version
+- **Copy to validator** for quick testing
+- **Direct Firestore integration** for real-time updates
 
 #### ✅ Public Validation API
 
@@ -81,10 +94,7 @@ headers: {
 - Version and profile information
 
 #### 🚧 Coming Soon
-- Community snippet library
-- Validation history tracking
 - Usage analytics dashboard
-- PDF report generation
 - npm client SDK
 
 ## 🛠️ Tech Stack
@@ -195,9 +205,8 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 - [x] Three-stage validation pipeline
 - [x] Enhanced error display with grouping/filtering
 - [x] Community snippet library
-- [ ] Validation history tracking
+- [x] JSON and text report generation
 - [ ] Usage analytics
-- [ ] PDF report generation
 
 ### Phase 2: DSR-Flow (Q3 2025)
 Digital Sales Reporting processor for financial data workflows
