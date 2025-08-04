@@ -52,7 +52,9 @@ const canValidate = computed(() => {
 
 const totalIssues = computed(() => {
   if (!validationResult.value) return 0
-  return (validationResult.value.errors?.length || 0) + (validationResult.value.warnings?.length || 0)
+  const errors = validationResult.value.errors?.length || 0
+  const warnings = validationResult.value.warnings?.length || 0
+  return errors + warnings
 })
 
 const displayedErrors = computed(() => {
@@ -60,7 +62,10 @@ const displayedErrors = computed(() => {
   
   let errors = []
   if (errorTab.value === 'all') {
-    errors = [...(validationResult.value.errors || []), ...(validationResult.value.warnings || [])]
+    errors = [
+      ...(validationResult.value.errors || []), 
+      ...(validationResult.value.warnings || [])
+    ]
   } else if (errorTab.value === 'errors') {
     errors = validationResult.value.errors || []
   } else if (errorTab.value === 'warnings') {
@@ -71,8 +76,8 @@ const displayedErrors = computed(() => {
   if (errorSearch.value) {
     const search = errorSearch.value.toLowerCase()
     errors = errors.filter(error => 
-      error.message.toLowerCase().includes(search) ||
-      error.rule?.toLowerCase().includes(search)
+      (error.message && error.message.toLowerCase().includes(search)) ||
+      (error.rule && error.rule.toLowerCase().includes(search))
     )
   }
   
@@ -300,14 +305,24 @@ const validateXML = async () => {
       type: 'ERN',
       version: validationOptions.value.version,
       profile: validationOptions.value.profile,
-      options: {
-        mode: validationOptions.value.mode,
-        strictMode: validationOptions.value.strictMode,
-        validateReferences: validationOptions.value.validateReferences
-      }
+      // Note: The API expects options at the top level, not nested
+      mode: validationOptions.value.mode,
+      strictMode: validationOptions.value.strictMode,
+      validateReferences: validationOptions.value.validateReferences
     })
     
-    validationResult.value = result
+    // Ensure arrays are always defined
+    validationResult.value = {
+      valid: result.valid || false,
+      errors: result.errors || [],
+      warnings: result.warnings || [],
+      metadata: {
+        ...result.metadata,
+        errorCount: (result.errors || []).length,
+        warningCount: (result.warnings || []).length,
+        validationSteps: result.metadata?.validationSteps || []
+      }
+    }
     
     // Save to history if authenticated
     if (isAuthenticated.value) {
@@ -330,7 +345,8 @@ const validateXML = async () => {
         schemaVersion: `ERN ${validationOptions.value.version}`,
         validatedAt: new Date().toISOString(),
         errorCount: 1,
-        warningCount: 0
+        warningCount: 0,
+        validationSteps: []
       }
     }
   } finally {
@@ -816,7 +832,7 @@ const formatDate = (date) => {
             </div>
 
             <!-- Error Summary -->
-            <div v-if="!validationResult.valid && (validationResult.errors.length || validationResult.warnings.length)" class="error-summary mt-lg">
+            <div v-if="!validationResult.valid && ((validationResult.errors && validationResult.errors.length) || (validationResult.warnings && validationResult.warnings.length))" class="error-summary mt-lg">
               <!-- Tab Navigation for Errors/Warnings -->
               <div class="error-tabs flex gap-sm mb-md">
                 <button 
@@ -827,7 +843,7 @@ const formatDate = (date) => {
                   All Issues ({{ totalIssues }})
                 </button>
                 <button 
-                  v-if="validationResult.errors.length"
+                  v-if="validationResult.errors && validationResult.errors.length"
                   @click="errorTab = 'errors'"
                   class="tab-button tab-button-sm"
                   :class="{ active: errorTab === 'errors' }"
@@ -836,7 +852,7 @@ const formatDate = (date) => {
                   Errors ({{ validationResult.errors.length }})
                 </button>
                 <button 
-                  v-if="validationResult.warnings.length"
+                  v-if="validationResult.warnings && validationResult.warnings.length"
                   @click="errorTab = 'warnings'"
                   class="tab-button tab-button-sm"
                   :class="{ active: errorTab === 'warnings' }"
