@@ -5,11 +5,10 @@
       <div class="container">
         <div class="hero-content text-center">
           <h1 class="hero-title">
-            Modern Tools for Digital Music Distribution
+            DDEX Workbench
           </h1>
           <p class="hero-subtitle">
-            Open-source DDEX validation, processing, and creation tools that bridge the gap 
-            between distributors and global music platforms
+            Open-source DDEX validation, processing, and creation tools
           </p>
           <div class="hero-actions">
             <router-link to="/validator" class="btn btn-primary btn-lg">

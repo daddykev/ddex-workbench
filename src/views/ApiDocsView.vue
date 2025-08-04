@@ -17,9 +17,8 @@ const languages = [
 // Code examples
 const codeExamples = {
   quickstart: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/api/validate \\
+    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
     "content": "<?xml version=\\"1.0\\"?>...",
     "type": "ERN",
@@ -29,8 +28,7 @@ const codeExamples = {
     javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_API_KEY'
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
     content: '<?xml version="1.0"?>...',
@@ -40,14 +38,12 @@ const codeExamples = {
   })
 });
 
-const result = await response.json();`,
+const result = await response.json();
+console.log(result.valid ? '✓ Valid' : '✗ Invalid');`,
     python: `import requests
 
 response = requests.post(
     'https://api.ddex-workbench.org/v1/validate',
-    headers={
-        'Authorization': 'Bearer YOUR_API_KEY'
-    },
     json={
         'content': '<?xml version="1.0"?>...',
         'type': 'ERN',
@@ -56,12 +52,10 @@ response = requests.post(
     }
 )
 
-result = response.json()`,
+result = response.json()
+print('✓ Valid' if result['valid'] else '✗ Invalid')`,
     php: `$client = new \\GuzzleHttp\\Client();
 $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
-    'headers' => [
-        'Authorization' => 'Bearer YOUR_API_KEY'
-    ],
     'json' => [
         'content' => '<?xml version="1.0"?>...',
         'type' => 'ERN',
@@ -70,29 +64,19 @@ $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
     ]
 ]);
 
-$result = json_decode($response->getBody(), true);`
+$result = json_decode($response->getBody(), true);
+echo $result['valid'] ? '✓ Valid' : '✗ Invalid';`
   },
   errorFormat: {
     json: `{
   "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "The provided XML does not conform to ERN 4.3 schema",
-    "details": {
-      "errors": [
-        {
-          "line": 45,
-          "column": 12,
-          "message": "Element 'ReleaseDate' is missing required child element 'Date'"
-        }
-      ]
-    }
+    "message": "XML content is required"
   }
 }`
   },
   validateEndpoint: {
     curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
   -d @- << 'EOF'
 {
   "content": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<ern:NewReleaseMessage...>",
@@ -101,70 +85,113 @@ $result = json_decode($response->getBody(), true);`
   "profile": "AudioAlbum"
 }
 EOF`,
-    javascript: `// Using the official SDK
-import { DDEXClient } from '@ddex-workbench/api-client';
+    javascript: `// Basic validation request
+const validateERN = async (xmlContent, version = '4.3', profile = 'AudioAlbum') => {
+  const response = await fetch(
+    'https://api.ddex-workbench.org/v1/validate',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        content: xmlContent,
+        type: 'ERN',
+        version: version,
+        profile: profile
+      })
+    }
+  );
 
-const client = new DDEXClient({ apiKey: 'YOUR_API_KEY' });
+  const result = await response.json();
+  
+  if (result.valid) {
+    console.log('✓ Valid DDEX file');
+    console.log(\`Processed in \${result.metadata.processingTime}ms\`);
+  } else {
+    console.error(\`✗ Found \${result.errors.length} errors\`);
+    result.errors.forEach(error => {
+      console.error(\`  Line \${error.line}: \${error.message}\`);
+    });
+  }
+  
+  return result;
+};`,
+    python: `import requests
+import json
 
-const result = await client.validate({
-  content: xmlContent,
-  type: 'ERN',
-  version: '4.3',
-  profile: 'AudioAlbum'
-});
-
-if (result.valid) {
-  console.log('✓ Valid DDEX file');
-} else {
-  console.error('✗ Validation errors:', result.errors);
-}`,
-    python: `# Using the official SDK
-from ddex_connect import Client
-
-client = Client(api_key="YOUR_API_KEY")
-
-result = client.validate(
-    content=xml_content,
-    type="ERN",
-    version="4.3",
-    profile="AudioAlbum"
-)
-
-if result.valid:
-    print("✓ Valid DDEX file")
-else:
-    for error in result.errors:
-        print(f"✗ Line {error.line}: {error.message}")`,
-    php: `// Using raw HTTP client
+def validate_ern(xml_content, version='4.3', profile='AudioAlbum'):
+    """
+    Validate DDEX ERN XML content
+    
+    Args:
+        xml_content: The XML content as a string
+        version: ERN version ('4.3', '4.2', or '3.8.2')
+        profile: Validation profile (e.g., 'AudioAlbum', 'AudioSingle', 'Video', 'Mixed')
+    
+    Returns:
+        dict: Validation result with 'valid', 'errors', and 'metadata'
+    """
+    
+    response = requests.post(
+        'https://api.ddex-workbench.org/v1/validate',
+        json={
+            'content': xml_content,
+            'type': 'ERN',
+            'version': version,
+            'profile': profile
+        }
+    )
+    
+    result = response.json()
+    
+    if result['valid']:
+        print(f"✓ Valid DDEX file")
+        print(f"Processed in {result['metadata']['processingTime']}ms")
+    else:
+        print(f"✗ Found {len(result['errors'])} errors")
+        for error in result['errors']:
+            print(f"  Line {error['line']}: {error['message']}")
+    
+    return result`,
+    php: `<?php
 use GuzzleHttp\\Client;
 
-$client = new Client();
-
-try {
-    $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
-        'headers' => [
-            'Authorization' => 'Bearer YOUR_API_KEY',
-            'Content-Type' => 'application/json'
-        ],
-        'json' => [
-            'content' => $xmlContent,
-            'type' => 'ERN',
-            'version' => '4.3',
-            'profile' => 'AudioAlbum'
-        ]
-    ]);
+function validateERN($xmlContent, $version = '4.3', $profile = 'AudioAlbum') {
+    $client = new Client();
     
-    $result = json_decode($response->getBody(), true);
-    
-    if ($result['valid']) {
-        echo "✓ Valid DDEX file\\n";
-    } else {
-        foreach ($result['errors'] as $error) {
-            echo "✗ Line {$error['line']}: {$error['message']}\\n";
+    try {
+        $response = $client->post(
+            'https://api.ddex-workbench.org/v1/validate',
+            [
+                'json' => [
+                    'content' => $xmlContent,
+                    'type' => 'ERN',
+                    'version' => $version,
+                    'profile' => $profile
+                ]
+            ]
+        );
+        
+        $result = json_decode($response->getBody(), true);
+        
+        if ($result['valid']) {
+            echo "✓ Valid DDEX file\\n";
+            echo "Processed in {$result['metadata']['processingTime']}ms\\n";
+        } else {
+            $errorCount = count($result['errors']);
+            echo "✗ Found {$errorCount} errors\\n";
+            foreach ($result['errors'] as $error) {
+                echo "  Line {$error['line']}: {$error['message']}\\n";
+            }
         }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\\n";
+        return null;
     }
-} catch (\\Exception $e) {
-    echo "Error: " . $e->getMessage();
 }`
   },
   validateResponse: {
@@ -176,8 +203,7 @@ try {
       "column": 12,
       "message": "Element 'ReleaseDate' is missing required child element 'Date'",
       "severity": "error",
-      "rule": "ERN-4.3-ReleaseDate",
-      "context": "    <ReleaseDate>\\n      <!-- Missing Date element -->\\n    </ReleaseDate>"
+      "rule": "ERN-4.3-ReleaseDate"
     },
     {
       "line": 78,
@@ -187,78 +213,229 @@ try {
       "rule": "ERN-4.3-ISRC-Format"
     }
   ],
+  "warnings": [
+    {
+      "line": 23,
+      "column": 4,
+      "message": "Consider migrating to ERN 4.3 for improved territorial handling",
+      "severity": "warning",
+      "rule": "ERN382-Migration-Suggestion"
+    }
+  ],
   "metadata": {
     "processingTime": 234,
-    "schemaVersion": "ern/43/2024-03-29",
-    "validatedAt": "2025-01-15T10:30:00Z"
+    "schemaVersion": "ERN 4.3",
+    "profile": "AudioAlbum",
+    "validatedAt": "2025-01-15T10:30:00Z",
+    "errorCount": 2,
+    "warningCount": 1,
+    "validationSteps": [
+      {
+        "type": "XSD",
+        "duration": 120,
+        "errorCount": 2
+      },
+      {
+        "type": "BusinessRules",
+        "duration": 80,
+        "errorCount": 0
+      },
+      {
+        "type": "Schematron",
+        "duration": 34,
+        "errorCount": 0
+      }
+    ]
   }
 }`
   },
-  fileUpload: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate/file \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -F "file=@release.xml" \\
-  -F "type=ERN" \\
-  -F "version=4.3" \\
-  -F "profile=AudioAlbum"`,
-    javascript: `const formData = new FormData();
-formData.append('file', xmlFile);
-formData.append('type', 'ERN');
-formData.append('version', '4.3');
-formData.append('profile', 'AudioAlbum');
-
-const response = await fetch('https://api.ddex-workbench.org/v1/validate/file', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
+  formatsResponse: {
+    json: `{
+  "types": ["ERN"],
+  "versions": [
+    {
+      "version": "4.3",
+      "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
+      "status": "recommended"
+    },
+    {
+      "version": "4.2",
+      "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
+      "status": "supported"
+    },
+    {
+      "version": "3.8.2",
+      "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
+      "status": "supported"
+    }
+  ]
+}`
   },
-  body: formData
-});
+  healthResponse: {
+    json: `{
+  "status": "ok",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "service": "DDEX Workbench API",
+  "version": "1.0.0"
+}`
+  },
+  fileExamples: {
+    javascript: `// Node.js example - validate file from disk
+const fs = require('fs').promises;
+const fetch = require('node-fetch');
 
-const result = await response.json();`,
-    python: `import requests
-
-with open('release.xml', 'rb') as f:
-    files = {'file': f}
-    data = {
-        'type': 'ERN',
-        'version': '4.3',
-        'profile': 'AudioAlbum'
+async function validateFile(filePath, version = '4.3', profile = 'AudioAlbum') {
+  try {
+    // Read the XML file
+    const xmlContent = await fs.readFile(filePath, 'utf8');
+    
+    // Send validation request
+    const response = await fetch(
+      'https://api.ddex-workbench.org/v1/validate',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: xmlContent,
+          type: 'ERN',
+          version: version,
+          profile: profile
+        })
+      }
+    );
+    
+    const result = await response.json();
+    
+    // Process results
+    if (result.valid) {
+      console.log('✅ Validation passed!');
+    } else {
+      console.log('❌ Validation failed:');
+      result.errors.forEach(err => {
+        console.log(\`  Line \${err.line}: \${err.message}\`);
+      });
     }
     
-    response = requests.post(
-        'https://api.ddex-workbench.org/v1/validate/file',
-        headers={'Authorization': 'Bearer YOUR_API_KEY'},
-        files=files,
-        data=data
-    )
+    return result;
     
-result = response.json()`,
-    php: `$client = new \\GuzzleHttp\\Client();
+  } catch (error) {
+    console.error('Validation error:', error);
+    throw error;
+  }
+}
 
-$response = $client->post('https://api.ddex-workbench.org/v1/validate/file', [
-    'headers' => [
-        'Authorization' => 'Bearer YOUR_API_KEY'
-    ],
-    'multipart' => [
-        [
-            'name' => 'file',
-            'contents' => fopen('release.xml', 'r')
-        ],
-        [
-            'name' => 'type',
-            'contents' => 'ERN'
-        ],
-        [
-            'name' => 'version',
-            'contents' => '4.3'
-        ],
-        [
-            'name' => 'profile',
-            'contents' => 'AudioAlbum'
-        ]
-    ]
-]);`
+// Usage
+validateFile('./releases/new_album.xml', '4.3', 'AudioAlbum')
+  .then(result => console.log('Done!'));`,
+    python: `# Python example - validate file from disk
+import requests
+import json
+
+def validate_file(file_path, version='4.3', profile='AudioAlbum'):
+    """Validate a DDEX XML file"""
+    
+    # Read the XML file
+    with open(file_path, 'r', encoding='utf-8') as file:
+        xml_content = file.read()
+    
+    # Prepare the request
+    url = 'https://api.ddex-workbench.org/v1/validate'
+    payload = {
+        'content': xml_content,
+        'type': 'ERN',
+        'version': version,
+        'profile': profile
+    }
+    
+    # Send validation request
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    # Process results
+    if result['valid']:
+        print('✅ Validation passed!')
+        print(f"Processed in {result['metadata']['processingTime']}ms")
+    else:
+        print('❌ Validation failed:')
+        for error in result['errors']:
+            print(f"  Line {error['line']}: {error['message']}")
+        
+        if result.get('warnings'):
+            print('\\n⚠️  Warnings:')
+            for warning in result['warnings']:
+                print(f"  Line {warning['line']}: {warning['message']}")
+    
+    return result
+
+# Usage
+if __name__ == '__main__':
+    result = validate_file('./releases/new_album.xml', '4.3', 'AudioAlbum')
+    print(f"\\nTotal issues: {len(result['errors']) + len(result.get('warnings', []))}")`,
+    php: `// PHP example - validate file from disk
+<?php
+require 'vendor/autoload.php';
+use GuzzleHttp\\Client;
+
+function validateFile($filePath, $version = '4.3', $profile = 'AudioAlbum') {
+    // Read the XML file
+    $xmlContent = file_get_contents($filePath);
+    if ($xmlContent === false) {
+        throw new Exception("Could not read file: $filePath");
+    }
+    
+    // Create HTTP client
+    $client = new Client();
+    
+    try {
+        // Send validation request
+        $response = $client->post(
+            'https://api.ddex-workbench.org/v1/validate',
+            [
+                'json' => [
+                    'content' => $xmlContent,
+                    'type' => 'ERN',
+                    'version' => $version,
+                    'profile' => $profile
+                ]
+            ]
+        );
+        
+        $result = json_decode($response->getBody(), true);
+        
+        // Process results
+        if ($result['valid']) {
+            echo "✅ Validation passed!\\n";
+            echo "Processed in {$result['metadata']['processingTime']}ms\\n";
+        } else {
+            echo "❌ Validation failed:\\n";
+            foreach ($result['errors'] as $error) {
+                echo "  Line {$error['line']}: {$error['message']}\\n";
+            }
+            
+            if (!empty($result['warnings'])) {
+                echo "\\n⚠️  Warnings:\\n";
+                foreach ($result['warnings'] as $warning) {
+                    echo "  Line {$warning['line']}: {$warning['message']}\\n";
+                }
+            }
+        }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\\n";
+        return null;
+    }
+}
+
+// Usage
+$result = validateFile('./releases/new_album.xml', '4.3', 'AudioAlbum');
+if ($result) {
+    $totalIssues = count($result['errors']) + count($result['warnings'] ?? []);
+    echo "\\nTotal issues: $totalIssues\\n";
+}`
   }
 }
 
@@ -307,12 +484,12 @@ onUnmounted(() => {
         <div class="hero-content text-center">
           <h1 class="hero-title">DDEX Validation API</h1>
           <p class="hero-subtitle">
-            RESTful API for validating DDEX files programmatically
+            RESTful API for validating DDEX Electronic Release Notification (ERN) files. No authentication required.
           </p>
           <div class="hero-badges mt-lg">
             <span class="badge">Version 1.0</span>
             <span class="badge">REST API</span>
-            <span class="badge">OpenAPI 3.0</span>
+            <span class="badge">Free & Open</span>
           </div>
         </div>
       </div>
@@ -336,16 +513,15 @@ onUnmounted(() => {
               <h3 class="nav-section-title">Endpoints</h3>
               <ul class="nav-list">
                 <li><a href="#validate" @click="scrollToSection('validate')" :class="{ active: activeSection === 'validate' }">POST /validate</a></li>
-                <li><a href="#validate-file" @click="scrollToSection('validate-file')" :class="{ active: activeSection === 'validate-file' }">POST /validate/file</a></li>
                 <li><a href="#formats" @click="scrollToSection('formats')" :class="{ active: activeSection === 'formats' }">GET /formats</a></li>
                 <li><a href="#health" @click="scrollToSection('health')" :class="{ active: activeSection === 'health' }">GET /health</a></li>
               </ul>
 
               <h3 class="nav-section-title">Resources</h3>
               <ul class="nav-list">
-                <li><a href="#sdks" @click="scrollToSection('sdks')" :class="{ active: activeSection === 'sdks' }">Client SDKs</a></li>
+                <li><a href="#supported-versions" @click="scrollToSection('supported-versions')" :class="{ active: activeSection === 'supported-versions' }">Supported Versions</a></li>
                 <li><a href="#examples" @click="scrollToSection('examples')" :class="{ active: activeSection === 'examples' }">Code Examples</a></li>
-                <li><a href="#openapi" @click="scrollToSection('openapi')" :class="{ active: activeSection === 'openapi' }">OpenAPI Spec</a></li>
+                <li><a href="#response-format" @click="scrollToSection('response-format')" :class="{ active: activeSection === 'response-format' }">Response Format</a></li>
               </ul>
             </nav>
           </aside>
@@ -357,8 +533,8 @@ onUnmounted(() => {
               <h2>Introduction</h2>
               <p>
                 The DDEX Validation API provides a simple, RESTful interface for validating DDEX Electronic Release Notification (ERN) 
-                files against the official DDEX schemas. This API supports ERN 4.3 validation with plans to expand to other versions 
-                and message types.
+                files against official DDEX schemas and business rules. The API supports ERN versions 4.3, 4.2, and 3.8.2 with comprehensive 
+                validation including XSD schema validation, business rules, and profile-specific checks.
               </p>
               
               <div class="info-box mt-lg">
@@ -366,8 +542,13 @@ onUnmounted(() => {
                 <code class="endpoint-url">https://api.ddex-workbench.org/v1</code>
               </div>
 
+              <div class="success-box mt-lg">
+                <h4>🎉 No Authentication Required</h4>
+                <p>The validation API is completely free and open. No API keys or authentication needed for basic validation!</p>
+              </div>
+
               <h3 class="mt-xl">Quick Start</h3>
-              <p>Here's a simple example to validate an ERN 4.3 file:</p>
+              <p>Here's a simple example to validate an ERN file:</p>
               
               <div class="code-example">
                 <div class="code-tabs">
@@ -389,28 +570,30 @@ onUnmounted(() => {
             <section id="authentication" class="doc-section">
               <h2>Authentication</h2>
               <p>
-                The API supports both anonymous and authenticated access. Authenticated users get higher rate limits 
-                and access to additional features.
+                The DDEX Validation API is <strong>publicly accessible</strong> and does not require authentication for basic validation operations. 
+                This makes it easy to integrate into your workflow without managing API keys.
               </p>
 
-              <h3>API Key Authentication</h3>
-              <p>Include your API key in the request headers:</p>
+              <h3>Optional Authentication</h3>
+              <p>
+                While not required, authenticated users can access additional features:
+              </p>
               
-              <div class="code-example">
-                <pre class="code-block"><code>Authorization: Bearer YOUR_API_KEY</code></pre>
-              </div>
+              <ul class="feature-list">
+                <li>Higher rate limits (60 requests/minute vs 10 for anonymous)</li>
+                <li>Validation history tracking</li>
+                <li>Batch validation capabilities (coming soon)</li>
+                <li>Priority processing during high load</li>
+              </ul>
 
-              <h3>Getting an API Key</h3>
-              <ol class="numbered-list">
-                <li>Sign up for a free account at <a href="/signup">ddex-workbench.org/signup</a></li>
-                <li>Navigate to your <a href="/dashboard/api-keys">API Keys dashboard</a></li>
-                <li>Click "Generate New Key" and copy your key</li>
-                <li>Store your key securely - it won't be shown again</li>
-              </ol>
-
-              <div class="warning-box mt-lg">
-                <strong>Security Note:</strong> Never expose your API key in client-side code or public repositories. 
-                Always use environment variables or secure key management systems.
+              <div class="info-box mt-lg">
+                <p>To get an API key for enhanced features:</p>
+                <ol class="numbered-list">
+                  <li>Sign up for a free account at <a href="/signup">ddex-workbench.org/signup</a></li>
+                  <li>Navigate to your <a href="/settings">Settings page</a></li>
+                  <li>Generate an API key in the API Keys section</li>
+                  <li>Include it as: <code>X-API-Key: ddex_YOUR_KEY_HERE</code></li>
+                </ol>
               </div>
             </section>
 
@@ -418,8 +601,7 @@ onUnmounted(() => {
             <section id="rate-limiting" class="doc-section">
               <h2>Rate Limiting</h2>
               <p>
-                API requests are rate limited to ensure fair usage and system stability. Limits vary based on 
-                authentication status:
+                API requests are rate limited to ensure fair usage and system stability:
               </p>
 
               <table class="data-table">
@@ -427,39 +609,28 @@ onUnmounted(() => {
                   <tr>
                     <th>User Type</th>
                     <th>Requests per Minute</th>
+                    <th>Burst Limit</th>
                     <th>Max File Size</th>
-                    <th>Concurrent Requests</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Anonymous</td>
+                    <td>Anonymous (No Auth)</td>
                     <td>10</td>
-                    <td>5 MB</td>
-                    <td>1</td>
+                    <td>20</td>
+                    <td>10 MB</td>
                   </tr>
                   <tr>
                     <td>Authenticated (Free)</td>
                     <td>60</td>
-                    <td>10 MB</td>
-                    <td>3</td>
-                  </tr>
-                  <tr>
-                    <td>Authenticated (Pro)</td>
-                    <td>300</td>
-                    <td>50 MB</td>
-                    <td>10</td>
+                    <td>100</td>
+                    <td>25 MB</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h3 class="mt-lg">Rate Limit Headers</h3>
-              <p>The API returns rate limit information in response headers:</p>
-              
-              <div class="code-example">
-                <pre class="code-block"><code>X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 1642521600</code></pre>
+              <div class="info-box mt-lg">
+                <p><strong>Note:</strong> Rate limits are applied per IP address for anonymous users and per API key for authenticated users.</p>
               </div>
             </section>
 
@@ -467,7 +638,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
             <section id="errors" class="doc-section">
               <h2>Error Handling</h2>
               <p>
-                The API uses standard HTTP status codes and returns detailed error messages in a consistent format.
+                The API uses standard HTTP status codes and returns errors in a consistent JSON format:
               </p>
 
               <h3>Error Response Format</h3>
@@ -475,49 +646,43 @@ X-RateLimit-Reset: 1642521600</code></pre>
                 <pre class="code-block"><code>{{ getCodeExample('errorFormat', 'json') }}</code></pre>
               </div>
 
-              <h3>Common Error Codes</h3>
+              <h3>Common HTTP Status Codes</h3>
               <table class="data-table">
                 <thead>
                   <tr>
                     <th>Status Code</th>
-                    <th>Error Code</th>
-                    <th>Description</th>
+                    <th>Meaning</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><code>400</code></td>
-                    <td><code>INVALID_REQUEST</code></td>
-                    <td>Request body or parameters are invalid</td>
+                    <td><code>200</code></td>
+                    <td>Success - Validation completed (check response for validation results)</td>
                   </tr>
                   <tr>
-                    <td><code>401</code></td>
-                    <td><code>UNAUTHORIZED</code></td>
-                    <td>Missing or invalid API key</td>
+                    <td><code>400</code></td>
+                    <td>Bad Request - Invalid parameters or malformed request</td>
                   </tr>
                   <tr>
                     <td><code>413</code></td>
-                    <td><code>FILE_TOO_LARGE</code></td>
-                    <td>Uploaded file exceeds size limit</td>
+                    <td>Payload Too Large - XML content exceeds size limit</td>
                   </tr>
                   <tr>
                     <td><code>429</code></td>
-                    <td><code>RATE_LIMIT_EXCEEDED</code></td>
-                    <td>Too many requests</td>
+                    <td>Too Many Requests - Rate limit exceeded</td>
                   </tr>
                   <tr>
                     <td><code>500</code></td>
-                    <td><code>INTERNAL_ERROR</code></td>
-                    <td>Unexpected server error</td>
+                    <td>Internal Server Error - Unexpected error occurred</td>
                   </tr>
                 </tbody>
               </table>
             </section>
 
-            <!-- Endpoints -->
+            <!-- Validate Endpoint -->
             <section id="validate" class="doc-section">
               <h2>POST /validate</h2>
-              <p>Validate DDEX XML content provided as a string.</p>
+              <p>Validate DDEX ERN XML content against schemas and business rules.</p>
 
               <div class="endpoint-details">
                 <h3>Request Body</h3>
@@ -541,19 +706,19 @@ X-RateLimit-Reset: 1642521600</code></pre>
                       <td><code>type</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td>Message type (e.g., "ERN")</td>
+                      <td>Message type (currently only "ERN" supported)</td>
                     </tr>
                     <tr>
                       <td><code>version</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td>DDEX version (e.g., "4.3")</td>
+                      <td>DDEX version: "4.3", "4.2", or "3.8.2"</td>
                     </tr>
                     <tr>
                       <td><code>profile</code></td>
                       <td>string</td>
                       <td>No</td>
-                      <td>Specific profile (e.g., "AudioAlbum")</td>
+                      <td>Validation profile: "AudioAlbum", "AudioSingle", "Video", "Mixed", or "ReleaseByRelease" (3.8.2 only)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -578,117 +743,231 @@ X-RateLimit-Reset: 1642521600</code></pre>
                 <div class="code-example">
                   <pre class="code-block"><code>{{ getCodeExample('validateResponse', 'json') }}</code></pre>
                 </div>
-              </div>
-            </section>
 
-            <section id="validate-file" class="doc-section">
-              <h2>POST /validate/file</h2>
-              <p>Validate a DDEX XML file upload.</p>
-
-              <div class="endpoint-details">
-                <h3>Request</h3>
-                <p>Send a <code>multipart/form-data</code> request with the following fields:</p>
-                
+                <h3 class="mt-lg">Response Fields</h3>
                 <table class="params-table">
                   <thead>
                     <tr>
                       <th>Field</th>
                       <th>Type</th>
-                      <th>Required</th>
                       <th>Description</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td><code>file</code></td>
-                      <td>file</td>
-                      <td>Yes</td>
-                      <td>XML file to validate</td>
+                      <td><code>valid</code></td>
+                      <td>boolean</td>
+                      <td>Whether the XML is valid according to all validation rules</td>
                     </tr>
                     <tr>
-                      <td><code>type</code></td>
-                      <td>string</td>
-                      <td>Yes</td>
-                      <td>Message type</td>
+                      <td><code>errors</code></td>
+                      <td>array</td>
+                      <td>List of validation errors (severity: "error")</td>
                     </tr>
                     <tr>
-                      <td><code>version</code></td>
-                      <td>string</td>
-                      <td>Yes</td>
-                      <td>DDEX version</td>
+                      <td><code>warnings</code></td>
+                      <td>array</td>
+                      <td>List of validation warnings (severity: "warning")</td>
                     </tr>
                     <tr>
-                      <td><code>profile</code></td>
-                      <td>string</td>
-                      <td>No</td>
-                      <td>Specific profile</td>
+                      <td><code>metadata</code></td>
+                      <td>object</td>
+                      <td>Additional information about the validation process</td>
+                    </tr>
+                    <tr>
+                      <td><code>metadata.validationSteps</code></td>
+                      <td>array</td>
+                      <td>Breakdown of validation stages (XSD, BusinessRules, Schematron) with timing</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </section>
 
-                <h3 class="mt-lg">Example</h3>
+            <!-- Formats Endpoint -->
+            <section id="formats" class="doc-section">
+              <h2>GET /formats</h2>
+              <p>Get the list of supported DDEX versions and profiles.</p>
+
+              <div class="endpoint-details">
+                <h3>Example Response</h3>
                 <div class="code-example">
-                  <pre class="code-block"><code>{{ getCodeExample('fileUpload', activeLanguage) }}</code></pre>
+                  <pre class="code-block"><code>{{ getCodeExample('formatsResponse', 'json') }}</code></pre>
                 </div>
               </div>
             </section>
 
-            <!-- Other endpoints sections... -->
+            <!-- Health Endpoint -->
+            <section id="health" class="doc-section">
+              <h2>GET /health</h2>
+              <p>Check the API service health status.</p>
 
-            <!-- SDKs -->
-            <section id="sdks" class="doc-section">
-              <h2>Client SDKs</h2>
+              <div class="endpoint-details">
+                <h3>Example Response</h3>
+                <div class="code-example">
+                  <pre class="code-block"><code>{{ getCodeExample('healthResponse', 'json') }}</code></pre>
+                </div>
+              </div>
+            </section>
+
+            <!-- Supported Versions -->
+            <section id="supported-versions" class="doc-section">
+              <h2>Supported DDEX Versions</h2>
               <p>
-                Official and community SDKs are available for popular programming languages:
+                The API currently supports the following ERN versions and profiles:
               </p>
 
-              <div class="sdk-grid">
-                <div class="sdk-card card">
-                  <div class="sdk-icon">
-                    <font-awesome-icon :icon="['fab', 'js']" class="brand-icon js-icon" />
+              <div class="version-cards">
+                <div class="version-card card">
+                  <div class="version-header">
+                    <h3>ERN 4.3</h3>
+                    <span class="badge badge-success">Recommended</span>
                   </div>
-                  <h3>JavaScript/TypeScript</h3>
-                  <p class="text-sm text-secondary">Official SDK for Node.js and browsers</p>
-                  <div class="sdk-install">
-                    <code>npm install @ddex-workbench/api-client</code>
-                  </div>
-                  <a href="https://github.com/ddex-workbench/js-sdk" class="btn btn-sm btn-primary">
-                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
-                    View on GitHub
-                  </a>
+                  <p class="text-sm text-secondary mb-md">
+                    Latest version with enhanced features for modern music distribution
+                  </p>
+                  <h4 class="text-sm font-semibold mb-xs">Supported Profiles:</h4>
+                  <ul class="profile-list">
+                    <li>AudioAlbum</li>
+                    <li>AudioSingle</li>
+                    <li>Video</li>
+                    <li>Mixed</li>
+                  </ul>
                 </div>
 
-                <div class="sdk-card card">
-                  <div class="sdk-icon">
-                    <font-awesome-icon :icon="['fab', 'python']" class="brand-icon python-icon" />
+                <div class="version-card card">
+                  <div class="version-header">
+                    <h3>ERN 4.2</h3>
+                    <span class="badge">Supported</span>
                   </div>
-                  <h3>Python</h3>
-                  <p class="text-sm text-secondary">Official SDK for Python 3.7+</p>
-                  <div class="sdk-install">
-                    <code>pip install ddex-workbench</code>
-                  </div>
-                  <a href="https://github.com/ddex-workbench/python-sdk" class="btn btn-sm btn-primary">
-                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
-                    View on GitHub
-                  </a>
+                  <p class="text-sm text-secondary mb-md">
+                    Previous major version, still widely used
+                  </p>
+                  <h4 class="text-sm font-semibold mb-xs">Supported Profiles:</h4>
+                  <ul class="profile-list">
+                    <li>AudioAlbum</li>
+                    <li>AudioSingle</li>
+                    <li>Video</li>
+                    <li>Mixed</li>
+                  </ul>
                 </div>
 
-                <div class="sdk-card card">
-                  <div class="sdk-icon">
-                    <font-awesome-icon :icon="['fab', 'php']" class="brand-icon php-icon" />
+                <div class="version-card card">
+                  <div class="version-header">
+                    <h3>ERN 3.8.2</h3>
+                    <span class="badge">Legacy</span>
                   </div>
-                  <h3>PHP</h3>
-                  <p class="text-sm text-secondary">Community SDK for PHP 7.4+</p>
-                  <div class="sdk-install">
-                    <code>composer require ddex/connect-php</code>
-                  </div>
-                  <a href="https://github.com/community/ddex-workbench-php" class="btn btn-sm btn-secondary">
-                    <font-awesome-icon :icon="['fab', 'github']" class="icon-left" />
-                    View on GitHub
-                  </a>
+                  <p class="text-sm text-secondary mb-md">
+                    Legacy version, consider upgrading to 4.3
+                  </p>
+                  <h4 class="text-sm font-semibold mb-xs">Supported Profiles:</h4>
+                  <ul class="profile-list">
+                    <li>AudioAlbum</li>
+                    <li>AudioSingle</li>
+                    <li>Video</li>
+                    <li>Mixed</li>
+                    <li>ReleaseByRelease</li>
+                  </ul>
                 </div>
               </div>
 
+              <div class="warning-box mt-lg">
+                <strong>Migration Notice:</strong> DDEX is mandating ERN 4.3 adoption by March 2026. 
+                The API will provide migration suggestions when validating older versions.
+              </div>
+            </section>
+
+            <!-- Response Format Details -->
+            <section id="response-format" class="doc-section">
+              <h2>Response Format Details</h2>
+              <p>
+                Understanding the validation response structure helps you process results effectively:
+              </p>
+
+              <h3>Error Object Structure</h3>
+              <table class="params-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>line</code></td>
+                    <td>number</td>
+                    <td>Line number where the error occurred</td>
+                  </tr>
+                  <tr>
+                    <td><code>column</code></td>
+                    <td>number</td>
+                    <td>Column number where the error occurred</td>
+                  </tr>
+                  <tr>
+                    <td><code>message</code></td>
+                    <td>string</td>
+                    <td>Human-readable error description</td>
+                  </tr>
+                  <tr>
+                    <td><code>severity</code></td>
+                    <td>string</td>
+                    <td>"error" or "warning"</td>
+                  </tr>
+                  <tr>
+                    <td><code>rule</code></td>
+                    <td>string</td>
+                    <td>Validation rule identifier (e.g., "ERN43-MessageHeader")</td>
+                  </tr>
+                  <tr>
+                    <td><code>context</code></td>
+                    <td>string</td>
+                    <td>Optional XML snippet showing the error location</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h3 class="mt-lg">Validation Steps</h3>
+              <p>Each validation request goes through multiple stages:</p>
+              
+              <ol class="validation-steps-list">
+                <li>
+                  <strong>XSD Schema Validation</strong><br>
+                  Checks XML structure against official DDEX schemas
+                </li>
+                <li>
+                  <strong>Business Rules Validation</strong><br>
+                  Applies version-specific business logic and requirements
+                </li>
+                <li>
+                  <strong>Profile Validation (if specified)</strong><br>
+                  Validates against profile-specific requirements (e.g., AudioAlbum must have multiple tracks)
+                </li>
+              </ol>
+            </section>
+
+            <!-- Code Examples -->
+            <section id="examples" class="doc-section">
+              <h2>Complete Code Examples</h2>
+              <p>
+                Here are complete, working examples for common use cases:
+              </p>
+
+              <h3>Validate a File from Disk</h3>
+              <div class="code-example">
+                <div class="code-tabs">
+                  <button 
+                    v-for="lang in languages.filter(l => l.id !== 'curl')" 
+                    :key="lang.id"
+                    @click="activeLanguage = lang.id"
+                    class="code-tab"
+                    :class="{ active: activeLanguage === lang.id }"
+                  >
+                    {{ lang.name }}
+                  </button>
+                </div>
+                <pre class="code-block"><code>{{ getCodeExample('fileExamples', activeLanguage) }}</code></pre>
+              </div>
             </section>
           </main>
         </div>
@@ -731,6 +1010,11 @@ X-RateLimit-Reset: 1642521600</code></pre>
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
+}
+
+.badge-success {
+  background-color: var(--color-success);
+  color: white;
 }
 
 /* Documentation Layout */
@@ -822,7 +1106,8 @@ X-RateLimit-Reset: 1642521600</code></pre>
 
 /* Info Boxes */
 .info-box,
-.warning-box {
+.warning-box,
+.success-box {
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
@@ -837,6 +1122,12 @@ X-RateLimit-Reset: 1642521600</code></pre>
   background-color: #fef3c7;
   border: 1px solid #f59e0b;
   color: #92400e;
+}
+
+.success-box {
+  background-color: var(--color-secondary-light);
+  border: 1px solid var(--color-success);
+  color: var(--color-text);
 }
 
 .endpoint-url {
@@ -896,6 +1187,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
   font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--color-text);
+  white-space: pre;
 }
 
 /* Tables */
@@ -942,64 +1234,89 @@ X-RateLimit-Reset: 1642521600</code></pre>
   line-height: var(--leading-relaxed);
 }
 
-/* SDK Grid */
-.sdk-grid {
+.feature-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.feature-list li {
+  padding-left: var(--space-lg);
+  position: relative;
+  margin-bottom: var(--space-sm);
+}
+
+.feature-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--color-success);
+  font-weight: bold;
+}
+
+/* Version Cards */
+.version-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-lg);
   margin-top: var(--space-lg);
 }
 
-.sdk-card {
+.version-card {
   padding: var(--space-lg);
-  text-align: center;
 }
 
-.sdk-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto var(--space-md);
+.version-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
 }
 
-.brand-icon {
-  font-size: 48px;
+.version-card h3 {
+  margin: 0;
 }
 
-.js-icon {
-  color: #F7DF1E;
-  background-color: #323330;
-  padding: 8px;
+.profile-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.profile-list li {
+  background-color: var(--color-bg-secondary);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
-}
-
-.python-icon {
-  color: #3776AB;
-}
-
-.php-icon {
-  color: #777BB4;
-}
-
-.sdk-card h3 {
-  font-size: var(--text-lg);
-  margin-bottom: var(--space-xs);
-}
-
-.sdk-install {
-  margin: var(--space-md) 0;
-  padding: var(--space-sm);
-  background-color: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
 
-/* Icons */
-.icon-left {
-  margin-right: var(--space-xs);
+.validation-steps-list {
+  list-style: none;
+  counter-reset: steps;
+  padding-left: 0;
+}
+
+.validation-steps-list li {
+  counter-increment: steps;
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-xl);
+  position: relative;
+}
+
+.validation-steps-list li:before {
+  content: counter(steps);
+  position: absolute;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: var(--text-sm);
 }
 
 /* Utilities */
@@ -1009,6 +1326,14 @@ X-RateLimit-Reset: 1642521600</code></pre>
 
 .mt-xl {
   margin-top: var(--space-xl);
+}
+
+.mb-xs {
+  margin-bottom: var(--space-xs);
+}
+
+.mb-md {
+  margin-bottom: var(--space-md);
 }
 
 /* Responsive */
@@ -1040,7 +1365,7 @@ X-RateLimit-Reset: 1642521600</code></pre>
     -webkit-overflow-scrolling: touch;
   }
   
-  .sdk-grid {
+  .version-cards {
     grid-template-columns: 1fr;
   }
   

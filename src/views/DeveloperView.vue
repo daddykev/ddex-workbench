@@ -10,7 +10,7 @@
               Meet the Developer
             </h1>
             <p class="hero-subtitle">
-              When a Grammy-winning engineer meets digital distribution challenges
+              When a Grammy-winning engineer tackles digital distribution challenges
             </p>
           </div>
           
@@ -21,17 +21,13 @@
             </div>
             
             <div class="profile-badges">
-              <span class="badge badge-grammy">
-                <font-awesome-icon :icon="['fas', 'trophy']" />
-                Grammy Award Winner
-              </span>
               <span class="badge badge-cto">
                 <font-awesome-icon :icon="['fas', 'wrench']" />
                 CTO, Alpha Pup Records
               </span>
-              <span class="badge badge-engineer">
-                <font-awesome-icon :icon="['fas', 'microphone']" />
-                800+ Engineering Credits
+              <span class="badge badge-grammy">
+                <font-awesome-icon :icon="['fas', 'trophy']" />
+                GRAMMY® Award Winner
               </span>
             </div>
           </div>
@@ -44,32 +40,42 @@
       <div class="container">
         <div class="story-grid">
           <div class="story-content">
-            <h2 class="section-title">From Studio to Code</h2>
+            <h2 class="section-title">Fully stacked dev</h2>
             
             <div class="story-block">
               <p class="lead-text">
-                In 2021, I won a Grammy Award for Best Progressive R&B Album for engineering 
-                Thundercat's "It Is What It Is."  But while that golden gramophone sits on my shelf, 
-                my real passion has always been at the intersection of music and technology.
+                For over 25 years, I've been building operational systems for the music industry.
+                My first label Celestial was founded in 1998, and I've been building
+                custom release databases ever since. First on FileMaker, then on PHP/MySQL, and since 2017 on Google Cloud.
               </p>
-              
+
               <p>
-                For over 20 years, I've been building systems that power the modern music industry. 
                 As CTO of Alpha Pup Records, I transformed an indie label into a globally recognized, 
-                Spotify-preferred distributor by engineering a proprietary digital supply chain that 
-                manages integrations with over 50 DDEX delivery points.
+                Spotify-preferred distributor by engineering a proprietary, cloud-based digital supply chain that 
+                required custom integrations with over 50 DDEX delivery points. Our distribution business was
+                eventually migrated to Virgin Music Group in 2023, where I continue to innovate with Alpha Pup's
+                musical output and operational tech stack.
               </p>
               
               <p>
-                I've seen firsthand how the complexity of DDEX standards creates barriers for independent 
-                artists and labels. The same artists I've worked with in the studio—Thundercat, Kamasi 
-                Washington, Flying Lotus—often struggle with the technical requirements of digital distribution.
+                Today the world of digital distribution stands at an inflection point. The impending March 2026
+                deadline for DDEX ERN 4.3 compliance looms large, and the pressure is on for all stakeholders to adapt.
+                DDEX standards like MEAD and RDR are critical for the future of music distribution, yet
+                the tools available to navigate these complexities are largely outdated and inaccessible.
               </p>
               
               <p class="highlight-text">
                 That's why I'm building DDEX Workbench: to democratize access to the digital music 
                 supply chain with modern, accessible tools that anyone can use.
               </p>
+
+              <p>
+                As a self-taught coder since the age of 8, I've built a wide range of projects, from simple websites to complex data pipelines.
+                Fittingly, one of my first coding projects was a database on the VIC-20 for my action figure collection.
+                Today, I bring that same passion for data architecture to the DDEX open source ecosystem, starting with a modern ERN 4.3 validator,
+                with much more to come.
+              </p>
+
             </div>
           </div>
           
@@ -81,13 +87,13 @@
                   <strong>Standards:</strong> DDEX ERN/DSR, XML
                 </li>
                 <li>
-                  <strong>Languages:</strong> JavaScript, Vue, Python, SQL
+                  <strong>Languages:</strong> JavaScript, Vue, Python, SQL, Bash
                 </li>
                 <li>
-                  <strong>Cloud:</strong> Google Cloud, AWS, Firebase
+                  <strong>Cloud:</strong> Google Cloud, AWS
                 </li>
                 <li>
-                  <strong>Systems:</strong> Digital Supply Chain, Distribution Ops
+                  <strong>Systems:</strong> Digital Supply Chain, Distribution Ops, Big Data
                 </li>
               </ul>
             </div>
@@ -95,10 +101,8 @@
             <div class="card mt-lg">
               <h3 class="card-title">Industry Experience</h3>
               <ul class="experience-list">
-                <li>20+ years in music technology</li>
+                <li>25+ years in music technology</li>
                 <li>Managed 50+ DDEX integrations</li>
-                <li>100B+ rows of streaming data processed</li>
-                <li>Built comprehensive royalty systems</li>
               </ul>
             </div>
           </div>
@@ -118,8 +122,7 @@
             </div>
             <h3>The Problem</h3>
             <p>
-              Working with artists and labels, I witnessed the pain of DDEX implementation daily. 
-              The March 2025 ERN 4.3 deadline approaches, yet no modern open-source tools exist.
+              The March 2026 deprecation of ERN 3.x approaches, yet no modern open-source tools exist for ERN 4.3.
             </p>
           </div>
           
@@ -130,7 +133,7 @@
             <h3>The Solution</h3>
             <p>
               DDEX Workbench brings my experience building enterprise distribution systems to the 
-              open-source community, starting with the industry's first modern ERN 4.3 validator.
+              open-source community, starting with the industry's first modern ERN 4.3 validator and API.
             </p>
           </div>
           
@@ -140,50 +143,9 @@
             </div>
             <h3>The Impact</h3>
             <p>
-              By lowering technical barriers, we empower independent artists to participate fully 
-              in the digital music economy—just like the artists I've championed throughout my career.
+              By lowering technical barriers, we empower independent creators and teams to participate fully 
+              in the digital music economy.
             </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Career Highlights -->
-    <section class="highlights-section section">
-      <div class="container">
-        <h2 class="section-title text-center mb-xl">Career Highlights</h2>
-        
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="timeline-date">2021</div>
-            <div class="timeline-content">
-              <h3>Grammy Award</h3>
-              <p>Won Best Progressive R&B Album for engineering Thundercat's "It Is What It Is" </p>
-            </div>
-          </div>
-          
-          <div class="timeline-item">
-            <div class="timeline-date">2004-Present</div>
-            <div class="timeline-content">
-              <h3>CTO, Alpha Pup Records</h3>
-              <p>Transformed indie label into Spotify-preferred distributor with proprietary DDEX systems</p>
-            </div>
-          </div>
-          
-          <div class="timeline-item">
-            <div class="timeline-date">2006-2018</div>
-            <div class="timeline-content">
-              <h3>Founder, Low End Theory</h3>
-              <p>Created legendary LA club night that influenced a generation of producers worldwide</p>
-            </div>
-          </div>
-          
-          <div class="timeline-item">
-            <div class="timeline-date">1997-Present</div>
-            <div class="timeline-content">
-              <h3>Producer/Engineer</h3>
-              <p>800+ official credits working with Thundercat, Kamasi Washington, Flying Lotus</p>
-            </div>
           </div>
         </div>
       </div>
@@ -209,7 +171,7 @@
             LinkedIn
           </a>
           <a 
-            href="https://github.com/daddykev" 
+            href="https://github.com/daddykev/ddex-workbench" 
             target="_blank" 
             rel="noopener"
             class="social-link"
