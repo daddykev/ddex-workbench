@@ -12,7 +12,7 @@ DDEX Workbench positions itself as the essential bridge, starting with DDEX Conn
 
 The transition to ERN 4.3 isn't optional—it's an industry mandate with a hard deadline. This creates a unique market dynamic:
 
-- **Forced Migration**: All industry participants must adopt ERN 4.3 by March 2025
+- **Forced Migration**: All industry participants must adopt ERN 4.3 by March 2026
 - **No Backward Compatibility**: ERN 4.3's fundamental re-architecture means existing tools cannot be simply updated
 - **Feature Requirements**: New business models (immersive audio, UGC clips, granular visibility dates) require ERN 4.3's capabilities
 
@@ -44,7 +44,7 @@ Our technical architecture leverages Firebase's integrated ecosystem to deliver 
 
 ## Phased Market Entry
 
-### Phase 1: DDEX Connect (The Validator)
+### Phase 1: DDEX ERN Validation (Web UI and API)
 **Timeline**: Weeks 1-12  
 **Market Need**: Immediate, universal  
 **Competition**: None (for ERN 4.3)
@@ -105,14 +105,14 @@ Success requires more than technical excellence—it demands community adoption:
 
 ### Phase 1 Targets (3 months post-launch)
 - 1,000+ validations per week
-- 50+ registered API developers
-- 100+ community-contributed snippets
+- 20+ registered API developers
+- 50+ community-contributed snippets
 - <2 second validation for typical files
 - 99.9% uptime
 
 ### Long-term Vision
 - Become the de facto open-source standard for DDEX implementation
-- Enable thousands of independent artists to participate in the digital supply chain
+- Enable thousands of artists to participate in the digital supply chain (RIN)
 - Reduce industry-wide implementation costs by millions through shared tooling
 - Foster innovation through accessible, modern APIs
 
