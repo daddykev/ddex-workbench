@@ -26,13 +26,29 @@ class SchemaManager {
       }
     };
 
+    // Complete Schematron URLs for all profiles
     this.schematronUrls = {
       '4.3': {
-        'AudioAlbum': 'http://ddex.net/xml/ern/43/profiles/AudioAlbum.sch',
-        'AudioSingle': 'http://ddex.net/xml/ern/43/profiles/AudioSingle.sch',
-        // ... other profiles
+        'AudioAlbum': 'http://ddex.net/xml/ern/43/ern-choreography-AudioAlbumMusicOnly.sch',
+        'AudioSingle': 'http://ddex.net/xml/ern/43/ern-choreography-AudioSingleMusicOnly.sch',
+        'Video': 'http://ddex.net/xml/ern/43/ern-choreography-VideoSingle.sch',
+        'Mixed': 'http://ddex.net/xml/ern/43/ern-choreography-MixedMedia.sch',
+        'Classical': 'http://ddex.net/xml/ern/43/ern-choreography-ClassicalAlbum.sch',
+        'DJ': 'http://ddex.net/xml/ern/43/ern-choreography-DjMix.sch',
+        'Ringtone': 'http://ddex.net/xml/ern/43/ern-choreography-Ringtone.sch'
+      },
+      '4.2': {
+        'AudioAlbum': 'http://ddex.net/xml/ern/42/ern-choreography-AudioAlbumMusicOnly.sch',
+        'AudioSingle': 'http://ddex.net/xml/ern/42/ern-choreography-AudioSingleMusicOnly.sch',
+        'Video': 'http://ddex.net/xml/ern/42/ern-choreography-VideoSingle.sch',
+        'Mixed': 'http://ddex.net/xml/ern/42/ern-choreography-MixedMedia.sch'
+      },
+      '3.8.2': {
+        'AudioAlbum': 'http://ddex.net/xml/ern/382/ern-choreography-AudioAlbumMusicOnly.sch',
+        'AudioSingle': 'http://ddex.net/xml/ern/382/ern-choreography-AudioSingleMusicOnly.sch',
+        'Video': 'http://ddex.net/xml/ern/382/ern-choreography-VideoSingle.sch',
+        'ReleaseByRelease': 'http://ddex.net/xml/ern/382/ern-choreography-ReleaseByRelease.sch'
       }
-      // ... other versions
     };
   }
 
@@ -98,7 +114,61 @@ class SchemaManager {
     }
   }
 
-  // ... rest of the methods remain the same
+  async ensureSchematron(version, profile) {
+    const profileUrls = this.schematronUrls[version];
+    if (!profileUrls || !profileUrls[profile]) {
+      // Profile might not have a specific Schematron
+      return null;
+    }
+
+    const schematronDir = path.join(__dirname, `../schematron/${version}`);
+    const schematronPath = path.join(schematronDir, `${profile}.sch`);
+
+    // Check if Schematron already exists
+    try {
+      await fs.access(schematronPath);
+      console.log(`Schematron for ${version}/${profile} already exists`);
+      return schematronPath;
+    } catch {
+      // Schematron doesn't exist, try to download it
+      console.warn(`Schematron for ${version}/${profile} not found locally`);
+      
+      if (process.env.NODE_ENV === 'production') {
+        // In production, use built-in rules if Schematron not available
+        console.warn(`Using built-in rules for ${version}/${profile}`);
+        return null;
+      }
+      
+      // Download Schematron in development
+      try {
+        await this.downloadSchema(profileUrls[profile], schematronPath);
+        return schematronPath;
+      } catch (error) {
+        console.error(`Failed to download Schematron: ${error.message}`);
+        return null;
+      }
+    }
+  }
+
+  async downloadAllSchematrons() {
+    // Utility method to download all Schematron files
+    const downloads = [];
+    
+    for (const [version, profiles] of Object.entries(this.schematronUrls)) {
+      for (const [profile, url] of Object.entries(profiles)) {
+        const schematronDir = path.join(__dirname, `../schematron/${version}`);
+        const schematronPath = path.join(schematronDir, `${profile}.sch`);
+        
+        downloads.push(
+          this.downloadSchema(url, schematronPath)
+            .then(() => console.log(`Downloaded Schematron for ${version}/${profile}`))
+            .catch(err => console.error(`Failed to download ${version}/${profile}: ${err.message}`))
+        );
+      }
+    }
+    
+    await Promise.all(downloads);
+  }
 }
 
 module.exports = SchemaManager;
