@@ -5,6 +5,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const activeSection = ref('introduction')
 const activeLanguage = ref('curl')
 const activeEndpointLang = ref('curl')
+const activeFileExampleLang = ref('javascript') // New state for file examples
 
 // Language options
 const languages = [
@@ -959,14 +960,14 @@ onUnmounted(() => {
                   <button 
                     v-for="lang in languages.filter(l => l.id !== 'curl')" 
                     :key="lang.id"
-                    @click="activeLanguage = lang.id"
+                    @click="activeFileExampleLang = lang.id"
                     class="code-tab"
-                    :class="{ active: activeLanguage === lang.id }"
+                    :class="{ active: activeFileExampleLang === lang.id }"
                   >
                     {{ lang.name }}
                   </button>
                 </div>
-                <pre class="code-block"><code>{{ getCodeExample('fileExamples', activeLanguage) }}</code></pre>
+                <pre class="code-block"><code>{{ getCodeExample('fileExamples', activeFileExampleLang) }}</code></pre>
               </div>
             </section>
           </main>
