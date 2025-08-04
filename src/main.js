@@ -49,7 +49,8 @@ import {
   faSignOutAlt,
   faLink,
   faSave,
-  faShare
+  faShare,
+  faEdit
 } from '@fortawesome/free-solid-svg-icons'
 
 // Import brand icons
@@ -103,6 +104,7 @@ library.add(
   faLink,
   faSave,
   faShare,
+  faEdit,
   // Brand icons
   faJs,
   faPython,
