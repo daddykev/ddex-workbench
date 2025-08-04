@@ -61,7 +61,7 @@
           
           <div class="footer-bottom">
             <p class="text-sm text-tertiary text-center">
-              © 2025 DDEX Workbench. Built with ❤️ by the open source community.
+              © 2025 DDEX Workbench. Open source under MIT License.
             </p>
           </div>
         </div>

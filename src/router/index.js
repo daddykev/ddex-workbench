@@ -29,6 +29,11 @@ const router = createRouter({
       name: 'developer',
       component: () => import('@/views/DeveloperView.vue')
     },
+    {
+      path: '/contribute',
+      name: 'contribute',
+      component: () => import('@/views/ContributeView.vue')
+    },
     // Auth pages
     {
       path: '/login',
@@ -58,6 +63,11 @@ const router = createRouter({
       path: '/terms',
       name: 'terms',
       component: () => import('@/views/legal/TermsView.vue')
+    },
+    {
+      path: '/license',
+      name: 'license',
+      component: () => import('@/views/legal/LicenseView.vue')
     },
     // 404 catch-all
     {
