@@ -1220,11 +1220,6 @@ const formatDate = (date) => {
   color: white;
 }
 
-/* Validation Steps - Clean Grid Style */
-.validation-steps {
-  /* Card styling is already handled by .card class */
-}
-
 .steps-grid {
   display: flex;
   flex-direction: column;
