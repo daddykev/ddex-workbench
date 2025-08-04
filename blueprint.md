@@ -10,38 +10,27 @@ Create modern, accessible tools that lower the barrier to entry for DDEX impleme
 ### Official App
 **URL**: [https://ddex-workbench.org](https://ddex-workbench.org)
 
-### Phase 1: DDEX Connect (The Validator)
+### Phase 1: DDEX ERN Validation
 A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with comprehensive API documentation and community knowledge sharing capabilities.
 
 ## Technical Architecture
 
-### Frontend
-- **Framework**: Vue 3 with Composition API
-- **Build Tool**: Vite
-- **HTTP Client**: Axios
-- **Code Editor**: Monaco Editor (for XML display/editing)
-- **Styling**: Custom CSS with utility classes and theme support
-- **Icons**: FontAwesome (free icons)
-- **Authentication**: Firebase Auth with email/password and Google OAuth
-
 ### Backend
 - **Platform**: Firebase
-- **Functions**: Node.js 18+ Cloud Functions
-- **Database**: Firestore
+- **Functions**: Node.js 18+ Cloud Functions (for validation and API keys only)
+- **Database**: Firestore (direct client access for snippets, server validation for API operations)
 - **Authentication**: Firebase Auth
 - **Hosting**: Firebase Hosting
 - **Storage**: Cloud Storage (for file uploads)
 
-### Validation Engine
-- **XML Parser**: fast-xml-parser (for performance and flexibility)
-- **XSD Validation**: libxmljs2 (for native schema validation)
-- **Multi-Version Support**: ERN 3.8.2, 4.2, and 4.3
-- **Validator Modules**: 
-  - `ernValidator.js` - Custom business rules validator
-  - `xsdValidator.js` - XSD schema validation
-  - `schematronValidator.js` - Profile-specific validation
-  - `validationOrchestrator.js` - Combines all validators
-- **Profile Support**: AudioAlbum, AudioSingle, Video, Mixed, ReleaseByRelease (3.8.2 only)
+### Data Access Strategy
+- **Snippets**: Direct Firestore access from client using Firebase SDK
+  - Eliminates CORS issues
+  - Faster performance (no HTTP overhead)
+  - Real-time updates capability
+  - Security enforced through Firestore rules
+- **Validation**: Server-side Cloud Functions (requires XML processing)
+- **API Keys**: Server-side Cloud Functions (requires secure key generation)
 
 ## Current API Status (Production-Ready)
 
@@ -62,6 +51,13 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 - `GET /api/keys` - List user's API keys
 - `POST /api/keys` - Create new API key (max 5 per user)
 - `DELETE /api/keys/:id` - Revoke API key (soft delete)
+
+#### Direct Firestore Operations (No API Required)
+- **Snippets CRUD**: Create, read, update, delete operations handled directly through Firestore SDK
+- **Voting**: User votes stored in subcollections, counts updated atomically
+- **Real-time Updates**: Capability for live snippet updates (future enhancement)
+
+This architectural change simplifies the stack and improves performance while maintaining security through Firestore rules.
 
 ### Security Implementation
 - **API Key Authentication**: SHA-256 hashed keys with `ddex_` prefix
@@ -103,12 +99,14 @@ curl -X POST https://api.ddex-workbench.org/v1/validate \
 ddex-workbench/
 ├── src/                       # Vue 3 application source
 │   ├── components/            # Vue components
-│   │   └── NavBar.vue         # Navigation with auth state
+│   │   ├── NavBar.vue         # Navigation with auth state
+│   │   ├── CreateSnippetModal.vue  # Modal for creating new snippets
+│   │   └── EditSnippetModal.vue    # Modal for editing existing snippets
 │   ├── views/                 # Vue router views/pages
 │   │   ├── SplashPage.vue     # Landing page with features overview
 │   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
 │   │   ├── ApiDocsView.vue    # Comprehensive API documentation
-│   │   ├── SnippetsView.vue   # Community snippets page
+│   │   ├── SnippetsView.vue   # Community snippets page with CRUD operations
 │   │   ├── DeveloperView.vue  # Developer CV
 │   │   ├── UserSettings.vue   # User profile & API keys management
 │   │   ├── NotFoundView.vue   # 404 page
@@ -120,7 +118,8 @@ ddex-workbench/
 │   │       ├── TermsView.vue
 │   │       └── LicenseView.vue
 │   ├── services/              # External service integrations
-│   │   └── api.js             # API calls with auth-aware interceptors
+│   │   ├── api.js             # API calls for validation and API keys only
+│   │   └── snippets.js        # Direct Firestore operations for snippets
 │   ├── composables/           # Vue composables
 │   │   └── useAuth.js         # Authentication composable
 │   ├── utils/                 # Utility functions
@@ -141,7 +140,6 @@ ddex-workbench/
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
 │   │   ├── validate.js        # Enhanced validation endpoint
-│   │   ├── snippets.js        # Snippets CRUD (placeholder)
 │   │   └── keys.js            # API key management
 │   ├── middleware/            # Express middleware
 │   │   ├── apiKeyAuth.js      # API key authentication
@@ -177,6 +175,7 @@ ddex-workbench/
 ├── firestore.rules            # Firestore security rules
 ├── firestore.indexes.json     # Firestore indexes
 ├── storage.rules              # Storage security rules
+├── cors.json                  # CORS configuration for Storage
 ├── .firebaserc                # Firebase project alias (git ignored)
 ├── .gitignore                 # Git ignore file
 ├── .env                       # Environment variables (git ignored)
