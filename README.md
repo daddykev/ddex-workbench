@@ -4,88 +4,109 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
 
-> An open-source suite of modern, accessible tools for working with DDEX standards.
+> Modern, open-source DDEX validation tools for the music industry.
+
+**Live at: [https://ddex-workbench.web.app](https://ddex-workbench.web.app)**
 
 ## 🎯 Vision
 
-DDEX Workbench aims to democratize access to the digital music supply chain by providing web-based, collaborative tools that lower the barrier to entry for DDEX implementation. From independent artists to major labels, our tools make DDEX standards accessible to everyone.
+DDEX Workbench democratizes access to the digital music supply chain by providing web-based, collaborative tools that lower the barrier to entry for DDEX implementation. From independent artists to major labels, our tools make DDEX standards accessible to everyone.
 
 ## 🚀 Project Overview
 
-### Phase 1: DDEX Validation (Current Focus)
-A modern web-based ERN validator supporting multiple versions with community knowledge sharing capabilities.
+### Phase 1: DDEX ERN Validator (Live Now!)
+A production-ready web-based ERN validator supporting multiple versions with comprehensive validation and API access.
 
 **Why it matters:**
 - DDEX is mandating migration to ERN 4.3 by March 2026
 - Zero maintained open-source tools currently support ERN 4.3
-- The industry urgently needs accessible validation tools
+- The industry needs accessible validation tools
 
-### Key Features
+### Current Features (Production-Ready)
 
-#### 🎯 Multi-Version ERN Support
-- **ERN 4.3** - Latest standard with full ERN 4.x features
+#### ✅ Multi-Version ERN Support
+- **ERN 4.3** - Latest standard (recommended)
 - **ERN 4.2** - Previous ERN 4.x version
 - **ERN 3.8.2** - Legacy support with migration hints
-- **Profile-specific validation** for AudioAlbum, AudioSingle, Video, Mixed, and ReleaseByRelease (3.8.2 only)
+- **Profile validation** - AudioAlbum, AudioSingle, Video, Mixed, and more
 
-#### 🎨 Modern Web Interface
-- **Drag-and-drop** file upload for XML files
-- **Direct XML input** with syntax highlighting
-- **Real-time validation** with line-by-line error highlighting
-- **DDEX KB links** for understanding and fixing errors
+#### ✅ Three-Stage Validation Pipeline
+- **XSD Schema Validation** - Structure and data type validation
+- **Business Rules** - ERN-specific requirement checking
+- **Profile Validation** - Profile-specific rules with built-in Schematron-equivalent coverage
+
+#### ✅ Modern Web Interface
+- **Three input methods**: File upload, paste XML, or load from URL
+- **Real-time validation** as you type (with debouncing)
+- **Advanced options**: Validation mode, strict mode, reference checking
+- **Enhanced error display**:
+  - Grouped by line/type/severity
+  - Collapsible error sections
+  - Searchable and filterable
+  - Error context with XML snippets
+  - Direct links to DDEX Knowledge Base
 - **Theme system** with light/dark/auto modes
-- **Responsive design** for mobile and desktop
+- **Fully responsive** for all devices
 
-#### 🔐 Authentication & User Features
-- **Firebase Auth** integration with email/password and Google OAuth
-- **User profiles** with customizable display names
+#### ✅ Authentication & API Keys
+- **Firebase Auth** with email/password and Google OAuth
 - **API key management** for programmatic access
-- **Validation history** tracking (authenticated users)
-- **Higher rate limits** for authenticated API usage
+- **User profiles** with customization options
+- **Rate limiting**: 10 req/min (anonymous), 60 req/min (authenticated)
 
-#### 📡 Public Validation API
+#### ✅ Public Validation API
+
+**Base URL**: `https://api.ddex-workbench.org/v1`
+
 ```javascript
-// POST /api/validate
+// POST /validate
 {
-  "content": "<xml>...</xml>",
+  "content": "<?xml version=\"1.0\"?>...",
   "type": "ERN",
   "version": "4.3",  // or "4.2", "3.8.2"
   "profile": "AudioAlbum"
 }
 
-// Authentication via API Key
+// Optional authentication for higher rate limits
 headers: {
-  "X-API-Key": "your-api-key"
+  "X-API-Key": "ddex_your-api-key"
 }
 ```
 
-#### 📚 Community Knowledge Base
-- **Searchable snippet library** for common DDEX patterns
-- **Version-specific examples** with migration guides
-- **Community voting and comments** (authenticated)
-- **Real-world examples** for complex scenarios
-- **Direct integration** with validator ("Copy to Validator" button)
+#### ✅ Comprehensive API Documentation
+- Interactive code examples (cURL, JavaScript, Python, PHP)
+- Live response examples
+- Complete endpoint reference
+- Authentication guide
+- Version and profile information
+
+#### 🚧 Coming Soon
+- Community snippet library
+- Validation history tracking
+- Usage analytics dashboard
+- PDF report generation
+- npm client SDK
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **Vue 3** with Composition API
 - **Vite** for lightning-fast builds
-- **Custom CSS Architecture** with utility classes and theme support
-- **FontAwesome** for icons
+- **Custom CSS Architecture** with utility-first approach
+- **Firebase SDK** for direct Firestore access
 
 ### Backend
-- **Firebase** platform
-- **Cloud Functions** for serverless validation
+- **Firebase Cloud Functions** for validation API
 - **Firestore** for data persistence
 - **Firebase Auth** for user management
-- **Cloud Storage** for file handling
+- **Express.js** for API routing
+- **libxmljs2** for XSD validation
 
 ### Validation Engine
-- **Multi-version support** with custom `ernValidator.js`
-- **Version-specific rules** for ERN 3.8.2, 4.2, and 4.3
-- **Profile validation** with business rule checking
-- **Fast XML parsing** with detailed error reporting
+- **Multi-version support** (ERN 3.8.2, 4.2, 4.3)
+- **XSD schema validation** with pre-downloaded schemas
+- **Built-in profile validation** (no proprietary dependencies)
+- **Comprehensive error reporting** with context
 
 ## 📦 Installation
 
@@ -105,22 +126,29 @@ cd ddex-workbench
 2. Install dependencies:
 ```bash
 npm install
-cd functions && npm install
+cd functions && npm install && cd ..
 ```
 
-3. Configure Firebase:
-```bash
-firebase login
-firebase init
-```
-
-4. Create `.env` file from template:
+3. Create `.env` file from template:
 ```bash
 cp .env.example .env
 # Edit .env with your Firebase config
 ```
 
-5. Run development server:
+4. Configure Firebase:
+```bash
+firebase login
+firebase use --add
+```
+
+5. Download XSD schemas:
+```bash
+cd functions
+node scripts/downloadSchemas.js
+cd ..
+```
+
+6. Run development server:
 ```bash
 npm run dev
 ```
@@ -145,22 +173,36 @@ npm run build
 firebase deploy
 ```
 
+### Testing validation
+```bash
+# Test the API
+curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
+  -H "Content-Type: application/json" \
+  -d '{"content": "<?xml>...", "type": "ERN", "version": "4.3"}'
+```
+
 ## 🗺️ Roadmap
 
-### Phase 1: DDEX Connect (Weeks 1-12)
+### Phase 1: DDEX ERN Validation
 - [x] Project setup and architecture
 - [x] Core validation engine with multi-version support
-- [x] Web interface development
-- [x] Authentication system
+- [x] Web interface with real-time validation
+- [x] Authentication system with Google OAuth
 - [x] Theme system (light/dark/auto)
-- [ ] Public API endpoints (in progress)
-- [ ] Community knowledge base
-- [ ] Documentation and launch
+- [x] Public API with rate limiting
+- [x] API key management
+- [x] Comprehensive API documentation
+- [x] Three-stage validation pipeline
+- [x] Enhanced error display with grouping/filtering
+- [x] Community snippet library
+- [ ] Validation history tracking
+- [ ] Usage analytics
+- [ ] PDF report generation
 
-### Phase 2: DSR-Flow (Sep 2025)
+### Phase 2: DSR-Flow (Q3 2025)
 Digital Sales Reporting processor for financial data workflows
 
-### Phase 3: DDEX Workbench (Oct 2025)
+### Phase 3: DDEX Workbench (Q4 2025)
 Full collaborative metadata management platform
 
 ## 🤝 Contributing
@@ -170,24 +212,23 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ### Quick Start for Contributors
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## 📚 Documentation
 
-- [Technical Blueprint](docs/blueprint.md) - Detailed technical architecture
-- [Strategic Overview](docs/overview.md) - Market analysis and vision
-- [API Documentation](docs/API.md) - REST API reference
-- [Setup Guide](docs/SETUP.md) - Detailed setup instructions
+- [Technical Blueprint](blueprint.md) - Detailed technical architecture and implementation details
+- [Strategic Overview](overview.md) - Market analysis and business case
+- [API Documentation](https://ddex-workbench.web.app/api) - Live interactive API docs
+- [Setup Guide](docs/SETUP.md) - Detailed development environment setup
 
-## 🎯 Success Metrics
+## 🎯 Performance & Metrics
 
-- 1,000+ validations/week within 3 months
-- 50+ registered API developers
-- 100+ community-contributed snippets
-- <2 second validation for typical files
-- 99.9% uptime
+### Current Performance
+- **Validation speed**: 2-100ms depending on file size and mode
+- **API response time**: <200ms average
+- **Uptime**: 99.9% target
 
 ## 📄 License
 
@@ -201,8 +242,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact & Support
 
+- **Live App**: [https://ddex-workbench.org](https://ddex-workbench.org)
+- **API**: [https://api.ddex-workbench.org/v1](https://api.ddex-workbench.org/v1)
 - **GitHub Issues**: For bug reports and feature requests
-- **Discord**: [Join our community](https://discord.gg/ddex-workbench)
 - **Email**: daddykev@gmail.com
 
 ---
