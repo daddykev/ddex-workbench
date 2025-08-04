@@ -11,7 +11,7 @@ Create modern, accessible tools that lower the barrier to entry for DDEX impleme
 **URL**: [https://ddex-workbench.org](https://ddex-workbench.org)
 
 ### Phase 1: DDEX Connect (The Validator)
-A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with community knowledge sharing capabilities.
+A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with comprehensive API documentation and community knowledge sharing capabilities.
 
 ## Technical Architecture
 
@@ -54,7 +54,7 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
   - No authentication required for basic access
   - Supports anonymous access (10 req/min rate limit)
   - Supports API key authentication (60 req/min rate limit)
-  - Multi-version support (ERN 3.8.2, 4.2, 4.3)
+  - Multi-version support (ERN 3.8.2, 4.2, and 4.3)
   - Profile-specific validation
   - Three-stage validation pipeline (XSD, Business Rules, Profile)
 
@@ -76,7 +76,7 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
 
 ```bash
 # Anonymous validation
-curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/validate \
+curl -X POST https://api.ddex-workbench.org/v1/validate \
   -H "Content-Type: application/json" \
   -d '{
     "content": "<?xml version=\"1.0\"?>...",
@@ -86,7 +86,7 @@ curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/valid
   }'
 
 # With API Key for higher rate limits
-curl -X POST https://us-central1-ddex-workbench.cloudfunctions.net/app/api/validate \
+curl -X POST https://api.ddex-workbench.org/v1/validate \
   -H "Content-Type: application/json" \
   -H "X-API-Key: ddex_YOUR_KEY_HERE" \
   -d '{
@@ -107,9 +107,11 @@ ddex-workbench/
 │   ├── views/                 # Vue router views/pages
 │   │   ├── SplashPage.vue     # Landing page with features overview
 │   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
+│   │   ├── ApiDocsView.vue    # Comprehensive API documentation
 │   │   ├── SnippetsView.vue   # Community snippets page
-│   │   ├── ApiDocsView.vue    # API documentation page
+│   │   ├── DeveloperView.vue  # Developer CV
 │   │   ├── UserSettings.vue   # User profile & API keys management
+│   │   ├── NotFoundView.vue   # 404 page
 │   │   ├── auth/              # Authentication views
 │   │   │   ├── LoginView.vue  # Login page
 │   │   │   └── SignupView.vue # Registration page
@@ -154,17 +156,9 @@ ddex-workbench/
 │   │   │   └── schemaManager.js # Schema download/cache management
 │   │   ├── ern/               # Downloaded XSD schemas
 │   │   │   ├── 4.3/           # ERN 4.3 schemas
-│   │   │   │   ├── release-notification.xsd
-│   │   │   │   └── avs43.xsd  ✓
 │   │   │   ├── 4.2/           # ERN 4.2 schemas
-│   │   │   │   ├── release-notification.xsd
-│   │   │   │   └── avs42.xsd  ✓
 │   │   │   └── 3.8.2/         # ERN 3.8.2 schemas
-│   │   │       ├── release-notification.xsd
-│   │   │       └── avs382.xsd ✓
 │   │   └── schematron/        # Schematron rules (future)
-│   │       ├── 4.3/           
-│   │       └── ...            
 │   ├── scripts/               # Utility scripts
 │   │   └── downloadSchemas.js # Pre-download XSD schemas
 │   ├── index.js               # Functions entry with trust proxy
@@ -245,17 +239,34 @@ The `ValidatorView.vue` component now includes:
 - **Three Input Methods**: File upload, paste, URL loading
 - **Real-time Validation**: Debounced validation as you type
 - **Advanced Options**: Validation mode, strict mode, reference checking
-- **Enhanced Error Display**: Grouped errors, search, collapsible sections
-- **Validation Timeline**: Visual representation of validation steps
-- **Export Options**: Download PDF reports, save to history
+- **Enhanced Error Display**: 
+  - Grouped errors by line/type/severity
+  - Collapsible error groups
+  - Searchable and filterable errors
+  - Error context with XML snippets
+  - DDEX Knowledge Base links
+- **Validation Timeline**: Visual representation of validation steps with timing
+- **Export Options**: Download PDF reports (pending), share results, copy response
+- **Validation History**: View recent validations (authenticated users)
 - **Mobile Responsive**: Full functionality on all devices
 
-### API Improvements
+### API Documentation Page
 
-- **Public Access**: Validation endpoint requires no authentication
-- **Rate Limiting**: 10 req/min anonymous, 60 req/min with API key
-- **Trust Proxy**: Fixed for Cloud Functions environment
-- **Enhanced Response**: Includes warnings, processing time, validation steps
+The `ApiDocsView.vue` provides comprehensive API documentation:
+
+- **Interactive Code Examples**: 
+  - Support for cURL, JavaScript, Python, and PHP
+  - Complete working examples for common use cases
+  - File validation examples
+- **Detailed Endpoint Documentation**:
+  - Request/response formats
+  - Parameter descriptions
+  - Authentication requirements
+  - Rate limiting information
+- **Live Response Examples**: Actual JSON responses for all endpoints
+- **Version Information**: Supported DDEX versions and profiles with descriptions
+- **Sticky Navigation**: Easy navigation through documentation sections
+- **Mobile Responsive**: Optimized for all screen sizes
 
 ## Authentication Architecture
 
@@ -355,6 +366,7 @@ interface ValidationHistory {
   fileName?: string;
   valid: boolean;
   errorCount: number;
+  warningCount: number;
   version: string;      // ERN version used
   profile: string;
   metadata?: {
@@ -368,6 +380,44 @@ interface UserVote {
   snippetId: string;
   vote: 1 | -1;       // upvote or downvote
   timestamp: Timestamp;
+}
+```
+
+### API Response Types
+
+```typescript
+// Validation Response
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationError[];
+  metadata: ValidationMetadata;
+}
+
+interface ValidationError {
+  line: number;
+  column: number;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+  rule: string;
+  context?: string;    // XML snippet showing error
+  suggestion?: string; // Helpful suggestion for fixing
+}
+
+interface ValidationMetadata {
+  processingTime: number;
+  schemaVersion: string;
+  profile?: string;
+  validatedAt: string;
+  errorCount: number;
+  warningCount: number;
+  validationSteps: ValidationStep[];
+}
+
+interface ValidationStep {
+  type: 'XSD' | 'BusinessRules' | 'Schematron';
+  duration: number;
+  errorCount: number;
 }
 ```
 
@@ -390,36 +440,33 @@ interface UserVote {
 - **Advanced Options**: Validation mode, strict mode, reference checking
 - **Validation Results**: 
   - Clear pass/fail status with processing timeline
-  - Grouped errors by type/line/severity
+  - Grouped errors by type/line/severity with collapsible sections
   - Searchable and filterable error list
   - Detailed error messages with DDEX KB links
+  - Error context showing XML snippets
   - Version-specific validation rules
   - Separate warnings from errors
+  - Share results functionality
 - **Export Options**: Download validation reports (pending)
-- **History Tracking**: Save validation history for authenticated users (pending)
+- **History Tracking**: View recent validations for authenticated users (UI complete, backend pending)
 
 ### 3. Authentication System
 - **Registration**: Email/password with display name
 - **Login Options**: Email/password or Google OAuth
 - **User Settings**: 
   - Profile management
-  - API key generation
-  - Usage statistics (pending)
+  - API key generation and management
+  - Usage statistics (UI complete, tracking pending)
 - **Session Management**: Persistent login with automatic token refresh
 
 ### 4. Public Validation API
 ```typescript
-// POST /api/validate
+// POST /validate
 {
   "content": "<xml>...</xml>",
   "type": "ERN",
   "version": "4.3",  // or "4.2", "3.8.2"
-  "profile": "AudioAlbum",
-  "options": {
-    "mode": "full",  // or "xsd", "business", "quick"
-    "strictMode": false,
-    "validateReferences": true
-  }
+  "profile": "AudioAlbum"
 }
 
 // Response
@@ -456,7 +503,16 @@ headers: {
 }
 ```
 
-### 5. Community Knowledge Base (Pending)
+### 5. API Documentation
+- **Comprehensive Documentation Page**: Full API reference with examples
+- **Interactive Code Examples**: 4 languages with syntax highlighting
+- **Live Response Examples**: Actual API responses
+- **Authentication Guide**: How to get and use API keys
+- **Rate Limiting Info**: Clear limits and upgrade paths
+- **Version Support**: Detailed ERN version information
+- **Error Reference**: Complete error response documentation
+
+### 6. Community Knowledge Base (Pending)
 - **Snippet Categories**:
   - Common Patterns
   - Complex Scenarios
@@ -470,19 +526,19 @@ headers: {
   - Tags for discovery
 - **Contribution**: Authenticated users can submit snippets
 
-### 6. User Features
+### 7. User Features
 - **Anonymous Usage**:
   - Core validation without login
-  - Read-only access to snippets
-  - Basic API access (rate limited)
+  - Read API documentation
+  - Basic API access (rate limited to 10 req/min)
 - **Authenticated Features**:
-  - Save validation history (pending)
+  - View validation history (UI ready)
+  - Generate and manage API keys
+  - Higher API rate limits (60 req/min)
   - Contribute and vote on snippets (pending)
-  - Generate API keys
-  - Higher API rate limits
-  - Usage analytics dashboard (pending)
+  - Usage analytics dashboard (UI ready)
 
-## CSS Architecture ✓
+## CSS Architecture
 
 ### Design System Overview
 
@@ -519,7 +575,7 @@ Semantic utility classes for:
 
 ## Implementation Roadmap
 
-### Week 1-2: Project Setup ✓
+### Week 1-2: Project Setup
 - [x] Initialize monorepo structure
 - [x] Configure Firebase project
 - [x] Setup Vue 3 + Vite app
@@ -527,14 +583,14 @@ Semantic utility classes for:
 - [x] Configure CI/CD (GitHub Actions)
 - [x] Setup development environment docs
 
-### Week 3-4: Core Validation Engine ✓
+### Week 3-4: Core Validation Engine
 - [x] Implement XML parser wrapper
 - [x] Build multi-version ERN validator
 - [x] Support ERN 3.8.2, 4.2, and 4.3
 - [x] Create error formatter
 - [x] Profile-specific validation
 
-### Week 5-6: Web Interface ✓
+### Week 5-6: Web Interface
 - [x] Design and implement UI components
 - [x] Implement theme switcher
 - [x] File upload functionality
@@ -545,34 +601,37 @@ Semantic utility classes for:
 - [x] Dynamic profile selection based on version
 - [x] Real-time validation
 
-### Week 7-8: Authentication & User Features ✓
+### Week 7-8: Authentication & User Features
 - [x] Firebase Auth integration
 - [x] Login/Signup pages
 - [x] User settings page
 - [x] API key management UI
 - [x] Protected routes
 - [x] Auth state in navigation
-- [ ] Usage statistics tracking
-- [ ] Validation history
+- [ ] Usage statistics tracking (backend)
+- [ ] Validation history (backend)
 
-### Week 9-10: API Development ✓
+### Week 9-10: API Development
 - [x] REST API endpoints
 - [x] Multi-version validation endpoint
 - [x] API key validation
 - [x] Rate limiting implementation
-- [x] API documentation page
+- [x] API documentation page (comprehensive)
 - [x] Trust proxy configuration
+- [x] Interactive code examples
 - [ ] Client SDK (npm package)
-- [ ] Integration examples
 - [ ] File upload endpoint
 
-### Week 11-12: Enhanced Validation ✓
+### Week 11-12: Enhanced Validation
 - [x] XSD schema validation integration
 - [x] Schema download scripts
 - [x] Validation orchestrator
 - [x] Profile-specific validation
-- [x] Enhanced error reporting
+- [x] Enhanced error reporting with context
 - [x] Validation steps timeline
+- [x] Collapsible error groups
+- [x] Error search and filtering
+- [x] DDEX KB links integration
 - [ ] Full Schematron integration
 - [ ] PDF report generation
 
@@ -621,33 +680,43 @@ Semantic utility classes for:
 ## Current Production Status
 
 ### What's Live:
-- Full authentication system with Google OAuth
-- API key generation and management
-- Multi-version ERN validation (3.8.2, 4.2, 4.3)
-- Enhanced three-stage validation pipeline
-- Rate-limited public API
-- Secure Firestore rules
-- User settings management
-- Theme switching (light/dark/auto)
-- Real-time validation with debouncing
-- Advanced validation options
-- URL loading support
-- Enhanced error display with grouping and search
+- Full authentication system with Google OAuth ✓
+- API key generation and management ✓
+- Multi-version ERN validation (3.8.2, 4.2, 4.3) ✓
+- Enhanced three-stage validation pipeline ✓
+- Rate-limited public API ✓
+- Comprehensive API documentation with interactive examples ✓
+- Secure Firestore rules ✓
+- User settings management ✓
+- Theme switching (light/dark/auto) ✓
+- Real-time validation with debouncing ✓
+- Advanced validation options ✓
+- URL loading support ✓
+- Enhanced error display with:
+  - Grouping by line/type/severity ✓
+  - Collapsible sections ✓
+  - Search and filtering ✓
+  - Error context with XML snippets ✓
+  - DDEX KB links ✓
+- Validation timeline visualization ✓
+- Share results functionality ✓
 
 ### Tested & Confirmed:
-- API key authentication working
-- Rate limiting enforced (10/60 req/min)
-- XSD schema validation (with pre-downloaded schemas)
-- Business rules validation
-- Profile-specific validation
-- Namespace XML parsing working
-- Error reporting with detailed messages
-- CORS properly configured
-- Trust proxy enabled
+- API key authentication working ✓
+- Rate limiting enforced (10/60 req/min) ✓
+- XSD schema validation (with pre-downloaded schemas) ✓
+- Business rules validation ✓
+- Profile-specific validation ✓
+- Namespace XML parsing working ✓
+- Error reporting with detailed messages ✓
+- CORS properly configured ✓
+- Trust proxy enabled ✓
+- API documentation fully functional ✓
+- Interactive code examples in 4 languages ✓
 
 ### API Base URL:
 ```
-https://us-central1-ddex-workbench.cloudfunctions.net/app
+https://api.ddex-workbench.org/v1
 ```
 
 ### Live Application:
@@ -666,11 +735,11 @@ https://ddex-workbench.web.app
 
 ## Next Immediate Steps
 
-1. **Complete Validation Features**:
-   - Add validation history tracking
-   - Implement PDF report generation
-   - Add full Schematron support
+1. **Complete Backend Features**:
+   - Implement validation history storage
+   - Add usage statistics tracking
    - Create file upload endpoint
+   - Build PDF report generation
 
 2. **Begin Knowledge Base Phase**:
    - Implement snippets API endpoints
@@ -679,24 +748,24 @@ https://ddex-workbench.web.app
    - Create comment functionality
 
 3. **Polish for Launch**:
-   - Update all documentation with live examples
    - Create npm client SDK
-   - Implement usage analytics
+   - Performance optimization
+   - Security audit
    - Create marketing materials
 
 ## Future Phases Integration
 
 ### Phase 2 (DSR-Flow) Preparation:
-- Shared authentication system
-- Common UI components library
-- Reusable validation patterns
-- API infrastructure foundation
+- Shared authentication system ✓
+- Common UI components library ✓
+- Reusable validation patterns ✓
+- API infrastructure foundation ✓
 
 ### Phase 3 (DDEX Workbench) Foundation:
-- User management system
+- User management system ✓
 - Project/workspace concept (planned)
 - Collaborative features groundwork
-- Real-time capabilities (via Firebase)
+- Real-time capabilities (via Firebase) ✓
 
 ## Open Source Strategy
 
@@ -731,3 +800,5 @@ https://ddex-workbench.web.app
    - Verify all validation modes work
    - Check real-time validation
    - Test file upload and URL loading
+   - Confirm API documentation displays correctly
+   - Test interactive code examples

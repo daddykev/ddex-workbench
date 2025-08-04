@@ -25,11 +25,6 @@ const router = createRouter({
       component: () => import('@/views/ApiDocsView.vue')
     },
     {
-      path: '/pricing',
-      name: 'pricing',
-      component: () => import('@/views/PricingView.vue')
-    },
-    {
       path: '/developer',
       name: 'developer',
       component: () => import('@/views/DeveloperView.vue')
