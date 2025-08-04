@@ -52,7 +52,7 @@
               <p>
                 As CTO of Alpha Pup Records, I transformed an indie label into a globally recognized, 
                 Spotify-preferred distributor by engineering a proprietary, cloud-based digital supply chain that 
-                required custom integrations with over 50 DDEX delivery points. Our distribution business was
+                required custom integrations with over 40 DDEX delivery points. Our distribution business was
                 eventually migrated to Virgin Music Group in 2023, where I continue to innovate with Alpha Pup's
                 musical output and operational tech stack.
               </p>
@@ -93,7 +93,7 @@
                   <strong>Cloud:</strong> Google Cloud, AWS
                 </li>
                 <li>
-                  <strong>Systems:</strong> Digital Supply Chain, Distribution Ops, Big Data
+                  <strong>Systems:</strong> Digital Supply Chain, Distribution Ops, Streaming Analytics
                 </li>
               </ul>
             </div>
@@ -102,7 +102,7 @@
               <h3 class="card-title">Industry Experience</h3>
               <ul class="experience-list">
                 <li>25+ years in music technology</li>
-                <li>Managed 50+ DDEX integrations</li>
+                <li>Managed 40+ DDEX integrations</li>
               </ul>
             </div>
           </div>

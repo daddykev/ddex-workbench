@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">Terms of Service</h1>
           <p class="hero-subtitle">
-            Last updated: January 15, 2025
+            Last updated: August 1, 2025
           </p>
         </div>
       </div>
@@ -20,16 +20,15 @@
             <h3 class="nav-title">Contents</h3>
             <ul class="nav-list">
               <li><a href="#acceptance" @click="scrollToSection('acceptance')">Acceptance of Terms</a></li>
-              <li><a href="#description" @click="scrollToSection('description')">Description of Service</a></li>
-              <li><a href="#user-accounts" @click="scrollToSection('user-accounts')">User Accounts</a></li>
+              <li><a href="#open-source" @click="scrollToSection('open-source')">Open Source License</a></li>
+              <li><a href="#description" @click="scrollToSection('description')">Service Description</a></li>
               <li><a href="#acceptable-use" @click="scrollToSection('acceptable-use')">Acceptable Use</a></li>
               <li><a href="#api-usage" @click="scrollToSection('api-usage')">API Usage</a></li>
-              <li><a href="#intellectual-property" @click="scrollToSection('intellectual-property')">Intellectual Property</a></li>
+              <li><a href="#user-content" @click="scrollToSection('user-content')">User Content</a></li>
               <li><a href="#disclaimers" @click="scrollToSection('disclaimers')">Disclaimers</a></li>
               <li><a href="#limitation" @click="scrollToSection('limitation')">Limitation of Liability</a></li>
-              <li><a href="#termination" @click="scrollToSection('termination')">Termination</a></li>
               <li><a href="#changes" @click="scrollToSection('changes')">Changes to Terms</a></li>
-              <li><a href="#contact" @click="scrollToSection('contact')">Contact Information</a></li>
+              <li><a href="#contact" @click="scrollToSection('contact')">Contact</a></li>
             </ul>
           </div>
 
@@ -37,212 +36,200 @@
             <section id="acceptance" class="legal-section">
               <h2>1. Acceptance of Terms</h2>
               <p>
-                By accessing or using DDEX Connect ("Service"), you agree to be bound by these Terms of Service ("Terms"). 
-                If you disagree with any part of these terms, then you may not access the Service.
+                By using DDEX Workbench, you agree to these Terms of Service. DDEX Workbench is a free, 
+                open-source tool for validating DDEX standard files. If you don't agree with these terms, 
+                you may still use our open-source code under the MIT License by hosting your own instance.
               </p>
+            </section>
+
+            <section id="open-source" class="legal-section">
+              <h2>2. Open Source License</h2>
               <p>
-                These Terms apply to all visitors, users, and others who access or use the Service, including but not limited to 
-                users of our web application, API services, and any related documentation or tools.
+                DDEX Workbench is released under the <strong>MIT License</strong>. This means:
               </p>
+              <ul>
+                <li>The software is provided free of charge</li>
+                <li>You can use, copy, modify, and distribute the software</li>
+                <li>You can use it for commercial purposes</li>
+                <li>The software is provided "as is" without warranty</li>
+              </ul>
+              <p>
+                The full license text is available in our 
+                <a href="https://github.com/daddykev/ddex-workbench/blob/main/LICENSE" target="_blank" rel="noopener">GitHub repository</a>.
+              </p>
+              <div class="info-box">
+                <strong>Note:</strong> These Terms apply to the hosted service at ddex-workbench.org. 
+                If you self-host the application, only the MIT License applies.
+              </div>
             </section>
 
             <section id="description" class="legal-section">
-              <h2>2. Description of Service</h2>
+              <h2>3. Service Description</h2>
               <p>
-                DDEX Connect provides tools and services for validating DDEX (Digital Data Exchange) standard files, including:
+                DDEX Workbench provides free tools for validating DDEX (Digital Data Exchange) files:
               </p>
               <ul>
-                <li>Web-based ERN (Electronic Release Notification) validation</li>
-                <li>RESTful API for programmatic validation</li>
-                <li>Community-driven snippet library</li>
-                <li>Documentation and educational resources</li>
+                <li><strong>Web Validator</strong> - Validate ERN files (versions 3.8.2, 4.2, and 4.3)</li>
+                <li><strong>REST API</strong> - Programmatic validation for developers</li>
+                <li><strong>Community Snippets</strong> - Share and discover DDEX examples (coming soon)</li>
+                <li><strong>Documentation</strong> - Learn about DDEX validation</li>
               </ul>
               <p>
-                The Service is provided on an "as-is" basis. We reserve the right to modify, suspend, or discontinue 
-                any part of the Service at any time without notice.
-              </p>
-            </section>
-
-            <section id="user-accounts" class="legal-section">
-              <h2>3. User Accounts</h2>
-              <h3>Account Creation</h3>
-              <p>
-                To access certain features of the Service, you may be required to create an account. 
-                You must provide accurate, complete, and current information during registration.
-              </p>
-              
-              <h3>Account Security</h3>
-              <p>You are responsible for:</p>
-              <ul>
-                <li>Maintaining the confidentiality of your account credentials</li>
-                <li>All activities that occur under your account</li>
-                <li>Notifying us immediately of any unauthorized use</li>
-              </ul>
-
-              <h3>Age Requirements</h3>
-              <p>
-                You must be at least 13 years old to use the Service. By using the Service, you represent and warrant 
-                that you meet this age requirement.
+                The service is provided free of charge with no premium tiers or paid features. 
+                We may introduce optional donations in the future to support hosting costs.
               </p>
             </section>
 
             <section id="acceptable-use" class="legal-section">
               <h2>4. Acceptable Use</h2>
-              <p>You agree not to use the Service to:</p>
+              <p>
+                We believe in open access, but please use the service responsibly:
+              </p>
+              
+              <h3>DO:</h3>
               <ul>
-                <li>Violate any applicable laws or regulations</li>
-                <li>Infringe upon the intellectual property rights of others</li>
-                <li>Upload or transmit viruses or malicious code</li>
-                <li>Attempt to gain unauthorized access to our systems</li>
-                <li>Interfere with or disrupt the Service or servers</li>
-                <li>Collect or harvest user data without permission</li>
-                <li>Use the Service for any unlawful or unauthorized purpose</li>
+                <li>Use the service for legitimate DDEX validation needs</li>
+                <li>Report bugs and contribute improvements</li>
+                <li>Share the service with others who might benefit</li>
+                <li>Respect rate limits to ensure availability for all users</li>
               </ul>
 
-              <div class="warning-box">
-                <strong>Violation Notice:</strong> We reserve the right to terminate or suspend access to our Service 
-                immediately, without prior notice, for any breach of these Terms.
-              </div>
+              <h3>DON'T:</h3>
+              <ul>
+                <li>Attempt to overwhelm or abuse the service</li>
+                <li>Use the service for illegal activities</li>
+                <li>Upload malicious files or code</li>
+                <li>Violate others' intellectual property rights</li>
+                <li>Circumvent rate limits or security measures</li>
+              </ul>
             </section>
 
             <section id="api-usage" class="legal-section">
               <h2>5. API Usage</h2>
-              <h3>API Terms</h3>
-              <p>If you use our API services, you additionally agree to:</p>
-              <ul>
-                <li>Use API keys only for your own applications</li>
-                <li>Not share, sell, or transfer API keys</li>
-                <li>Respect rate limits and usage quotas</li>
-                <li>Not use the API to create competing services</li>
-                <li>Properly attribute DDEX Connect in your applications</li>
-              </ul>
-
               <h3>Rate Limits</h3>
+              <p>To ensure fair access for everyone:</p>
               <table class="terms-table">
                 <thead>
                   <tr>
-                    <th>Plan</th>
+                    <th>Access Type</th>
                     <th>Rate Limit</th>
-                    <th>Monthly Quota</th>
+                    <th>Cost</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>Anonymous</td>
                     <td>10 requests/minute</td>
-                    <td>1,000 requests</td>
+                    <td>Free</td>
                   </tr>
                   <tr>
-                    <td>Free Account</td>
+                    <td>Authenticated (API Key)</td>
                     <td>60 requests/minute</td>
-                    <td>10,000 requests</td>
-                  </tr>
-                  <tr>
-                    <td>Pro Account</td>
-                    <td>300 requests/minute</td>
-                    <td>100,000 requests</td>
+                    <td>Free</td>
                   </tr>
                 </tbody>
               </table>
+
+              <h3>API Guidelines</h3>
+              <ul>
+                <li>API keys are free and for personal use</li>
+                <li>Don't share or sell API keys</li>
+                <li>Include proper attribution when using our API</li>
+                <li>Cache responses when appropriate</li>
+              </ul>
+
+              <p>
+                If you need higher rate limits for a legitimate use case, 
+                <a href="mailto:api@ddex-workbench.org">contact us</a> - we're happy to help 
+                open-source projects and educational institutions.
+              </p>
             </section>
 
-            <section id="intellectual-property" class="legal-section">
-              <h2>6. Intellectual Property</h2>
-              <h3>Our Content</h3>
+            <section id="user-content" class="legal-section">
+              <h2>6. User Content</h2>
+              <h3>Your Files</h3>
               <p>
-                The Service and its original content (excluding user-generated content) are and will remain 
-                the property of DDEX Connect and its licensors. The Service is protected by copyright, trademark, 
-                and other laws.
+                When you validate files:
               </p>
+              <ul>
+                <li>Files are processed in memory only</li>
+                <li>We don't store your validated XML content</li>
+                <li>Validation results are temporary and not logged</li>
+                <li>You retain all rights to your content</li>
+              </ul>
 
-              <h3>User Content</h3>
+              <h3>Community Snippets (Future Feature)</h3>
               <p>
-                By posting content to the Service (such as code snippets), you grant us a non-exclusive, 
-                worldwide, royalty-free license to use, modify, publicly display, and distribute such content 
-                in connection with the Service.
+                If you choose to share snippets:
               </p>
-              <p>
-                You represent and warrant that you have the right to grant this license and that your content 
-                does not infringe any third party's rights.
-              </p>
-
-              <h3>DDEX Standards</h3>
-              <p>
-                DDEX standards and schemas are the property of DDEX Limited. Our Service uses these standards 
-                under license. Users must comply with DDEX's terms when using these standards.
-              </p>
+              <ul>
+                <li>You grant us a license to display them publicly</li>
+                <li>You confirm you have the right to share the content</li>
+                <li>Snippets will be available under a permissive license</li>
+                <li>You can delete your snippets at any time</li>
+              </ul>
             </section>
 
             <section id="disclaimers" class="legal-section">
               <h2>7. Disclaimers</h2>
-              <p>
-                THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT 
-                NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
-              </p>
-              <p>We do not warrant that:</p>
-              <ul>
-                <li>The Service will be uninterrupted or error-free</li>
-                <li>Validation results are 100% accurate or complete</li>
-                <li>The Service will meet your specific requirements</li>
-                <li>Any errors in the Service will be corrected</li>
-              </ul>
-
-              <div class="info-box">
-                <strong>Note:</strong> While we strive for accuracy, DDEX Connect validation should not be the sole 
-                method of verifying DDEX compliance. Always refer to official DDEX documentation and perform 
-                additional testing as needed.
+              <div class="warning-box">
+                <strong>No Warranty:</strong> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
+                EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+                FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
               </div>
+              <p>
+                Specifically:
+              </p>
+              <ul>
+                <li>We don't guarantee 100% uptime (though we try our best)</li>
+                <li>Validation results should be verified independently</li>
+                <li>We're not affiliated with or endorsed by DDEX</li>
+                <li>The service may change or be discontinued</li>
+              </ul>
+              <p>
+                For mission-critical validation needs, we recommend running your own instance 
+                using our open-source code.
+              </p>
             </section>
 
             <section id="limitation" class="legal-section">
               <h2>8. Limitation of Liability</h2>
               <p>
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, DDEX CONNECT SHALL NOT BE LIABLE FOR ANY INDIRECT, 
-                INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, 
-                WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER 
-                INTANGIBLE LOSSES.
+                IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+                DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+                ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+                DEALINGS IN THE SOFTWARE.
               </p>
               <p>
-                Our total liability for any claims under these Terms shall not exceed the amount you paid us, 
-                if any, for accessing the Service in the 12 months preceding the claim.
-              </p>
-            </section>
-
-            <section id="termination" class="legal-section">
-              <h2>9. Termination</h2>
-              <p>
-                We may terminate or suspend your account immediately, without prior notice or liability, 
-                for any reason whatsoever, including without limitation if you breach the Terms.
-              </p>
-              <p>Upon termination, your right to use the Service will cease immediately. 
-                All provisions of the Terms which by their nature should survive termination shall survive.
+                This is a free service provided for the benefit of the music technology community. 
+                Please use it accordingly and at your own risk.
               </p>
             </section>
 
             <section id="changes" class="legal-section">
-              <h2>10. Changes to Terms</h2>
+              <h2>9. Changes to Terms</h2>
               <p>
-                We reserve the right to modify or replace these Terms at any time. If a revision is material, 
-                we will try to provide at least 30 days notice prior to any new terms taking effect.
+                We may update these terms occasionally. Changes will be posted here with an updated date. 
+                Significant changes will be announced on our GitHub repository.
               </p>
               <p>
-                By continuing to access or use our Service after revisions become effective, you agree to be 
-                bound by the revised terms.
+                Your continued use of the service after changes constitutes acceptance of the new terms.
               </p>
             </section>
 
             <section id="contact" class="legal-section">
-              <h2>11. Contact Information</h2>
-              <p>If you have any questions about these Terms, please contact us:</p>
+              <h2>10. Contact</h2>
+              <p>Questions about these terms? We're here to help:</p>
               <div class="contact-info">
-                <p><strong>Email:</strong> legal@ddex-connect.org</p>
-                <p><strong>GitHub:</strong> <a href="https://github.com/ddex-connect/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
-                <p><strong>Address:</strong> [Your Address Here]</p>
+                <p><strong>Email:</strong> legal@ddex-workbench.org</p>
+                <p><strong>GitHub:</strong> <a href="https://github.com/daddykev/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
+                <p><strong>Contributing:</strong> <a href="https://github.com/daddykev/ddex-workbench/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribution Guidelines</a></p>
               </div>
 
               <div class="legal-footer">
                 <p>
-                  These Terms of Service were created for DDEX Connect and are governed by the laws of [Your Jurisdiction].
+                  Thank you for using DDEX Workbench! We're proud to provide this tool to the music 
+                  technology community and look forward to your contributions and feedback.
                 </p>
               </div>
             </section>
@@ -263,6 +250,7 @@ const scrollToSection = (sectionId) => {
 </script>
 
 <style scoped>
+/* Previous styles remain the same */
 .legal-page {
   min-height: 100vh;
 }

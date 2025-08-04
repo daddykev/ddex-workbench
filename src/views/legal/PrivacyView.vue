@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">Privacy Policy</h1>
           <p class="hero-subtitle">
-            Last updated: January 15, 2025
+            Last updated: August 1, 2025
           </p>
         </div>
       </div>
@@ -20,13 +20,13 @@
             <h3 class="nav-title">Contents</h3>
             <ul class="nav-list">
               <li><a href="#overview" @click="scrollToSection('overview')">Overview</a></li>
+              <li><a href="#open-source" @click="scrollToSection('open-source')">Open Source Commitment</a></li>
               <li><a href="#information-we-collect" @click="scrollToSection('information-we-collect')">Information We Collect</a></li>
-              <li><a href="#how-we-use" @click="scrollToSection('how-we-use')">How We Use Your Information</a></li>
-              <li><a href="#data-storage" @click="scrollToSection('data-storage')">Data Storage & Security</a></li>
+              <li><a href="#information-we-dont-collect" @click="scrollToSection('information-we-dont-collect')">Information We Don't Collect</a></li>
+              <li><a href="#how-we-use" @click="scrollToSection('how-we-use')">How We Use Information</a></li>
+              <li><a href="#data-storage" @click="scrollToSection('data-storage')">Data Storage</a></li>
               <li><a href="#third-parties" @click="scrollToSection('third-parties')">Third-Party Services</a></li>
               <li><a href="#your-rights" @click="scrollToSection('your-rights')">Your Rights</a></li>
-              <li><a href="#cookies" @click="scrollToSection('cookies')">Cookies</a></li>
-              <li><a href="#changes" @click="scrollToSection('changes')">Changes to This Policy</a></li>
               <li><a href="#contact" @click="scrollToSection('contact')">Contact Us</a></li>
             </ul>
           </div>
@@ -35,137 +35,172 @@
             <section id="overview" class="legal-section">
               <h2>Overview</h2>
               <p>
-                DDEX Connect ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, 
-                use, disclose, and safeguard your information when you use our DDEX validation services and website.
+                DDEX Workbench is an open-source project committed to transparency and user privacy. 
+                We collect only the minimal information necessary to provide our DDEX validation services 
+                and maintain a functional platform.
               </p>
+              <div class="info-box">
+                <strong>Key Points:</strong>
+                <ul>
+                  <li>We do NOT sell your data to anyone</li>
+                  <li>We do NOT store your validated XML files unless you explicitly save them</li>
+                  <li>We collect only essential information for service functionality</li>
+                  <li>Our entire codebase is open source and auditable</li>
+                </ul>
+              </div>
+            </section>
+
+            <section id="open-source" class="legal-section">
+              <h2>Open Source Commitment</h2>
               <p>
-                By using our services, you agree to the collection and use of information in accordance with this policy. 
-                If you do not agree with the terms of this privacy policy, please do not access the site or use our services.
+                DDEX Workbench is released under the MIT License. Our commitment to open source means:
               </p>
+              <ul>
+                <li>Our code is publicly available on <a href="https://github.com/daddykev/ddex-workbench" target="_blank" rel="noopener">GitHub</a></li>
+                <li>You can review exactly how we handle your data</li>
+                <li>You can self-host your own instance if desired</li>
+                <li>We welcome community contributions and oversight</li>
+              </ul>
             </section>
 
             <section id="information-we-collect" class="legal-section">
               <h2>Information We Collect</h2>
-              <h3>Information You Provide</h3>
+              <h3>Account Information (Optional)</h3>
+              <p>If you choose to create an account, we collect:</p>
               <ul>
-                <li><strong>Account Information:</strong> When you create an account, we collect your email address, username, and password (encrypted).</li>
-                <li><strong>Profile Information:</strong> You may optionally provide additional information such as your name, company, and profile picture.</li>
-                <li><strong>API Keys:</strong> We generate and store API keys for authenticated access to our services.</li>
-                <li><strong>User Content:</strong> Code snippets, comments, and other content you submit to our platform.</li>
+                <li><strong>Email address</strong> - for authentication and account recovery</li>
+                <li><strong>Display name</strong> - for personalization (can be a pseudonym)</li>
+                <li><strong>Authentication tokens</strong> - managed by Firebase Auth</li>
               </ul>
 
-              <h3>Information Collected Automatically</h3>
+              <h3>Service Usage Data</h3>
+              <p>To improve our service, we collect:</p>
               <ul>
-                <li><strong>Usage Data:</strong> We collect information about how you interact with our services, including pages visited, features used, and actions taken.</li>
-                <li><strong>Device Information:</strong> Browser type, operating system, IP address, and device identifiers.</li>
-                <li><strong>Log Data:</strong> Server logs that include IP addresses, browser type, referring/exit pages, and timestamps.</li>
+                <li><strong>API usage statistics</strong> - request counts for rate limiting</li>
+                <li><strong>Validation metadata</strong> - file size, processing time, ERN version (NOT file content)</li>
+                <li><strong>Error logs</strong> - for debugging (sanitized of personal data)</li>
               </ul>
 
-              <div class="info-box">
-                <strong>Important:</strong> We do not store the content of XML files you validate through our service unless you explicitly save them as snippets.
+              <h3>Technical Information</h3>
+              <ul>
+                <li><strong>Browser type and version</strong> - for compatibility</li>
+                <li><strong>IP address</strong> - for rate limiting and security</li>
+                <li><strong>Timestamps</strong> - for usage patterns and debugging</li>
+              </ul>
+            </section>
+
+            <section id="information-we-dont-collect" class="legal-section">
+              <h2>Information We DON'T Collect</h2>
+              <div class="warning-box">
+                <strong>Important:</strong> We do NOT:
+                <ul>
+                  <li>Store the content of your validated XML files</li>
+                  <li>Track or analyze your DDEX file contents</li>
+                  <li>Collect payment information (service is free)</li>
+                  <li>Use tracking cookies or advertising pixels</li>
+                  <li>Share or sell any user data</li>
+                  <li>Perform any data mining on your content</li>
+                </ul>
               </div>
+              <p>
+                When you validate a file, it is processed in memory and immediately discarded after 
+                validation completes. The only exception is if you explicitly choose to save a snippet 
+                for community sharing.
+              </p>
             </section>
 
             <section id="how-we-use" class="legal-section">
-              <h2>How We Use Your Information</h2>
-              <p>We use the collected information for various purposes:</p>
+              <h2>How We Use Information</h2>
+              <p>We use collected information solely to:</p>
               <ul>
-                <li>To provide and maintain our services</li>
-                <li>To authenticate users and manage accounts</li>
-                <li>To process API requests and track usage for rate limiting</li>
-                <li>To improve our services and develop new features</li>
-                <li>To communicate with you about updates, security alerts, and support</li>
-                <li>To detect, prevent, and address technical issues</li>
-                <li>To comply with legal obligations</li>
+                <li>Authenticate users who choose to create accounts</li>
+                <li>Enforce rate limits to ensure fair usage</li>
+                <li>Generate anonymous usage statistics</li>
+                <li>Debug and improve the validation service</li>
+                <li>Respond to support requests</li>
+                <li>Comply with legal obligations</li>
               </ul>
+              <p>
+                We will never use your information for marketing, advertising, or any purpose 
+                other than providing and improving the DDEX validation service.
+              </p>
             </section>
 
             <section id="data-storage" class="legal-section">
-              <h2>Data Storage & Security</h2>
+              <h2>Data Storage</h2>
               <p>
-                We implement appropriate technical and organizational security measures to protect your personal information against 
-                unauthorized access, alteration, disclosure, or destruction.
+                We use Firebase (Google Cloud Platform) for our infrastructure:
               </p>
-              <h3>Security Measures Include:</h3>
               <ul>
-                <li>Encryption of sensitive data in transit and at rest</li>
-                <li>Regular security audits and updates</li>
-                <li>Access controls and authentication mechanisms</li>
-                <li>Secure data centers with physical security controls</li>
+                <li><strong>Authentication</strong> - Managed by Firebase Auth with industry-standard security</li>
+                <li><strong>Database</strong> - User profiles and API keys stored in Firestore</li>
+                <li><strong>Temporary Processing</strong> - XML validation happens in serverless functions with no persistent storage</li>
               </ul>
               <p>
-                Your data is stored on Firebase infrastructure (Google Cloud Platform) in secure data centers. 
-                For more information about Firebase's security practices, visit 
-                <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy & Security</a>.
+                All data is encrypted in transit using HTTPS and at rest using Google's encryption standards.
+                We do not maintain any servers or databases outside of the Firebase ecosystem.
               </p>
             </section>
 
             <section id="third-parties" class="legal-section">
               <h2>Third-Party Services</h2>
-              <p>We use the following third-party services that may collect information:</p>
+              <p>We use minimal third-party services:</p>
               <ul>
-                <li><strong>Firebase (Google):</strong> For authentication, database, hosting, and analytics</li>
-                <li><strong>GitHub:</strong> For OAuth authentication (if you choose to sign in with GitHub)</li>
-                <li><strong>Cloudflare:</strong> For CDN and DDoS protection</li>
+                <li>
+                  <strong>Firebase/Google Cloud</strong> - Infrastructure and authentication<br>
+                  <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy Policy</a>
+                </li>
+                <li>
+                  <strong>GitHub</strong> - OAuth provider (optional login method)<br>
+                  <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>
+                </li>
               </ul>
               <p>
-                These services have their own privacy policies, and we encourage you to review them. 
-                We are not responsible for the privacy practices of these third parties.
+                We do not use any analytics services, advertising networks, or tracking pixels.
               </p>
             </section>
 
             <section id="your-rights" class="legal-section">
               <h2>Your Rights</h2>
-              <p>You have the following rights regarding your personal data:</p>
+              <p>You have complete control over your data:</p>
+              
+              <h3>For All Users</h3>
               <ul>
-                <li><strong>Access:</strong> Request a copy of your personal data</li>
-                <li><strong>Correction:</strong> Request correction of inaccurate data</li>
-                <li><strong>Deletion:</strong> Request deletion of your account and associated data</li>
-                <li><strong>Portability:</strong> Request your data in a machine-readable format</li>
-                <li><strong>Objection:</strong> Object to certain uses of your data</li>
+                <li>Use the service anonymously without creating an account</li>
+                <li>Validate files without any data retention</li>
+                <li>Access our source code to verify our practices</li>
               </ul>
-              <p>
-                To exercise these rights, please contact us at privacy@ddex-connect.org. 
-                We will respond to your request within 30 days.
-              </p>
-            </section>
 
-            <section id="cookies" class="legal-section">
-              <h2>Cookies</h2>
-              <p>
-                We use cookies and similar tracking technologies to enhance your experience on our website. 
-                These include:
-              </p>
+              <h3>For Registered Users</h3>
               <ul>
-                <li><strong>Essential Cookies:</strong> Required for authentication and core functionality</li>
-                <li><strong>Preference Cookies:</strong> Remember your settings like theme preference</li>
-                <li><strong>Analytics Cookies:</strong> Help us understand how users interact with our services</li>
+                <li><strong>Access</strong> - Download all your account data</li>
+                <li><strong>Correction</strong> - Update your profile information</li>
+                <li><strong>Deletion</strong> - Delete your account and all associated data</li>
+                <li><strong>Portability</strong> - Export your data in JSON format</li>
               </ul>
-              <p>
-                You can control cookies through your browser settings. Note that disabling certain cookies 
-                may limit the functionality of our services.
-              </p>
-            </section>
 
-            <section id="changes" class="legal-section">
-              <h2>Changes to This Policy</h2>
               <p>
-                We may update this Privacy Policy from time to time. We will notify you of any changes by 
-                posting the new Privacy Policy on this page and updating the "Last updated" date.
-              </p>
-              <p>
-                For significant changes, we will provide a more prominent notice, such as an email 
-                notification or an in-app notification.
+                To exercise these rights, you can use the account settings page or 
+                contact us at privacy@ddex-workbench.org.
               </p>
             </section>
 
             <section id="contact" class="legal-section">
               <h2>Contact Us</h2>
-              <p>If you have questions about this Privacy Policy or our privacy practices, please contact us:</p>
+              <p>
+                For privacy-related questions or concerns:
+              </p>
               <div class="contact-info">
-                <p><strong>Email:</strong> privacy@ddex-connect.org</p>
-                <p><strong>GitHub:</strong> <a href="https://github.com/ddex-connect/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
-                <p><strong>Address:</strong> [Your Address Here]</p>
+                <p><strong>Email:</strong> privacy@ddex-workbench.org</p>
+                <p><strong>GitHub Issues:</strong> <a href="https://github.com/daddykev/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
+                <p><strong>Response Time:</strong> We aim to respond within 48 hours</p>
+              </div>
+
+              <div class="legal-footer">
+                <p>
+                  This privacy policy is part of our commitment to transparency as an open-source project. 
+                  We believe in protecting user privacy through minimal data collection and open practices.
+                </p>
               </div>
             </section>
           </div>
@@ -185,6 +220,7 @@ const scrollToSection = (sectionId) => {
 </script>
 
 <style scoped>
+/* Previous styles remain the same */
 .legal-page {
   min-height: 100vh;
 }
@@ -284,12 +320,21 @@ const scrollToSection = (sectionId) => {
   line-height: var(--leading-relaxed);
 }
 
-.info-box {
+.info-box,
+.warning-box {
   padding: var(--space-md);
-  background-color: var(--color-primary-light);
-  border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   margin: var(--space-lg) 0;
+}
+
+.info-box {
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+}
+
+.warning-box {
+  background-color: var(--color-secondary-light);
+  border: 1px solid var(--color-secondary);
 }
 
 .contact-info {
@@ -301,6 +346,13 @@ const scrollToSection = (sectionId) => {
 
 .contact-info p {
   margin-bottom: var(--space-sm);
+}
+
+.legal-footer {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 768px) {
