@@ -1,302 +1,3 @@
-<template>
-  <div class="snippets-view">
-    <!-- Hero Section -->
-    <section class="hero-section bg-secondary">
-      <div class="container">
-        <div class="hero-content text-center">
-          <h1 class="hero-title">DDEX Code Snippets</h1>
-          <p class="hero-subtitle">
-            Collection of DDEX patterns, examples, and solutions
-          </p>
-          
-          <!-- Search Bar -->
-          <div class="search-container mt-xl">
-            <div class="search-box">
-              <font-awesome-icon :icon="['fas', 'search']" class="search-icon" />
-              <input 
-                v-model="searchQuery"
-                type="text"
-                class="search-input"
-                placeholder="Search snippets, tags, or descriptions..."
-                @input="handleSearch"
-              >
-              <button 
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="search-clear"
-              >
-                <font-awesome-icon :icon="['fas', 'times']" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Filters and Content -->
-    <section class="section">
-      <div class="container">
-        <div class="content-grid">
-          <!-- Sidebar Filters -->
-          <aside class="filters-sidebar">
-            <div class="filter-section">
-              <h3 class="filter-title">Categories</h3>
-              <div class="filter-options">
-                <label 
-                  v-for="category in categories" 
-                  :key="category.value"
-                  class="filter-option"
-                >
-                  <input 
-                    type="radio"
-                    name="category"
-                    :value="category.value"
-                    v-model="selectedCategory"
-                    @change="filterSnippets"
-                  >
-                  <span>{{ category.label }}</span>
-                  <span class="filter-count">{{ category.count }}</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="filter-section">
-              <h3 class="filter-title">Popular Tags</h3>
-              <div class="tags-cloud">
-                <button 
-                  v-for="tag in popularTags" 
-                  :key="tag.name"
-                  @click="toggleTag(tag.name)"
-                  class="tag-pill"
-                  :class="{ active: selectedTags.includes(tag.name) }"
-                >
-                  {{ tag.name }}
-                  <span class="tag-count">{{ tag.count }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="filter-section">
-              <h3 class="filter-title">Sort By</h3>
-              <select v-model="sortBy" @change="sortSnippets" class="form-select">
-                <option value="popular">Most Popular</option>
-                <option value="recent">Most Recent</option>
-                <option value="votes">Most Votes</option>
-                <option value="views">Most Viewed</option>
-              </select>
-            </div>
-          </aside>
-
-          <!-- Main Content -->
-          <main class="snippets-content">
-            <!-- Results Header -->
-            <div class="results-header flex items-center justify-between mb-lg">
-              <p class="text-secondary">
-                Showing {{ filteredSnippets.length }} snippets
-                <span v-if="searchQuery || selectedCategory !== 'all' || selectedTags.length">
-                  (filtered)
-                </span>
-              </p>
-              <button 
-                v-if="isAuthenticated"
-                class="btn btn-primary btn-sm"
-                @click="showCreateModal = true"
-              >
-                <font-awesome-icon :icon="['fas', 'plus']" class="icon-left" />
-                Add Snippet
-              </button>
-            </div>
-
-            <!-- Snippets List -->
-            <div v-if="loading" class="loading-state">
-              <font-awesome-icon :icon="['fas', 'spinner']" class="spinner-icon" spin />
-              <p class="text-secondary mt-md">Loading snippets...</p>
-            </div>
-
-            <div v-else-if="error" class="error-state">
-              <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="error-icon" />
-              <h3 class="text-xl mb-sm">Error loading snippets</h3>
-              <p class="text-secondary">{{ error }}</p>
-              <button @click="loadSnippets" class="btn btn-primary mt-md">
-                Try Again
-              </button>
-            </div>
-
-            <div v-else-if="filteredSnippets.length === 0" class="empty-state">
-              <font-awesome-icon :icon="['fas', 'frown']" class="empty-icon" />
-              <h3 class="text-xl mb-sm">No snippets found</h3>
-              <p class="text-secondary">
-                {{ searchQuery || selectedTags.length > 0 
-                  ? 'Try adjusting your filters or search query' 
-                  : isAuthenticated 
-                    ? 'Be the first to add a snippet!' 
-                    : 'Sign in to start contributing snippets'
-                }}
-              </p>
-              <button 
-                v-if="isAuthenticated && !searchQuery && selectedTags.length === 0"
-                @click="showCreateModal = true"
-                class="btn btn-primary mt-md"
-              >
-                <font-awesome-icon :icon="['fas', 'plus']" class="icon-left" />
-                Add First Snippet
-              </button>
-            </div>
-
-            <div v-else class="snippets-list">
-              <article 
-                v-for="snippet in paginatedSnippets" 
-                :key="snippet.id"
-                class="snippet-card card card-hover"
-              >
-                <div class="snippet-header">
-                  <div>
-                    <h3 class="snippet-title">
-                      <a @click="viewSnippet(snippet)" class="snippet-link">
-                        {{ snippet.title }}
-                      </a>
-                    </h3>
-                    <p class="snippet-meta text-sm text-secondary">
-                      by <span class="font-medium">{{ snippet.author.displayName }}</span>
-                      • {{ formatDate(snippet.created) }}
-                      • {{ snippet.views }} views
-                    </p>
-                  </div>
-                  <div class="snippet-header-right">
-                    <span class="category-badge" :class="`category-${snippet.category}`">
-                      {{ getCategoryLabel(snippet.category) }}
-                    </span>
-                    <div v-if="canEditSnippet(snippet)" class="snippet-actions-menu">
-                      <button
-                        @click="editSnippet(snippet)"
-                        class="action-icon-btn"
-                        title="Edit snippet"
-                      >
-                        <font-awesome-icon :icon="['fas', 'edit']" />
-                      </button>
-                      <button
-                        @click="deleteSnippet(snippet)"
-                        class="action-icon-btn text-error"
-                        title="Delete snippet"
-                      >
-                        <font-awesome-icon :icon="['fas', 'trash']" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <p class="snippet-description">
-                  {{ snippet.description }}
-                </p>
-
-                <div class="snippet-preview">
-                  <pre class="code-preview"><code>{{ truncateCode(snippet.content) }}</code></pre>
-                </div>
-
-                <div class="snippet-tags">
-                  <span 
-                    v-for="tag in snippet.tags" 
-                    :key="tag"
-                    @click="toggleTag(tag)"
-                    class="tag-sm"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-
-                <div class="snippet-footer">
-                  <div class="snippet-actions">
-                    <button 
-                      @click="voteSnippet(snippet, snippet.userVote === 1 ? 0 : 1)"
-                      class="action-btn"
-                      :class="{ active: snippet.userVote === 1 }"
-                      :disabled="!isAuthenticated"
-                    >
-                      <font-awesome-icon :icon="['fas', 'arrow-up']" />
-                      <span>{{ snippet.votes }}</span>
-                    </button>
-                    
-                    <button class="action-btn" @click="viewSnippet(snippet)">
-                      <font-awesome-icon :icon="['fas', 'comment']" />
-                      <span>{{ snippet.commentCount }}</span>
-                    </button>
-                  </div>
-
-                  <div class="snippet-buttons">
-                    <button 
-                      @click="copySnippet(snippet)"
-                      class="btn btn-secondary btn-sm"
-                    >
-                      <font-awesome-icon 
-                        :icon="['fas', copied === snippet.id ? 'check' : 'copy']" 
-                        class="icon-left" 
-                      />
-                      {{ copied === snippet.id ? 'Copied!' : 'Copy' }}
-                    </button>
-                    <button 
-                      @click="openInValidator(snippet)"
-                      class="btn btn-primary btn-sm"
-                    >
-                      Validate
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            <!-- Pagination -->
-            <div v-if="totalPages > 1" class="pagination">
-              <button 
-                @click="currentPage--"
-                :disabled="currentPage === 1"
-                class="pagination-btn"
-              >
-                <font-awesome-icon :icon="['fas', 'chevron-left']" />
-              </button>
-              
-              <div class="pagination-numbers">
-                <button 
-                  v-for="page in visiblePages" 
-                  :key="page"
-                  @click="currentPage = page"
-                  class="pagination-number"
-                  :class="{ active: currentPage === page }"
-                  :disabled="page === '...'"
-                >
-                  {{ page }}
-                </button>
-              </div>
-              
-              <button 
-                @click="currentPage++"
-                :disabled="currentPage === totalPages"
-                class="pagination-btn"
-              >
-                <font-awesome-icon :icon="['fas', 'chevron-right']" />
-              </button>
-            </div>
-          </main>
-        </div>
-      </div>
-    </section>
-
-    <!-- Create Snippet Modal -->
-    <CreateSnippetModal 
-      :show="showCreateModal"
-      @close="showCreateModal = false"
-      @created="handleSnippetCreated"
-    />
-
-    <!-- Edit Snippet Modal -->
-    <EditSnippetModal 
-      :show="showEditModal"
-      :snippet="editingSnippet"
-      @close="showEditModal = false"
-      @updated="handleSnippetUpdated"
-    />
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -678,6 +379,305 @@ onMounted(() => {
 })
 </script>
 
+<template>
+  <div class="snippets-view">
+    <!-- Hero Section -->
+    <section class="hero-section bg-secondary">
+      <div class="container">
+        <div class="hero-content text-center">
+          <h1 class="hero-title">DDEX Code Snippets</h1>
+          <p class="hero-subtitle">
+            Collection of DDEX patterns, examples, and solutions
+          </p>
+          
+          <!-- Search Bar -->
+          <div class="search-container mt-xl">
+            <div class="search-box">
+              <font-awesome-icon :icon="['fas', 'search']" class="search-icon" />
+              <input 
+                v-model="searchQuery"
+                type="text"
+                class="search-input"
+                placeholder="Search snippets, tags, or descriptions..."
+                @input="handleSearch"
+              >
+              <button 
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="search-clear"
+              >
+                <font-awesome-icon :icon="['fas', 'times']" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters and Content -->
+    <section class="section">
+      <div class="container">
+        <div class="content-grid">
+          <!-- Sidebar Filters -->
+          <aside class="filters-sidebar">
+            <div class="filter-section">
+              <h3 class="filter-title">Categories</h3>
+              <div class="filter-options">
+                <label 
+                  v-for="category in categories" 
+                  :key="category.value"
+                  class="filter-option"
+                >
+                  <input 
+                    type="radio"
+                    name="category"
+                    :value="category.value"
+                    v-model="selectedCategory"
+                    @change="filterSnippets"
+                  >
+                  <span>{{ category.label }}</span>
+                  <span class="filter-count">{{ category.count }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="filter-section">
+              <h3 class="filter-title">Popular Tags</h3>
+              <div class="tags-cloud">
+                <button 
+                  v-for="tag in popularTags" 
+                  :key="tag.name"
+                  @click="toggleTag(tag.name)"
+                  class="tag-pill"
+                  :class="{ active: selectedTags.includes(tag.name) }"
+                >
+                  {{ tag.name }}
+                  <span class="tag-count">{{ tag.count }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="filter-section">
+              <h3 class="filter-title">Sort By</h3>
+              <select v-model="sortBy" @change="sortSnippets" class="form-select">
+                <option value="popular">Most Popular</option>
+                <option value="recent">Most Recent</option>
+                <option value="votes">Most Votes</option>
+                <option value="views">Most Viewed</option>
+              </select>
+            </div>
+          </aside>
+
+          <!-- Main Content -->
+          <main class="snippets-content">
+            <!-- Results Header -->
+            <div class="results-header flex items-center justify-between mb-lg">
+              <p class="text-secondary">
+                Showing {{ filteredSnippets.length }} snippets
+                <span v-if="searchQuery || selectedCategory !== 'all' || selectedTags.length">
+                  (filtered)
+                </span>
+              </p>
+              <button 
+                v-if="isAuthenticated"
+                class="btn btn-primary btn-sm"
+                @click="showCreateModal = true"
+              >
+                <font-awesome-icon :icon="['fas', 'plus']" class="icon-left" />
+                Add Snippet
+              </button>
+            </div>
+
+            <!-- Snippets List -->
+            <div v-if="loading" class="loading-state">
+              <font-awesome-icon :icon="['fas', 'spinner']" class="spinner-icon" spin />
+              <p class="text-secondary mt-md">Loading snippets...</p>
+            </div>
+
+            <div v-else-if="error" class="error-state">
+              <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="error-icon" />
+              <h3 class="text-xl mb-sm">Error loading snippets</h3>
+              <p class="text-secondary">{{ error }}</p>
+              <button @click="loadSnippets" class="btn btn-primary mt-md">
+                Try Again
+              </button>
+            </div>
+
+            <div v-else-if="filteredSnippets.length === 0" class="empty-state">
+              <font-awesome-icon :icon="['fas', 'frown']" class="empty-icon" />
+              <h3 class="text-xl mb-sm">No snippets found</h3>
+              <p class="text-secondary">
+                {{ searchQuery || selectedTags.length > 0 
+                  ? 'Try adjusting your filters or search query' 
+                  : isAuthenticated 
+                    ? 'Be the first to add a snippet!' 
+                    : 'Sign in to start contributing snippets'
+                }}
+              </p>
+              <button 
+                v-if="isAuthenticated && !searchQuery && selectedTags.length === 0"
+                @click="showCreateModal = true"
+                class="btn btn-primary mt-md"
+              >
+                <font-awesome-icon :icon="['fas', 'plus']" class="icon-left" />
+                Add First Snippet
+              </button>
+            </div>
+
+            <div v-else class="snippets-list">
+              <article 
+                v-for="snippet in paginatedSnippets" 
+                :key="snippet.id"
+                class="snippet-card card card-hover"
+              >
+                <div class="snippet-header">
+                  <div>
+                    <h3 class="snippet-title">
+                      <a @click="viewSnippet(snippet)" class="snippet-link">
+                        {{ snippet.title }}
+                      </a>
+                    </h3>
+                    <p class="snippet-meta text-sm text-secondary">
+                      by <span class="font-medium">{{ snippet.author.displayName }}</span>
+                      • {{ formatDate(snippet.created) }}
+                      • {{ snippet.views }} views
+                    </p>
+                  </div>
+                  <div class="snippet-header-right">
+                    <span class="category-badge" :class="`category-${snippet.category}`">
+                      {{ getCategoryLabel(snippet.category) }}
+                    </span>
+                    <div v-if="canEditSnippet(snippet)" class="snippet-actions-menu">
+                      <button
+                        @click="editSnippet(snippet)"
+                        class="action-icon-btn"
+                        title="Edit snippet"
+                      >
+                        <font-awesome-icon :icon="['fas', 'edit']" />
+                      </button>
+                      <button
+                        @click="deleteSnippet(snippet)"
+                        class="action-icon-btn text-error"
+                        title="Delete snippet"
+                      >
+                        <font-awesome-icon :icon="['fas', 'trash']" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="snippet-description">
+                  {{ snippet.description }}
+                </p>
+
+                <div class="snippet-preview">
+                  <pre class="code-preview"><code>{{ truncateCode(snippet.content) }}</code></pre>
+                </div>
+
+                <div class="snippet-tags">
+                  <span 
+                    v-for="tag in snippet.tags" 
+                    :key="tag"
+                    @click="toggleTag(tag)"
+                    class="tag-sm"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+
+                <div class="snippet-footer">
+                  <div class="snippet-actions">
+                    <button 
+                      @click="voteSnippet(snippet, snippet.userVote === 1 ? 0 : 1)"
+                      class="action-btn"
+                      :class="{ active: snippet.userVote === 1 }"
+                      :disabled="!isAuthenticated"
+                    >
+                      <font-awesome-icon :icon="['fas', 'arrow-up']" />
+                      <span>{{ snippet.votes }}</span>
+                    </button>
+                    
+                    <button class="action-btn" @click="viewSnippet(snippet)">
+                      <font-awesome-icon :icon="['fas', 'comment']" />
+                      <span>{{ snippet.commentCount }}</span>
+                    </button>
+                  </div>
+
+                  <div class="snippet-buttons">
+                    <button 
+                      @click="copySnippet(snippet)"
+                      class="btn btn-secondary btn-sm"
+                    >
+                      <font-awesome-icon 
+                        :icon="['fas', copied === snippet.id ? 'check' : 'copy']" 
+                        class="icon-left" 
+                      />
+                      {{ copied === snippet.id ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <button 
+                      @click="openInValidator(snippet)"
+                      class="btn btn-primary btn-sm"
+                    >
+                      Validate
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="pagination">
+              <button 
+                @click="currentPage--"
+                :disabled="currentPage === 1"
+                class="pagination-btn"
+              >
+                <font-awesome-icon :icon="['fas', 'chevron-left']" />
+              </button>
+              
+              <div class="pagination-numbers">
+                <button 
+                  v-for="page in visiblePages" 
+                  :key="page"
+                  @click="currentPage = page"
+                  class="pagination-number"
+                  :class="{ active: currentPage === page }"
+                  :disabled="page === '...'"
+                >
+                  {{ page }}
+                </button>
+              </div>
+              
+              <button 
+                @click="currentPage++"
+                :disabled="currentPage === totalPages"
+                class="pagination-btn"
+              >
+                <font-awesome-icon :icon="['fas', 'chevron-right']" />
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- Create Snippet Modal -->
+    <CreateSnippetModal 
+      :show="showCreateModal"
+      @close="showCreateModal = false"
+      @created="handleSnippetCreated"
+    />
+
+    <!-- Edit Snippet Modal -->
+    <EditSnippetModal 
+      :show="showEditModal"
+      :snippet="editingSnippet"
+      @close="showEditModal = false"
+      @updated="handleSnippetUpdated"
+    />
+  </div>
+</template>
+
 <style scoped>
 /* Hero Section */
 .hero-section {
@@ -752,10 +752,10 @@ onMounted(() => {
   color: var(--color-text);
 }
 
-/* Content Grid */
+/* Content Grid - UPDATED */
 .content-grid {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: var(--space-2xl);
 }
 
@@ -843,10 +843,18 @@ onMounted(() => {
   opacity: 0.8;
 }
 
+/* Snippets Content - UPDATED */
+.snippets-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 /* Snippets List */
 .snippet-card {
   padding: var(--space-lg);
   margin-bottom: var(--space-lg);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .snippet-header {
@@ -933,6 +941,7 @@ onMounted(() => {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .snippet-tags {
