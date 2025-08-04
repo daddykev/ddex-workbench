@@ -1,7 +1,7 @@
 [
   {
-    "origin": ["https://ddex-workbench.org", "http://localhost:5173"],
-    "method": ["GET", "POST", "PUT", "DELETE"],
+    "origin": ["https://ddex-workbench.org", "https://ddex-workbench.web.app", "https://ddex-workbench.firebaseapp.com", "http://localhost:5173", "http://localhost:5174"],
+    "method": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     "maxAgeSeconds": 3600
   }
 ]

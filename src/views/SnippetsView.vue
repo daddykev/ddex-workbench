@@ -306,7 +306,7 @@ import {
   voteSnippet as voteSnippetApi,
   updateSnippet as updateSnippetApi,
   deleteSnippet as deleteSnippetApi
-} from '@/services/api'
+} from '@/services/snippets'
 import CreateSnippetModal from '@/components/CreateSnippetModal.vue'
 import EditSnippetModal from '@/components/EditSnippetModal.vue'
 

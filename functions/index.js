@@ -24,7 +24,9 @@ const corsOptions = {
     'http://localhost:3000'
   ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 };
 
 // Apply CORS middleware
@@ -41,13 +43,13 @@ app.use((req, res, next) => {
 
 // Import route handlers
 const validateRoutes = require('./api/validate');
-const snippetRoutes = require('./api/snippets');
-const keysRoutes = require('./api/keys'); // ADD THIS LINE
+const keyRoutes = require('./api/keys');
+// REMOVED: const snippetRoutes = require('./api/snippets');
 
 // API Routes
 app.use('/api/validate', validateRoutes);
-app.use('/api/snippets', snippetRoutes);
-app.use('/api/keys', keysRoutes); // ADD THIS LINE
+app.use('/api/keys', keyRoutes);
+// REMOVED: app.use('/api/snippets', snippetRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

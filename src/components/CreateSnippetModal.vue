@@ -172,7 +172,8 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { createSnippet, validateERN } from '@/services/api'
+import { createSnippet } from '@/services/snippets'
+import { validateERN } from '@/services/api'  // Keep validation through API
 
 const props = defineProps({
   show: {

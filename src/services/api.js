@@ -34,7 +34,6 @@ apiClient.interceptors.request.use(
     try {
       // Only add auth token for endpoints that require it
       const authRequiredEndpoints = [
-        '/api/snippets',
         '/api/keys',
         '/api/validations/history',
         '/api/validations/*/export'
@@ -153,93 +152,6 @@ export const getValidationHistory = async (params = {}) => {
 }
 
 /**
- * Snippets API
- */
-
-/**
- * Get snippets with filtering and pagination
- * @param {Object} params
- * @param {string} params.category - Filter by category
- * @param {string[]} params.tags - Filter by tags
- * @param {string} params.search - Search query
- * @param {string} params.sort - Sort order (votes, recent)
- * @param {number} params.limit - Number of results
- * @param {string} params.startAfter - Cursor for pagination
- * @returns {Promise<SnippetsResponse>}
- */
-export const getSnippets = async (params = {}) => {
-  const response = await apiClient.get('/api/snippets', { params })
-  return response.data
-}
-
-/**
- * Get single snippet by ID
- * @param {string} snippetId
- * @returns {Promise<Snippet>}
- */
-export const getSnippet = async (snippetId) => {
-  const response = await apiClient.get(`/api/snippets/${snippetId}`)
-  return response.data
-}
-
-/**
- * Create new snippet (requires authentication)
- * @param {Object} snippet
- * @param {string} snippet.title
- * @param {string} snippet.description
- * @param {string} snippet.content
- * @param {string} snippet.category
- * @param {string[]} snippet.tags
- * @returns {Promise<Snippet>}
- */
-export const createSnippet = async (snippet) => {
-  const response = await apiClient.post('/api/snippets', snippet)
-  return response.data
-}
-
-/**
- * Update snippet (requires authentication and ownership)
- * @param {string} snippetId
- * @param {Object} updates
- * @returns {Promise<Snippet>}
- */
-export const updateSnippet = async (snippetId, updates) => {
-  const response = await apiClient.patch(`/api/snippets/${snippetId}`, updates)
-  return response.data
-}
-
-/**
- * Delete snippet (requires authentication and ownership)
- * @param {string} snippetId
- * @returns {Promise<void>}
- */
-export const deleteSnippet = async (snippetId) => {
-  await apiClient.delete(`/api/snippets/${snippetId}`)
-}
-
-/**
- * Vote on snippet (requires authentication)
- * @param {string} snippetId
- * @param {number} vote - 1 for upvote, -1 for downvote, 0 to remove vote
- * @returns {Promise<VoteResult>}
- */
-export const voteSnippet = async (snippetId, vote) => {
-  const response = await apiClient.post(`/api/snippets/${snippetId}/vote`, { vote })
-  return response.data
-}
-
-/**
- * Comment on snippet (requires authentication)
- * @param {string} snippetId
- * @param {string} content
- * @returns {Promise<Comment>}
- */
-export const addComment = async (snippetId, content) => {
-  const response = await apiClient.post(`/api/snippets/${snippetId}/comments`, { content })
-  return response.data
-}
-
-/**
  * API Keys Management
  */
 
@@ -330,25 +242,6 @@ export const exportValidationReport = async (validationId, format = 'pdf') => {
 //     schemaVersion: string,
 //     validatedAt: string
 //   }
-// }
-
-// Snippet type
-// {
-//   id: string,
-//   title: string,
-//   description: string,
-//   content: string,
-//   category: string,
-//   tags: string[],
-//   author: {
-//     uid: string,
-//     displayName: string
-//   },
-//   votes: number,
-//   userVote?: number,
-//   commentCount: number,
-//   created: string,
-//   updated: string
 // }
 
 // ApiKey type
