@@ -121,6 +121,16 @@ A key differentiator for DDEX Workbench is our approach to profile validation:
 - **Version Intelligence**: Rules adapt automatically to ERN version differences
 - **Community Benefit**: Democratizes access to professional-grade DDEX validation
 
+### Innovation Through Simplification
+
+The ERN Message Sandbox represents our commitment to democratizing DDEX:
+
+- **Learning by Doing**: Users can create valid ERN messages without reading 200+ pages of specification
+- **Progressive Complexity**: Start with minimal required fields, add complexity as needed
+- **Instant Feedback**: Real-time validation shows what works and what doesn't
+- **Template Library**: Common scenarios pre-configured for quick starts
+- **Export to Production**: Generated ERN messages can be used in real workflows
+
 ## Project Structure
 
 ```
@@ -129,12 +139,16 @@ ddex-workbench/
 │   ├── components/            # Vue components
 │   │   ├── NavBar.vue         # Navigation with auth state
 │   │   ├── CreateSnippetModal.vue  # Modal for creating new snippets
-│   │   └── EditSnippetModal.vue    # Modal for editing existing snippets
+│   │   ├── EditSnippetModal.vue    # Modal for editing existing snippets
+│   │   └── sandbox/           # Sandbox components (NEW)
+│   │       ├── ProductForm.vue     # Product metadata form
+│   │       └── ResourceForm.vue    # Resource (track/video) form
 │   ├── views/                 # Vue router views/pages
 │   │   ├── SplashPage.vue     # Landing page with features overview
 │   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
 │   │   ├── ApiDocsView.vue    # Comprehensive API documentation
 │   │   ├── SnippetsView.vue   # Community snippets page with CRUD operations
+│   │   ├── SandboxView.vue    # ERN message builder (NEW)
 │   │   ├── DeveloperView.vue  # Developer CV
 │   │   ├── UserSettings.vue   # User profile & API keys management
 │   │   ├── NotFoundView.vue   # 404 page
@@ -147,7 +161,8 @@ ddex-workbench/
 │   │       └── LicenseView.vue
 │   ├── services/              # External service integrations
 │   │   ├── api.js             # API calls for validation and API keys only
-│   │   └── snippets.js        # Direct Firestore operations for snippets
+│   │   ├── snippets.js        # Direct Firestore operations for snippets
+│   │   └── ernBuilder.js      # ERN XML generation service (NEW)
 │   ├── composables/           # Vue composables
 │   │   └── useAuth.js         # Authentication composable
 │   ├── utils/                 # Utility functions
@@ -400,6 +415,36 @@ interface UserVote {
   vote: 1 | -1;       // upvote or downvote
   timestamp: Timestamp;
 }
+
+// Sandbox Data Models (in-memory only, not persisted)
+interface SandboxProduct {
+  upc: string;                  // 14-digit ICPN
+  releaseReference: string;     // Internal reference (e.g., "R0")
+  title: string;
+  artist: string;
+  label: string;
+  releaseType: 'Album' | 'Single' | 'EP' | 'Video' | 'VideoAlbum';
+  territoryCode: string;        // e.g., "Worldwide", "US", "GB"
+  tracks: Array<{
+    resourceReference: string;  // Links to resource
+    sequenceNumber: number;
+  }>;
+}
+
+interface SandboxResource {
+  id: number;                   // Temporary ID for UI
+  isrc: string;                 // 12-character ISRC
+  resourceReference: string;    // e.g., "A1", "A2"
+  title: string;
+  artist: string;
+  duration: string;             // ISO 8601 duration (e.g., "PT3M45S")
+  type: 'MusicalWorkSoundRecording' | 'MusicalWorkVideoRecording' | 'Video';
+  pLineYear: string;            // Copyright year
+  pLineText: string;            // Full copyright text
+  previewStartTime: number;     // In seconds
+  fileUri: string;              // File reference
+  territoryCode: string;
+}
 ```
 
 ### API Response Types
@@ -558,6 +603,30 @@ headers: {
   - Create, edit, and manage snippets
   - Vote on snippets (pending implementation)
 
+  ### 8. ERN Message Sandbox (NEW)
+- **Interactive Message Builder**: Visual form-based ERN creation
+- **Templates**: Pre-filled templates for common scenarios
+  - Audio Single
+  - Audio Album  
+  - Music Video
+- **Product Form**: 
+  - UPC/EAN entry
+  - Release metadata (title, artist, label)
+  - Release type selection
+  - Territory configuration
+- **Resource Management**:
+  - Add/remove tracks or videos dynamically
+  - ISRC entry
+  - Duration input with human-readable format (MM:SS)
+  - Copyright (P-line) information
+  - File references
+- **Real-time Features**:
+  - Live XML generation as you type
+  - Syntax-highlighted XML preview
+  - One-click validation
+  - Copy to clipboard
+- **Validation Integration**: Seamlessly validate generated ERN messages
+
 ## CSS Architecture
 
 ### Design System Overview
@@ -664,6 +733,7 @@ Semantic utility classes for:
 
 ### Week 15-16: Polish & Launch
 - [x] JSON and text report generation
+- [x] ERN Message Sandbox implementation
 - [ ] Performance optimization
 - [ ] Security audit
 - [ ] Complete test coverage
@@ -718,6 +788,11 @@ Semantic utility classes for:
 - Validation timeline visualization ✓
 - Share results functionality ✓
 - Profile-specific validation ✓ (comprehensive built-in rules equivalent to Schematron)
+- ERN Message Sandbox ✓ (NEW)
+  - Interactive form-based ERN creation ✓
+  - Multiple templates (Single, Album, Video) ✓
+  - Real-time XML generation ✓
+  - Integrated validation ✓
 
 ### Tested & Confirmed:
 - API key authentication working ✓
@@ -758,6 +833,7 @@ https://ddex-workbench.org
 - Common UI components library ✓
 - Reusable validation patterns ✓
 - API infrastructure foundation ✓
+- ERN generation patterns ✓ (NEW - can be adapted for DSR generation)
 
 ### Phase 3 (DDEX Workbench) Foundation:
 - User management system ✓
