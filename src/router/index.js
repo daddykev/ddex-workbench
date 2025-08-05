@@ -56,6 +56,12 @@ const router = createRouter({
       component: () => import('@/views/UserSettings.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/api-keys',
+      name: 'api-keys',
+      component: () => import('@/views/UserApi.vue'),
+      meta: { requiresAuth: true }
+    },
     // Admin routes
     {
       path: '/admin/users',
