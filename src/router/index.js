@@ -69,6 +69,12 @@ const router = createRouter({
       component: () => import('@/views/AdminUsers.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
     },
+    {
+      path: '/sandbox',
+      name: 'sandbox',
+      component: () => import('@/views/SandboxView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
     // Legal pages
     {
       path: '/privacy',
