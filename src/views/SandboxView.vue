@@ -30,7 +30,7 @@
             <ProductForm 
               v-model="product" 
               :resources="resources"
-              @update="generateERN"
+              @update="handleProductUpdate"
             />
           </div>
 
@@ -50,7 +50,7 @@
                 v-model="resources[index]"
                 :index="index"
                 @remove="removeResource(index)"
-                @update="generateERN"
+                @update="handleResourceUpdate"
               />
             </div>
           </div>
@@ -116,16 +116,25 @@
           </div>
         </div>
       </div>
+
+      <!-- Debug Panel (remove in production) -->
+      <div v-if="debugMode" class="debug-panel">
+        <h3>Debug Info</h3>
+        <pre>{{ debugInfo }}</pre>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import ProductForm from '@/components/sandbox/ProductForm.vue'
 import ResourceForm from '@/components/sandbox/ResourceForm.vue'
 import ernBuilder from '@/services/ernBuilder'
 import { validateERN as validateERNApi } from '@/services/api'
+
+// Debug mode flag
+const debugMode = ref(true) // Set to false in production
 
 // Data
 const selectedTemplate = ref('')
@@ -144,6 +153,15 @@ const resources = ref([])
 const ernXml = ref('')
 const validating = ref(false)
 const validationResult = ref(null)
+const isGenerating = ref(false)
+
+// Debug info
+const debugInfo = computed(() => ({
+  productTitle: product.value.title,
+  resourceCount: resources.value.length,
+  isGenerating: isGenerating.value,
+  lastResourceId: resources.value[resources.value.length - 1]?.id || null
+}))
 
 // Computed
 const highlightedXml = computed(() => {
@@ -159,24 +177,52 @@ const highlightedXml = computed(() => {
     .replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>')
 })
 
-// Methods
-const generateERN = () => {
-  if (!product.value.title || resources.value.length === 0) {
-    ernXml.value = ''
+// Methods with logging
+const generateERN = async () => {
+  console.log('[generateERN] Starting generation...')
+  
+  // Prevent concurrent generation
+  if (isGenerating.value) {
+    console.log('[generateERN] Already generating, skipping...')
     return
   }
   
-  // Update product tracks based on resources
-  product.value.tracks = resources.value.map((resource, index) => ({
-    resourceReference: resource.resourceReference,
-    sequenceNumber: index + 1
-  }))
+  isGenerating.value = true
   
-  ernXml.value = ernBuilder.buildERN(product.value, resources.value)
-  validationResult.value = null
+  try {
+    if (!product.value.title || resources.value.length === 0) {
+      console.log('[generateERN] Missing title or resources, clearing XML')
+      ernXml.value = ''
+      return
+    }
+    
+    // Update product tracks based on resources
+    product.value.tracks = resources.value.map((resource, index) => ({
+      resourceReference: resource.resourceReference,
+      sequenceNumber: index + 1
+    }))
+    
+    console.log('[generateERN] Building ERN with:', {
+      product: product.value,
+      resourceCount: resources.value.length
+    })
+    
+    ernXml.value = ernBuilder.buildERN(product.value, resources.value)
+    validationResult.value = null
+    
+    console.log('[generateERN] Generation complete')
+  } catch (error) {
+    console.error('[generateERN] Error:', error)
+  } finally {
+    // Use nextTick to ensure Vue has processed all updates
+    await nextTick()
+    isGenerating.value = false
+  }
 }
 
 const addResource = () => {
+  console.log('[addResource] Adding new resource...')
+  
   const newResource = {
     id: Date.now(),
     isrc: '',
@@ -191,19 +237,41 @@ const addResource = () => {
     fileUri: '',
     territoryCode: 'Worldwide'
   }
+  
+  console.log('[addResource] New resource:', newResource)
   resources.value.push(newResource)
+  
+  // Manually trigger generation after adding
+  generateERN()
 }
 
 const removeResource = (index) => {
+  console.log('[removeResource] Removing resource at index:', index)
+  
   resources.value.splice(index, 1)
+  
   // Re-number resource references
   resources.value.forEach((resource, i) => {
     resource.resourceReference = `A${i + 1}`
   })
+  
+  console.log('[removeResource] Resources after removal:', resources.value.length)
+  generateERN()
+}
+
+const handleProductUpdate = () => {
+  console.log('[handleProductUpdate] Product updated')
+  generateERN()
+}
+
+const handleResourceUpdate = () => {
+  console.log('[handleResourceUpdate] Resource updated')
   generateERN()
 }
 
 const loadTemplate = () => {
+  console.log('[loadTemplate] Loading template:', selectedTemplate.value)
+  
   switch (selectedTemplate.value) {
     case 'single':
       loadSingleTemplate()
@@ -221,6 +289,8 @@ const loadTemplate = () => {
 }
 
 const loadSingleTemplate = () => {
+  console.log('[loadSingleTemplate] Loading single template')
+  
   product.value = {
     upc: '00000000000000',
     releaseReference: 'R0',
@@ -249,6 +319,8 @@ const loadSingleTemplate = () => {
 }
 
 const loadAlbumTemplate = () => {
+  console.log('[loadAlbumTemplate] Loading album template')
+  
   product.value = {
     upc: '00000000000001',
     releaseReference: 'R0',
@@ -293,6 +365,8 @@ const loadAlbumTemplate = () => {
 }
 
 const loadVideoTemplate = () => {
+  console.log('[loadVideoTemplate] Loading video template')
+  
   product.value = {
     upc: '00000000000002',
     releaseReference: 'R0',
@@ -321,6 +395,8 @@ const loadVideoTemplate = () => {
 }
 
 const resetForm = () => {
+  console.log('[resetForm] Resetting form')
+  
   product.value = {
     upc: '',
     releaseReference: 'R0',
@@ -337,15 +413,19 @@ const resetForm = () => {
 }
 
 const copyToClipboard = async () => {
+  console.log('[copyToClipboard] Copying to clipboard')
+  
   try {
     await navigator.clipboard.writeText(ernXml.value)
-    // Could add a toast notification here
+    console.log('[copyToClipboard] Successfully copied')
   } catch (err) {
-    console.error('Failed to copy:', err)
+    console.error('[copyToClipboard] Failed to copy:', err)
   }
 }
 
 const validateERN = async () => {
+  console.log('[validateERN] Starting validation')
+  
   validating.value = true
   validationResult.value = null
   
@@ -359,9 +439,10 @@ const validateERN = async () => {
                'Video'
     })
     
+    console.log('[validateERN] Validation result:', result)
     validationResult.value = result
   } catch (error) {
-    console.error('Validation failed:', error)
+    console.error('[validateERN] Validation failed:', error)
     validationResult.value = {
       valid: false,
       errors: [{
@@ -374,13 +455,34 @@ const validateERN = async () => {
   }
 }
 
-// Watch for changes
-watch([product, resources], () => {
-  generateERN()
-}, { deep: true })
+// Initialize with an empty resource on mount
+console.log('[SandboxView] Component mounted')
 </script>
 
 <style scoped>
+/* Previous styles remain the same */
+
+/* Debug Panel */
+.debug-panel {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.debug-panel h3 {
+  margin-bottom: var(--space-md);
+  color: var(--color-warning);
+}
+
+.debug-panel pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Rest of styles... */
 .sandbox-page {
   padding: var(--space-2xl) 0;
   min-height: calc(100vh - 64px - 280px);
