@@ -5,10 +5,12 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile
+  updateProfile,
+  sendEmailVerification,
+  reload
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { auth, db, onAuthChange } from '@/firebase'  // <-- Fixed import path
+import { auth, db, onAuthChange } from '@/firebase'
 
 // Global reactive state
 const user = ref(null)
@@ -25,6 +27,7 @@ onAuthChange(async (firebaseUser) => {
       email: firebaseUser.email,
       displayName: firebaseUser.displayName,
       photoURL: firebaseUser.photoURL,
+      emailVerified: firebaseUser.emailVerified, // Add this
       ...userDoc.data()
     }
   } else {
@@ -35,14 +38,27 @@ onAuthChange(async (firebaseUser) => {
 
 export function useAuth() {
   const isAuthenticated = computed(() => !!user.value)
+  const isEmailVerified = computed(() => user.value?.emailVerified || false)
 
   const login = async (email, password) => {
     error.value = null
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password)
+      
+      // Check if email is verified
+      if (!credential.user.emailVerified) {
+        // You might want to handle this differently based on your requirements
+        error.value = 'Please verify your email before logging in. Check your inbox for the verification link.'
+        // Optionally sign them out
+        await signOut(auth)
+        throw new Error('Email not verified')
+      }
+      
       return credential.user
     } catch (err) {
-      error.value = err.message
+      if (err.message !== 'Email not verified') {
+        error.value = err.message
+      }
       throw err
     }
   }
@@ -57,18 +73,60 @@ export function useAuth() {
         await updateProfile(credential.user, { displayName })
       }
       
+      // Send verification email
+      await sendVerificationEmail()
+      
       // Create user document in Firestore
       await setDoc(doc(db, 'users', credential.user.uid), {
         displayName: displayName || credential.user.email.split('@')[0],
         email: credential.user.email,
         created: new Date(),
-        role: 'user'
+        role: 'user',
+        emailVerified: false
       })
       
       return credential.user
     } catch (err) {
       error.value = err.message
       throw err
+    }
+  }
+
+  const sendVerificationEmail = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No user logged in')
+    }
+    
+    try {
+      await sendEmailVerification(auth.currentUser, {
+        url: `${window.location.origin}/login?verified=true`
+      })
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  const checkEmailVerification = async () => {
+    if (!auth.currentUser) return false
+    
+    try {
+      // Reload user to get latest emailVerified status
+      await reload(auth.currentUser)
+      
+      // Update local state if verified
+      if (auth.currentUser.emailVerified && !user.value.emailVerified) {
+        user.value.emailVerified = true
+        // Update Firestore
+        await setDoc(doc(db, 'users', auth.currentUser.uid), {
+          emailVerified: true
+        }, { merge: true })
+      }
+      
+      return auth.currentUser.emailVerified
+    } catch (err) {
+      console.error('Error checking email verification:', err)
+      return false
     }
   }
 
@@ -88,7 +146,8 @@ export function useAuth() {
           email: credential.user.email,
           photoURL: credential.user.photoURL,
           created: new Date(),
-          role: 'user'
+          role: 'user',
+          emailVerified: true // Google accounts are pre-verified
         })
       }
       
@@ -133,10 +192,13 @@ export function useAuth() {
     loading,
     error,
     isAuthenticated,
+    isEmailVerified,
     login,
     signup,
     loginWithGoogle,
     logout,
-    updateUserProfile
+    updateUserProfile,
+    sendVerificationEmail,
+    checkEmailVerification
   }
 }

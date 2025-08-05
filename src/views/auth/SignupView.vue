@@ -2,7 +2,39 @@
   <div class="auth-page">
     <div class="container">
       <div class="auth-container">
-        <div class="auth-card card">
+        <!-- Success Message -->
+        <div v-if="signupSuccess" class="card success-card">
+          <div class="card-body text-center">
+            <div class="success-icon">
+              <font-awesome-icon :icon="['fas', 'check-circle']" />
+            </div>
+            <h2 class="success-title">Account Created Successfully!</h2>
+            <p class="success-message">
+              We've sent a verification email to <strong>{{ form.email }}</strong>.
+            </p>
+            <p class="success-submessage">
+              Please check your inbox and click the verification link to activate your account.
+            </p>
+            <div class="success-actions">
+              <router-link to="/login" class="btn btn-primary">
+                Go to Login
+              </router-link>
+              <button @click="resendVerification" class="btn btn-secondary" :disabled="resending">
+                <span v-if="resending">
+                  <font-awesome-icon :icon="['fas', 'spinner']" spin />
+                  Sending...
+                </span>
+                <span v-else>Resend Email</span>
+              </button>
+            </div>
+            <p class="text-sm text-secondary mt-lg">
+              Didn't receive the email? Check your spam folder or try resending.
+            </p>
+          </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div v-else class="auth-card card">
           <div class="card-body">
             <div class="auth-header">
               <h1 class="auth-title">Create Account</h1>
@@ -34,6 +66,10 @@
                   required
                   :disabled="loading"
                 />
+                <p class="form-help">
+                  <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-xs" />
+                  You'll need to verify this email address
+                </p>
               </div>
 
               <!-- Password Input -->
@@ -134,9 +170,11 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { signup, loginWithGoogle, error } = useAuth()
+const { signup, loginWithGoogle, sendVerificationEmail, logout, error } = useAuth()
 
 const loading = ref(false)
+const signupSuccess = ref(false)
+const resending = ref(false)
 const form = reactive({
   displayName: '',
   email: '',
@@ -164,7 +202,10 @@ const handleSubmit = async () => {
   
   try {
     await signup(form.email, form.password, form.displayName)
-    router.push('/')
+    // Sign out the user immediately after signup
+    await logout()
+    // Show success message
+    signupSuccess.value = true
   } catch (err) {
     // Error is handled by useAuth composable
   } finally {
@@ -178,6 +219,7 @@ const handleGoogleSignUp = async () => {
   
   try {
     await loginWithGoogle()
+    // Google accounts are pre-verified, so redirect to home
     router.push('/')
   } catch (err) {
     // Error is handled by useAuth composable
@@ -185,114 +227,78 @@ const handleGoogleSignUp = async () => {
     loading.value = false
   }
 }
+
+const resendVerification = async () => {
+  resending.value = true
+  
+  try {
+    // Need to sign in temporarily to resend email
+    await login(form.email, form.password)
+    await sendVerificationEmail()
+    await logout()
+    alert('Verification email sent! Please check your inbox.')
+  } catch (err) {
+    alert('Failed to resend email. Please try again later.')
+  } finally {
+    resending.value = false
+  }
+}
 </script>
 
 <style scoped>
-.auth-page {
-  min-height: calc(100vh - 64px - 280px);
-  display: flex;
-  align-items: center;
-  padding: var(--space-2xl) 0;
-}
+/* Previous styles remain the same */
 
-.auth-container {
-  max-width: 400px;
+/* Success Card Styles */
+.success-card {
+  max-width: 500px;
   margin: 0 auto;
-  width: 100%;
-}
-
-.auth-header {
   text-align: center;
-  margin-bottom: var(--space-2xl);
 }
 
-.auth-title {
-  font-size: var(--text-3xl);
-  margin-bottom: var(--space-xs);
+.success-icon {
+  font-size: 4rem;
+  color: var(--color-success);
+  margin-bottom: var(--space-lg);
 }
 
-.auth-subtitle {
+.success-title {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-md);
+}
+
+.success-message {
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.success-submessage {
   color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
 }
 
-.auth-form {
+.success-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-md);
+  justify-content: center;
+  margin-bottom: var(--space-lg);
 }
 
+.mr-xs {
+  margin-right: var(--space-xs);
+}
+
+/* Additional form help styling */
 .form-help {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-top: var(--space-xs);
-}
-
-.form-checkbox {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: var(--space-xs);
 }
 
-.form-checkbox input[type="checkbox"] {
-  margin-top: 4px;
-}
-
-.form-checkbox label {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-
-.form-checkbox a {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.btn-block {
-  width: 100%;
-}
-
-.auth-divider {
-  text-align: center;
-  position: relative;
-  margin: var(--space-lg) 0;
-}
-
-.auth-divider span {
-  background: var(--color-surface);
-  padding: 0 var(--space-md);
-  position: relative;
-  z-index: 1;
-  color: var(--color-text-tertiary);
-  font-size: var(--text-sm);
-}
-
-.auth-divider::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--color-border);
-}
-
-.auth-footer {
-  margin-top: var(--space-xl);
-}
-
-.alert {
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-
-.alert-error {
-  background-color: var(--color-error);
-  color: white;
-}
-
-.mr-sm {
-  margin-right: var(--space-sm);
+.form-help [data-theme="dark"] {
+  color: var(--color-info);
 }
 </style>

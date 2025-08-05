@@ -7,6 +7,9 @@
       @theme-change="setTheme"
     />
 
+    <!-- Email Verification Banner -->
+    <EmailVerificationBanner />
+
     <!-- Main Content -->
     <main class="app-main">
       <router-view v-slot="{ Component }">
@@ -73,6 +76,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import NavBar from '@/components/NavBar.vue'
+import EmailVerificationBanner from '@/components/EmailVerificationBanner.vue'
 import themeManager from '@/utils/themeManager'
 
 // Theme management

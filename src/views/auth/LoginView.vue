@@ -57,6 +57,15 @@
                 {{ error }}
               </div>
 
+              <!-- In LoginView.vue, add after the error display -->
+              <div v-if="needsVerification" class="alert alert-warning">
+                <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="mr-sm" />
+                Please verify your email before logging in. Check your inbox for the verification link.
+                <button @click="resendVerification" class="btn btn-sm btn-secondary mt-sm">
+                  Resend Email
+                </button>
+              </div>
+
               <!-- Submit Button -->
               <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
                 <span v-if="loading" class="flex items-center justify-center gap-sm">
