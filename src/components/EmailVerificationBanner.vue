@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isAuthenticated && !isEmailVerified" class="verification-banner">
+  <div v-if="showBanner" class="verification-banner">
     <div class="container">
       <div class="verification-content">
         <div class="verification-message">
@@ -51,33 +51,47 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
-const { user, isAuthenticated, isEmailVerified, sendVerificationEmail, checkEmailVerification } = useAuth()
+const { 
+  user, 
+  isAuthenticated, 
+  isEmailVerified, 
+  sendVerificationEmail, 
+  checkEmailVerification 
+} = useAuth()
 
 const resending = ref(false)
 const checking = ref(false)
 const cooldown = ref(0)
+
+// Intervals
 let cooldownInterval = null
+let checkInterval = null
+
+// Computed property to show banner
+const showBanner = computed(() => {
+  return isAuthenticated.value && !isEmailVerified.value
+})
 
 const handleResend = async () => {
   resending.value = true
   
   try {
     await sendVerificationEmail()
+    
     // Start 60 second cooldown
     cooldown.value = 60
     cooldownInterval = setInterval(() => {
       cooldown.value--
       if (cooldown.value <= 0) {
         clearInterval(cooldownInterval)
+        cooldownInterval = null
       }
     }, 1000)
     
-    // Show success message
+    // Show success message (consider using a toast notification instead)
     alert('Verification email sent! Please check your inbox.')
   } catch (error) {
     console.error('Failed to resend verification email:', error)
@@ -93,31 +107,58 @@ const handleCheck = async () => {
   try {
     const verified = await checkEmailVerification()
     if (verified) {
-      // Refresh the page or redirect
-      router.go(0)
+      // Clear the check interval if running
+      if (checkInterval) {
+        clearInterval(checkInterval)
+        checkInterval = null
+      }
+      
+      // The banner will automatically hide because isEmailVerified will be true
+      // Optionally show a success message
+      alert('Email verified successfully! You now have full access.')
     } else {
       alert('Your email is not verified yet. Please check your inbox and click the verification link.')
     }
   } catch (error) {
     console.error('Failed to check verification status:', error)
+    alert('Failed to check verification status. Please try again.')
   } finally {
     checking.value = false
   }
 }
 
 onMounted(() => {
-  // Check verification status every 30 seconds
-  const checkInterval = setInterval(async () => {
-    const verified = await checkEmailVerification()
-    if (verified) {
-      clearInterval(checkInterval)
-      // Show success message or redirect
-      router.go(0) // Refresh the page
-    }
-  }, 30000) // 30 seconds
-  
-  // Clean up on unmount
-  onUnmounted(() => clearInterval(checkInterval))
+  // Only start periodic checking if user is authenticated but not verified
+  if (isAuthenticated.value && !isEmailVerified.value) {
+    // Check verification status every 30 seconds
+    checkInterval = setInterval(async () => {
+      try {
+        const verified = await checkEmailVerification()
+        if (verified) {
+          // Clear the interval once verified
+          clearInterval(checkInterval)
+          checkInterval = null
+          
+          // Optionally show a success notification
+          console.log('Email verified automatically!')
+        }
+      } catch (error) {
+        console.error('Error during periodic verification check:', error)
+      }
+    }, 30000) // 30 seconds
+  }
+})
+
+// Clean up intervals on unmount
+onUnmounted(() => {
+  if (checkInterval) {
+    clearInterval(checkInterval)
+    checkInterval = null
+  }
+  if (cooldownInterval) {
+    clearInterval(cooldownInterval)
+    cooldownInterval = null
+  }
 })
 </script>
 
@@ -177,6 +218,19 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .btn-primary {
+  background-color: white;
+  color: var(--color-warning);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
 /* Mobile responsive */

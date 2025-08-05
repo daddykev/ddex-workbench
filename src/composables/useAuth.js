@@ -1,3 +1,4 @@
+// composables/useAuth.js
 import { ref, computed } from 'vue'
 import { 
   signInWithEmailAndPassword,
@@ -6,8 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendEmailVerification,
-  reload
+  sendEmailVerification
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { auth, db, onAuthChange } from '@/firebase'
@@ -44,21 +44,9 @@ export function useAuth() {
     error.value = null
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password)
-      
-      // Check if email is verified
-      if (!credential.user.emailVerified) {
-        // You might want to handle this differently based on your requirements
-        error.value = 'Please verify your email before logging in. Check your inbox for the verification link.'
-        // Optionally sign them out
-        await signOut(auth)
-        throw new Error('Email not verified')
-      }
-      
       return credential.user
     } catch (err) {
-      if (err.message !== 'Email not verified') {
-        error.value = err.message
-      }
+      error.value = err.message
       throw err
     }
   }
@@ -73,60 +61,21 @@ export function useAuth() {
         await updateProfile(credential.user, { displayName })
       }
       
-      // Send verification email
-      await sendVerificationEmail()
+      // Send verification email immediately
+      await sendEmailVerification(credential.user)
       
       // Create user document in Firestore
       await setDoc(doc(db, 'users', credential.user.uid), {
         displayName: displayName || credential.user.email.split('@')[0],
         email: credential.user.email,
         created: new Date(),
-        role: 'user',
-        emailVerified: false
+        role: 'user'
       })
       
       return credential.user
     } catch (err) {
       error.value = err.message
       throw err
-    }
-  }
-
-  const sendVerificationEmail = async () => {
-    if (!auth.currentUser) {
-      throw new Error('No user logged in')
-    }
-    
-    try {
-      await sendEmailVerification(auth.currentUser, {
-        url: `${window.location.origin}/login?verified=true`
-      })
-    } catch (err) {
-      error.value = err.message
-      throw err
-    }
-  }
-
-  const checkEmailVerification = async () => {
-    if (!auth.currentUser) return false
-    
-    try {
-      // Reload user to get latest emailVerified status
-      await reload(auth.currentUser)
-      
-      // Update local state if verified
-      if (auth.currentUser.emailVerified && !user.value.emailVerified) {
-        user.value.emailVerified = true
-        // Update Firestore
-        await setDoc(doc(db, 'users', auth.currentUser.uid), {
-          emailVerified: true
-        }, { merge: true })
-      }
-      
-      return auth.currentUser.emailVerified
-    } catch (err) {
-      console.error('Error checking email verification:', err)
-      return false
     }
   }
 
@@ -146,8 +95,7 @@ export function useAuth() {
           email: credential.user.email,
           photoURL: credential.user.photoURL,
           created: new Date(),
-          role: 'user',
-          emailVerified: true // Google accounts are pre-verified
+          role: 'user'
         })
       }
       
@@ -187,18 +135,50 @@ export function useAuth() {
     }
   }
 
+  const sendVerificationEmail = async () => {
+    const currentUser = auth.currentUser
+    if (!currentUser) throw new Error('No user logged in')
+    
+    try {
+      await sendEmailVerification(currentUser)
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  const checkEmailVerification = async () => {
+    const currentUser = auth.currentUser
+    if (!currentUser) return false
+    
+    try {
+      // Reload the user to get fresh emailVerified status
+      await currentUser.reload()
+      
+      // Update the user ref with fresh data
+      if (user.value) {
+        user.value.emailVerified = currentUser.emailVerified
+      }
+      
+      return currentUser.emailVerified
+    } catch (err) {
+      error.value = err.message
+      return false
+    }
+  }
+
   return {
     user,
     loading,
     error,
     isAuthenticated,
-    isEmailVerified,
+    isEmailVerified, // Add this
     login,
     signup,
     loginWithGoogle,
     logout,
     updateUserProfile,
-    sendVerificationEmail,
-    checkEmailVerification
+    sendVerificationEmail, // Add this
+    checkEmailVerification // Add this
   }
 }
