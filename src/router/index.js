@@ -1,5 +1,8 @@
 // router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
+import { auth } from '@/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +56,13 @@ const router = createRouter({
       component: () => import('@/views/UserSettings.vue'),
       meta: { requiresAuth: true }
     },
+    // Admin routes
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/views/AdminUsers.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
     // Legal pages
     {
       path: '/privacy',
@@ -76,6 +86,49 @@ const router = createRouter({
       component: () => import('@/views/NotFoundView.vue')
     }
   ]
+})
+
+// Navigation guard
+router.beforeEach(async (to, from, next) => {
+  // Wait for auth to be ready
+  const user = await new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe()
+      resolve(user)
+    })
+  })
+
+  // Check if route requires auth
+  if (to.meta.requiresAuth && !user) {
+    return next('/login')
+  }
+
+  // Check if route requires admin
+  if (to.meta.requiresAdmin) {
+    if (!user) {
+      return next('/login')
+    }
+    
+    // Get user role from Firestore
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      const userData = userDoc.data()
+      
+      if (userData?.role !== 'admin') {
+        return next('/')
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error)
+      return next('/')
+    }
+  }
+
+  // Check if route requires guest (login/signup pages)
+  if (to.meta.requiresGuest && user) {
+    return next('/')
+  }
+
+  next()
 })
 
 export default router

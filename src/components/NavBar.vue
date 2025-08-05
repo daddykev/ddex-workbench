@@ -113,6 +113,15 @@
                       <font-awesome-icon :icon="['fas', 'code']" />
                       <span>API Keys</span>
                     </router-link>
+                    <router-link 
+                      v-if="user && user.role === 'admin'"
+                      to="/admin/users" 
+                      class="dropdown-item"
+                      @click="showUserMenu = false"
+                    >
+                      <font-awesome-icon :icon="['fas', 'users']" />
+                      <span>Admin Users</span>
+                    </router-link>
                     <div class="dropdown-divider"></div>
                     <button 
                       @click="handleLogout"
@@ -215,6 +224,15 @@
                   <font-awesome-icon :icon="['fas', 'code']" class="mr-sm" />
                   API Keys
                 </router-link>
+                <router-link 
+                  v-if="isAuthenticated && user && user.role === 'admin'"
+                  to="/admin/users" 
+                  class="mobile-nav-link"
+                  @click="showMobileMenu = false"
+                >
+                  <font-awesome-icon :icon="['fas', 'users']" class="mr-sm" />
+                  Admin Users
+                </router-link>            
                 <button 
                   @click="handleLogout"
                   class="mobile-nav-link text-error w-full text-left"

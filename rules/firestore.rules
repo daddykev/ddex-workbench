@@ -2,9 +2,32 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own user document
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Users can read their own document, admins can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      
+      // Users can write their own document (except role field)
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        (!('role' in request.resource.data) || resource.data.role == request.resource.data.role);
+      
+      // Only admins can update other users (specifically the role field)
+      allow update: if isAdmin() && request.auth.uid != userId;
+      
+      allow delete: if false; // No one can delete user documents
     }
     
     // API keys - users can only read/write their own keys
