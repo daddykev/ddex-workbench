@@ -27,7 +27,7 @@ onAuthChange(async (firebaseUser) => {
       email: firebaseUser.email,
       displayName: firebaseUser.displayName,
       photoURL: firebaseUser.photoURL,
-      emailVerified: firebaseUser.emailVerified, // Add this
+      emailVerified: firebaseUser.emailVerified,
       ...userDoc.data()
     }
   } else {
@@ -172,13 +172,13 @@ export function useAuth() {
     loading,
     error,
     isAuthenticated,
-    isEmailVerified, // Add this
+    isEmailVerified,
     login,
     signup,
     loginWithGoogle,
     logout,
     updateUserProfile,
-    sendVerificationEmail, // Add this
-    checkEmailVerification // Add this
+    sendVerificationEmail,
+    checkEmailVerification
   }
 }
