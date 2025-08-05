@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DDEX DSP is an open-source, npm-installable Digital Service Provider (streaming platform) that receives DDEX ERN deliveries, processes them into a searchable catalog, and provides a complete music streaming experience. Part of the DDEX ecosystem alongside DDEX Workbench and DDEX Distro.
+DDEX DSP is an open-source, npm-installable Digital Service Provider (streaming platform) that receives DDEX ERN deliveries, processes them into a searchable catalog, and provides a complete music streaming experience. Part of the DDEX Workbench ecosystem alongside DDEX Distro.
 
 ### Vision
 Enable anyone to launch a DDEX-compliant streaming service in minutes, from testing environments for labels to fully-featured platforms for emerging markets.
@@ -13,9 +13,6 @@ Enable anyone to launch a DDEX-compliant streaming service in minutes, from test
 - **Complete Streaming Stack**: Catalog, search, playback, and user management included
 - **Test Environment Ready**: Perfect for labels to test their DDEX Distro deployments
 - **White-Label Capable**: Fully customizable for any brand or market
-
-### Official Demo
-**URL**: [https://demo.ddex-dsp.org](https://demo.ddex-dsp.org)
 
 ## Technical Architecture
 
@@ -1060,19 +1057,16 @@ interface SubscriptionPlans {
 ## Success Metrics
 
 ### Platform Metrics (Year 1)
-- **Deployments**: 1,000+ active DSPs
-- **Catalog Size**: 1M+ tracks ingested
-- **User Base**: 100K+ active listeners
 - **Uptime**: 99.9% availability
 
 ### Performance Targets
-- **Ingestion Speed**: <2 min for standard album
+- **Ingestion Speed**: <1 min for standard album
 - **Search Latency**: <50ms response time
 - **Stream Start**: <500ms buffering
 - **Page Load**: <2s initial load
 
 ### Ecosystem Integration
-- **Distro Integration**: 80% using DDEX Distro
+- **Distro Integration**: 30% using DDEX Distro
 - **Workbench Validation**: 100% of ingestions
 - **Cross-Platform**: 60% using multiple tools
 
@@ -1080,10 +1074,8 @@ interface SubscriptionPlans {
 
 ### Advanced Features (v2.0)
 1. **AI-Powered Discovery**: ML-based recommendations
-2. **Live Streaming**: Radio and live events
-3. **Podcast Platform**: Full podcast support
-4. **Artist Direct**: Direct artist uploads
-5. **Blockchain Rights**: Decentralized licensing
+2. **Podcast Platform**: Full podcast support
+3. **Artist Direct**: Direct artist tools
 
 ### Platform Extensions
 1. **Mobile SDKs**: iOS/Android native apps
@@ -1096,8 +1088,7 @@ interface SubscriptionPlans {
 1. **White-Label API**: Full platform-as-a-service
 2. **Analytics API**: Deep usage insights
 3. **Advertising Platform**: Self-serve ad system
-4. **Content Management**: Label/artist portal
-5. **Revenue Sharing**: Automated royalty distribution
+4. **Content Management**: Distributor portal
 
 ## Technical Considerations
 

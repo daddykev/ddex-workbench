@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DDEX Distro is an open-source, npm-installable music distribution platform that enables labels and artists to manage their catalog, generate DDEX-compliant ERN messages, and deliver releases to Digital Service Providers (DSPs). Part of the DDEX ecosystem alongside DDEX Workbench and DDEX DSP.
+DDEX Distro is an open-source, npm-installable music distribution platform that enables labels and artists to manage their catalog, generate DDEX-compliant ERN messages, and deliver releases to Digital Service Providers (DSPs). Part of the DDEX Workbench ecosystem alongside DDEX DSP.
 
 ### Vision
 Democratize music distribution by providing a turnkey, DDEX-compliant distribution platform that can be deployed in minutes, serving everyone from independent distributors to major labels.
@@ -13,9 +13,6 @@ Democratize music distribution by providing a turnkey, DDEX-compliant distributi
 - **Ecosystem Integration**: Seamless integration with DDEX Workbench for validation and DDEX DSP for testing
 - **Multi-Target Delivery**: Support for FTP, SFTP, API, and cloud storage delivery
 - **White-Label Ready**: Fully customizable branding and domain support
-
-### Official Demo
-**URL**: [https://demo.ddex-distro.org](https://demo.ddex-distro.org)
 
 ## Technical Architecture
 
@@ -798,15 +795,13 @@ distro.registerProtocol('custom', CustomDeliveryProtocol);
 ## Success Metrics
 
 ### Adoption Targets (Year 1)
-- **Installations**: 500+ active deployments
-- **Releases Processed**: 10,000+ releases/month
 - **Delivery Success Rate**: 99.5%+
 - **User Satisfaction**: 4.5+ stars on npm
 
 ### Performance Targets
-- **ERN Generation**: <5 seconds for standard album
-- **Asset Processing**: <30 seconds per track
-- **Delivery Queue**: <2 minute average delivery time
+- **ERN Generation**: <2 seconds for standard album
+- **Asset Processing**: <15 seconds per track
+- **Delivery Queue**: <30 seconds average delivery time per product
 - **UI Response**: <200ms for all operations
 
 ### Ecosystem Integration
@@ -824,10 +819,8 @@ distro.registerProtocol('custom', CustomDeliveryProtocol);
 5. **Automated Workflows**: Rule-based delivery automation
 
 ### Ecosystem Expansion
-1. **DDEX Publisher**: Publishing and composition management
-2. **DDEX Analytics**: Unified analytics across distribution and consumption
-3. **DDEX Connect**: Social features for industry networking
-4. **DDEX Studio**: Audio mastering and preparation tools
+1. **Publisher**: Publishing and composition management
+2. **Analytics**: Unified analytics across distribution and consumption
 
 ## Technical Considerations
 
