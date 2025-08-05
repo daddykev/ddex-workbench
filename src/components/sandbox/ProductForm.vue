@@ -144,7 +144,7 @@
         :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}, a Company Name`"
         @input="updateProduct"
       />
-      <p class="form-help">Do not include (P) symbol. Format: "2025 Label Name, a Company Name"</p>
+      <p class="form-help">Do not include (P) symbol. Format: "2025 Label Name"</p>
     </div>
 
     <div class="form-group">
@@ -156,7 +156,7 @@
         :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}, a Company Name`"
         @input="updateProduct"
       />
-      <p class="form-help">Do not include © or (C) symbol. Format: "2025 Label Name, a Company Name"</p>
+      <p class="form-help">Do not include © or (C) symbol. Format: "2025 Label Name"</p>
     </div>
 
     <!-- Deal Configuration -->

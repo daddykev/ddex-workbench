@@ -4,7 +4,7 @@
     <div class="container">
       <!-- Header -->
       <div class="page-header">
-        <h1 class="page-title">ERN Message Sandbox</h1>
+        <h1 class="page-title">ERN Sandbox</h1>
         <p class="page-subtitle">
           Create valid DDEX ERN messages interactively
         </p>
