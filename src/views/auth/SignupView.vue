@@ -246,7 +246,133 @@ const resendVerification = async () => {
 </script>
 
 <style scoped>
-/* Previous styles remain the same */
+/* Base Auth Page Styles (matching LoginView) */
+.auth-page {
+  min-height: calc(100vh - 64px - 280px);
+  display: flex;
+  align-items: center;
+  padding: var(--space-2xl) 0;
+}
+
+.auth-container {
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.auth-title {
+  font-size: var(--text-3xl);
+  margin-bottom: var(--space-xs);
+}
+
+.auth-subtitle {
+  color: var(--color-text-secondary);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.form-checkbox label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.forgot-link {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.forgot-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.auth-divider {
+  text-align: center;
+  position: relative;
+  margin: var(--space-lg) 0;
+}
+
+.auth-divider span {
+  background: var(--color-surface);
+  padding: 0 var(--space-md);
+  position: relative;
+  z-index: 1;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.auth-footer {
+  margin-top: var(--space-xl);
+}
+
+.alert {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.alert-error {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.alert-warning {
+  background-color: var(--color-warning);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mr-sm {
+  margin-right: var(--space-sm);
+}
+
+.mr-xs {
+  margin-right: var(--space-xs);
+}
+
+.mt-sm {
+  margin-top: var(--space-sm);
+}
 
 /* Success Card Styles */
 .success-card {
@@ -284,10 +410,6 @@ const resendVerification = async () => {
   margin-bottom: var(--space-lg);
 }
 
-.mr-xs {
-  margin-right: var(--space-xs);
-}
-
 /* Additional form help styling */
 .form-help {
   font-size: var(--text-sm);
@@ -298,7 +420,7 @@ const resendVerification = async () => {
   gap: var(--space-xs);
 }
 
-.form-help [data-theme="dark"] {
+[data-theme="dark"] .form-help {
   color: var(--color-info);
 }
 </style>
