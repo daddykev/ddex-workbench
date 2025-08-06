@@ -162,7 +162,8 @@ ddex-workbench/
 │   ├── services/              # External service integrations
 │   │   ├── api.js             # API calls for validation and API keys only
 │   │   ├── snippets.js        # Direct Firestore operations for snippets
-│   │   └── ernBuilder.js      # ERN XML generation service (NEW)
+│   │   ├── ernBuilder.js      # ERN XML generation service
+│   │   └── deezerApi.js       # Deezer API wrapper for metadata import
 │   ├── composables/           # Vue composables
 │   │   └── useAuth.js         # Authentication composable
 │   ├── utils/                 # Utility functions
@@ -183,7 +184,8 @@ ddex-workbench/
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
 │   │   ├── validate.js        # Enhanced validation endpoint
-│   │   └── keys.js            # API key management
+│   │   ├── keys.js            # API key management
+│   │   └── deezer.js          # Deezer API proxy endpoints
 │   ├── middleware/            # Express middleware
 │   │   ├── apiKeyAuth.js      # API key authentication
 │   │   └── rateLimiter.js     # Rate limiting with trust proxy fix
@@ -216,7 +218,6 @@ ddex-workbench/
 ├── vite.config.js             # Vite configuration
 ├── firebase.json              # Firebase configuration
 ├── firestore.rules            # Firestore security rules
-├── firestore.indexes.json     # Firestore indexes
 ├── storage.rules              # Storage security rules
 ├── cors.json                  # CORS configuration for Storage
 ├── .firebaserc                # Firebase project alias (git ignored)
@@ -603,20 +604,25 @@ headers: {
   - Create, edit, and manage snippets
   - Vote on snippets (pending implementation)
 
-  ### 8. ERN Sandbox (NEW)
+### 8. ERN Sandbox
 - **Interactive Message Builder**: Visual form-based ERN creation
+- **Deezer Integration** (NEW):
+  - Import real album metadata by UPC/EAN
+  - Automatic track listing with durations
+  - ISRC batch retrieval with rate limiting
+  - Instant population of all required fields
 - **Templates**: Pre-filled templates for common scenarios
   - Audio Single
   - Audio Album  
   - Music Video
 - **Product Form**: 
-  - UPC/EAN entry
-  - Release metadata (title, artist, label)
+  - UPC/EAN entry with Deezer lookup
+  - Release metadata (auto-filled from Deezer)
   - Release type selection
   - Territory configuration
 - **Resource Management**:
   - Add/remove tracks or videos dynamically
-  - ISRC entry
+  - ISRC entry (auto-filled from Deezer when available)
   - Duration input with human-readable format (MM:SS)
   - Copyright (P-line) information
   - File references
@@ -626,6 +632,51 @@ headers: {
   - One-click validation
   - Copy to clipboard
 - **Validation Integration**: Seamlessly validate generated ERN messages
+
+### 9. Deezer Metadata Import
+
+The ERN Sandbox now features seamless integration with the Deezer API for automatic metadata import:
+
+**Key Features**:
+- **UPC/EAN Lookup**: Enter a product's barcode to instantly import metadata
+- **Automatic Track Import**: All tracks from an album are imported with:
+  - Track titles and artists
+  - Duration information (converted to ISO 8601)
+  - Track ordering/sequencing
+  - Explicit content flags
+- **ISRC Retrieval**: Optional batch fetching of ISRCs for all tracks
+  - Rate-limited to respect Deezer API limits
+  - Progress indicator during batch operations
+  - Automatic retry on failures
+
+**Technical Implementation**:
+- **Backend Proxy**: Cloud Functions proxy to avoid CORS issues
+- **Rate Limiting**: Intelligent batching to stay within API limits
+- **Data Transformation**: Automatic conversion from Deezer format to DDEX ERN
+- **Error Handling**: Graceful fallbacks when data is unavailable
+
+**User Workflow**:
+1. Enter UPC/EAN in the import field
+2. Click "Import from Deezer"
+3. Album and track data auto-populates the form
+4. Optionally fetch ISRCs (with time estimate)
+5. Edit/enhance the imported data as needed
+6. Generate valid ERN XML instantly
+
+**Benefits**:
+- **Time Savings**: Reduce manual data entry from hours to seconds
+- **Accuracy**: Minimize typos and data entry errors
+- **Completeness**: Get comprehensive metadata including ISRCs
+- **Real-World Testing**: Use actual release data for validation testing
+
+**API Endpoints**:
+```typescript
+// Backend endpoints (proxied through Cloud Functions)
+GET  /api/deezer/album/:upc        // Search album by UPC
+GET  /api/deezer/album/:id/tracks  // Get all tracks for album
+GET  /api/deezer/track/:id         // Get single track with ISRC
+POST /api/deezer/tracks/batch-isrc // Batch fetch ISRCs for efficiency
+```
 
 ## CSS Architecture
 
@@ -788,6 +839,11 @@ Semantic utility classes for:
 - Validation timeline visualization ✓
 - Share results functionality ✓
 - Profile-specific validation ✓ (comprehensive built-in rules equivalent to Schematron)
+- BETA: ERN Sandbox with interactive form builder ✓
+- BETA: Deezer API integration for metadata import ✓
+- BETA: UPC/EAN lookup with automatic data population ✓
+- BETA: Batch ISRC retrieval with rate limiting ✓
+- BETA: Real-time ERN XML generation ✓
 
 ### Tested & Confirmed:
 - API key authentication working ✓
