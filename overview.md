@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The digital music industry faces a critical inflection point. With DDEX mandating the migration to ERN 4.3 and sunsetting all previous versions by March 2025, the entire ecosystem—from independent artists to major labels—requires modern tooling that simply doesn't exist in the open-source landscape. Our analysis reveals a striking opportunity: the current DDEX open-source ecosystem is effectively a "zombie landscape" of abandoned projects, with no maintained tools supporting ERN 4.3 or modern DSR standards.
+The digital music industry faces a critical inflection point. With DDEX mandating the migration to ERN 4.3 and sunsetting all previous versions by March 2026, the entire ecosystem—from independent artists to major labels—requires modern tooling that simply doesn't exist in the open-source landscape. Our analysis reveals a striking opportunity: the current DDEX open-source ecosystem is effectively a "zombie landscape" of abandoned projects, with no maintained tools supporting ERN 4.3 or modern DSR standards.
 
 DDEX Workbench positions itself as the essential bridge, starting with DDEX Connect—a modern, accessible validator that addresses the industry's most immediate need.
 

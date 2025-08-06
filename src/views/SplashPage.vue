@@ -201,7 +201,7 @@
                   <li>Human-friendly input (e.g., duration as MM:SS)</li>
                   <li>One-click validation and export</li>
                 </ul>
-                <span class="roadmap-status">Q2 2025</span>
+                <span class="roadmap-status">Q3 2025</span>
               </div>
             </div>
           </div>
