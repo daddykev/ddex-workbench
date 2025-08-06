@@ -2,16 +2,16 @@
 
 ## Project Overview
 
-DDEX DSP is an open-source, npm-installable Digital Service Provider (streaming platform) that receives DDEX ERN deliveries, processes them into a searchable catalog, and provides a complete music streaming experience. Part of the DDEX Workbench ecosystem alongside DDEX Distro.
+DDEX DSP is an open-source, npm-installable Digital Service Provider (streaming platform) that democratizes music streaming technology by providing a complete, DDEX-compliant platform anyone can deploy in minutes. Whether you're a label testing distributions, a startup entering new markets, or a brand launching a curated streaming experience, DDEX DSP handles the entire pipeline from ingesting DDEX ERN deliveries to delivering a world-class listening experience. Built as the consumption endpoint of the DDEX ecosystem alongside DDEX Workbench (validation) and DDEX Distro (distribution).
 
 ### Vision
-Enable anyone to launch a DDEX-compliant streaming service in minutes, from testing environments for labels to fully-featured platforms for emerging markets.
+Transform streaming platform creation from a multi-million dollar endeavor to a single npm command, enabling innovation in underserved markets and use cases while maintaining enterprise-grade DDEX compliance.
 
 ### Core Value Propositions
-- **Instant Streaming Platform**: Deploy a functional DSP with one command
-- **DDEX-Native Ingestion**: Built to receive and process ERN deliveries seamlessly
+- **Instant Streaming Platform**: Deploy a functional DSP service with one command
+- **DDEX-Native Ingestion**: Built to receive and process ERN deliveries seamlessly  
 - **Complete Streaming Stack**: Catalog, search, playback, and user management included
-- **Test Environment Ready**: Perfect for labels to test their DDEX Distro deployments
+- **Test Environment Ready**: Perfect for developers to test their DDEX Distro deployments
 - **White-Label Capable**: Fully customizable for any brand or market
 
 ## Technical Architecture
