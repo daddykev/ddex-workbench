@@ -73,7 +73,7 @@ const router = createRouter({
       path: '/sandbox',
       name: 'sandbox',
       component: () => import('@/views/SandboxView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true }
+      meta: { requiresAuth: true }
     },
     // Legal pages
     {

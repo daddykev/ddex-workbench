@@ -129,8 +129,8 @@
           <div class="challenge-text">
             <h2 class="text-3xl font-semibold mb-lg">The ERN 4.3 Migration Challenge</h2>
             <p class="text-lg mb-md">
-              DDEX is mandating the migration to ERN 4.3 by March 2026, sunsetting all previous versions. 
-              This isn't just an update—it's a complete re-architecture that breaks compatibility with existing tools.
+              DDEX is mandating ERN 4.3 migration by March 2026, sunsetting all previous versions. 
+              This isn't a minor update—it's a complete re-architecture that breaks compatibility with existing tools.
             </p>
             <p class="mb-lg">
               The entire music industry needs modern tooling that simply doesn't exist in the open-source 
@@ -174,9 +174,9 @@
     <!-- Future Roadmap -->
     <section class="roadmap-section section bg-secondary">
       <div class="container">
-        <div class="text-center mb-2xl">
+        <div class="text-center mb-3xl">  <!-- Changed from mb-2xl to mb-3xl -->
           <h2 class="text-3xl font-semibold mb-md">Coming Soon</h2>
-          <p class="text-lg text-secondary">
+          <p class="text-lg text-secondary mb-xl">  <!-- Added mb-xl to the paragraph -->
             Building a better DDEX ecosystem, one tool at a time
           </p>
         </div>
@@ -201,7 +201,12 @@
                   <li>Human-friendly input (e.g., duration as MM:SS)</li>
                   <li>One-click validation and export</li>
                 </ul>
-                <span class="roadmap-status">Q3 2025</span>
+                <div class="roadmap-footer">
+                  <span class="roadmap-status">Q3 2025</span>
+                  <router-link to="/sandbox" class="roadmap-beta-btn">
+                    Public Beta
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -543,6 +548,43 @@
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   font-weight: var(--font-medium);
+}
+
+.roadmap-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.roadmap-beta-btn {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-success);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.roadmap-beta-btn:hover {
+  background: var(--color-success);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
+}
+
+/* Dark theme adjustment */
+[data-theme="dark"] .roadmap-beta-btn {
+  background: var(--color-success);
+  color: var(--color-bg);
+}
+
+[data-theme="dark"] .roadmap-beta-btn:hover {
+  background: var(--color-success);
+  color: var(--color-bg);
+  box-shadow: 0 2px 8px rgba(65, 196, 100, 0.4);
 }
 
 /* CTA Section */
