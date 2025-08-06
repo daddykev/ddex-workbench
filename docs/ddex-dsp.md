@@ -1,7 +1,3 @@
-I'll update the DDEX DSP blueprint to include comprehensive multi-protocol delivery support with FTP, SFTP, and Google Cloud Storage options. This will enable distributors using DDEX Distro to test various delivery methods.
-
-Here's the enhanced blueprint.md with the new delivery protocol features:
-
 # DDEX DSP - Blueprint (Enhanced)
 
 ## Project Overview
