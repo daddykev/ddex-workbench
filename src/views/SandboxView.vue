@@ -299,6 +299,21 @@ const loadSingleTemplate = () => {
     label: 'Example Label',
     releaseType: 'Single',
     territoryCode: 'Worldwide',
+    commercialModels: [
+      {
+        type: 'PayAsYouGoModel',
+        usageTypes: ['PermanentDownload'],
+        price: 0.99,
+        currency: 'USD'
+      },
+      {
+        type: 'SubscriptionModel',
+        usageTypes: ['OnDemandStream'],
+        price: null,
+        currency: 'USD'
+      }
+    ],
+    dealStartDate: new Date().toISOString().split('T')[0],
     tracks: []
   }
   

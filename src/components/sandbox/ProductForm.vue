@@ -141,7 +141,7 @@
         v-model="localProduct.pLineText"
         type="text"
         class="form-input"
-        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}, a Company Name`"
+        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}`"
         @input="updateProduct"
       />
       <p class="form-help">Do not include (P) symbol. Format: "2025 Label Name"</p>
@@ -153,7 +153,7 @@
         v-model="localProduct.cLineText"
         type="text"
         class="form-input"
-        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}, a Company Name`"
+        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}`"
         @input="updateProduct"
       />
       <p class="form-help">Do not include © or (C) symbol. Format: "2025 Label Name"</p>
@@ -162,72 +162,26 @@
     <!-- Deal Configuration -->
     <div class="form-section-header">Deal Configuration</div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Territory</label>
-        <select
-          v-model="localProduct.territoryCode"
-          class="form-select"
-          @change="updateProduct"
-        >
-          <option value="Worldwide">Worldwide</option>
-          <option value="US">United States</option>
-          <option value="GB">United Kingdom</option>
-          <option value="JP">Japan</option>
-          <option value="DE">Germany</option>
-          <option value="FR">France</option>
-          <option value="CA">Canada</option>
-          <option value="AU">Australia</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Commercial Model</label>
-        <select
-          v-model="localProduct.commercialModel"
-          class="form-select"
-          @change="updateProduct"
-        >
-          <option value="PayAsYouGoModel">Pay As You Go</option>
-          <option value="SubscriptionModel">Subscription</option>
-          <option value="AdvertisementSupportedModel">Ad Supported</option>
-        </select>
-      </div>
-    </div>
-
+    <!-- Territory Selection (applies to all deals) -->
     <div class="form-group">
-      <label class="form-label">Usage Types</label>
-      <div class="checkbox-group">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            value="OnDemandStream"
-            v-model="localProduct.usageTypes"
-            @change="updateProduct"
-          />
-          On-Demand Stream
-        </label>
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            value="PermanentDownload"
-            v-model="localProduct.usageTypes"
-            @change="updateProduct"
-          />
-          Permanent Download
-        </label>
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            value="ConditionalDownload"
-            v-model="localProduct.usageTypes"
-            @change="updateProduct"
-          />
-          Conditional Download
-        </label>
-      </div>
+      <label class="form-label">Territory</label>
+      <select
+        v-model="localProduct.territoryCode"
+        class="form-select"
+        @change="updateProduct"
+      >
+        <option value="Worldwide">Worldwide</option>
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+        <option value="JP">Japan</option>
+        <option value="DE">Germany</option>
+        <option value="FR">France</option>
+        <option value="CA">Canada</option>
+        <option value="AU">Australia</option>
+      </select>
     </div>
 
+    <!-- Deal Validity Period -->
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Deal Start Date</label>
@@ -247,6 +201,100 @@
           class="form-input"
           @input="updateProduct"
         />
+      </div>
+    </div>
+
+    <!-- Commercial Models -->
+    <div class="commercial-models-section">
+      <div class="section-header">
+        <label class="form-label">Commercial Models</label>
+        <button
+          type="button"
+          @click="addCommercialModel"
+          class="btn btn-sm btn-secondary"
+        >
+          <font-awesome-icon :icon="['fas', 'plus']" /> Add Commercial Model
+        </button>
+      </div>
+
+      <div
+        v-for="(model, index) in localProduct.commercialModels"
+        :key="`model-${index}`"
+        class="commercial-model-card"
+      >
+        <div class="model-header">
+          <select
+            v-model="model.type"
+            class="form-select"
+            @change="() => updateCommercialModel(index)"
+          >
+            <option value="PayAsYouGoModel">Pay As You Go</option>
+            <option value="SubscriptionModel">Subscription</option>
+            <option value="AdvertisementSupportedModel">Ad Supported</option>
+            <option value="FreeOfChargeModel">Free of Charge</option>
+          </select>
+          <button
+            type="button"
+            @click="removeCommercialModel(index)"
+            class="btn-icon"
+            title="Remove commercial model"
+            :disabled="localProduct.commercialModels.length === 1"
+          >
+            <font-awesome-icon :icon="['fas', 'trash']" />
+          </button>
+        </div>
+
+        <div class="model-usage-types">
+          <label class="form-label">Usage Types for {{ getModelDisplayName(model.type) }}</label>
+          <div class="checkbox-group">
+            <label 
+              v-for="usageType in getAvailableUsageTypes(model.type)"
+              :key="`${index}-${usageType.value}`"
+              class="checkbox-label"
+            >
+              <input
+                type="checkbox"
+                :value="usageType.value"
+                v-model="model.usageTypes"
+                @change="updateProduct"
+              />
+              {{ usageType.label }}
+            </label>
+          </div>
+          <p v-if="model.usageTypes.length === 0" class="form-error">
+            Please select at least one usage type
+          </p>
+        </div>
+
+        <!-- Optional: Price Information per Commercial Model -->
+        <div v-if="model.type === 'PayAsYouGoModel'" class="price-section">
+          <label class="form-label">Price Information (Optional)</label>
+          <div class="form-row">
+            <div class="form-group">
+              <input
+                v-model.number="model.price"
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-input"
+                placeholder="0.99"
+                @input="updateProduct"
+              />
+            </div>
+            <div class="form-group">
+              <select
+                v-model="model.currency"
+                class="form-select"
+                @change="updateProduct"
+              >
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="JPY">JPY</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </form>
@@ -272,12 +320,16 @@ const localProduct = ref({ ...props.modelValue })
 
 // Initialize default values
 onMounted(() => {
-  if (!localProduct.value.usageTypes) {
-    localProduct.value.usageTypes = ['OnDemandStream']
+  // Initialize commercial models if not present
+  if (!localProduct.value.commercialModels || localProduct.value.commercialModels.length === 0) {
+    localProduct.value.commercialModels = [{
+      type: 'PayAsYouGoModel',
+      usageTypes: ['PermanentDownload'],
+      price: null,
+      currency: 'USD'
+    }]
   }
-  if (!localProduct.value.commercialModel) {
-    localProduct.value.commercialModel = 'PayAsYouGoModel'
-  }
+  
   if (!localProduct.value.releaseDate) {
     localProduct.value.releaseDate = new Date().toISOString().split('T')[0]
   }
@@ -314,10 +366,90 @@ const updateProduct = () => {
   emit('update:modelValue', localProduct.value)
   emit('update')
 }
+
+const getModelDisplayName = (modelType) => {
+  const names = {
+    'PayAsYouGoModel': 'Pay As You Go',
+    'SubscriptionModel': 'Subscription',
+    'AdvertisementSupportedModel': 'Ad Supported',
+    'FreeOfChargeModel': 'Free of Charge'
+  }
+  return names[modelType] || modelType
+}
+
+const getAvailableUsageTypes = (modelType) => {
+  // Based on DDEX standards, different commercial models support different usage types
+  const usageTypesByModel = {
+    'PayAsYouGoModel': [
+      { value: 'PermanentDownload', label: 'Permanent Download' },
+      { value: 'ConditionalDownload', label: 'Conditional Download' },
+      { value: 'TetheredDownload', label: 'Tethered Download' },
+      { value: 'PayPerView', label: 'Pay Per View' }
+    ],
+    'SubscriptionModel': [
+      { value: 'OnDemandStream', label: 'On-Demand Stream' },
+      { value: 'ConditionalDownload', label: 'Conditional Download' },
+      { value: 'TetheredDownload', label: 'Tethered Download' },
+      { value: 'SubscriptionDownload', label: 'Subscription Download' },
+      { value: 'NonInteractiveStream', label: 'Non-Interactive Stream' }
+    ],
+    'AdvertisementSupportedModel': [
+      { value: 'OnDemandStream', label: 'On-Demand Stream' },
+      { value: 'NonInteractiveStream', label: 'Non-Interactive Stream' },
+      { value: 'WebcastStream', label: 'Webcast Stream' },
+      { value: 'FreePreview', label: 'Free Preview' }
+    ],
+    'FreeOfChargeModel': [
+      { value: 'FreePreview', label: 'Free Preview' },
+      { value: 'OnDemandStream', label: 'On-Demand Stream' },
+      { value: 'PermanentDownload', label: 'Permanent Download (Free)' },
+      { value: 'ConditionalDownload', label: 'Conditional Download' }
+    ]
+  }
+  
+  return usageTypesByModel[modelType] || []
+}
+
+const addCommercialModel = () => {
+  if (!localProduct.value.commercialModels) {
+    localProduct.value.commercialModels = []
+  }
+  
+  localProduct.value.commercialModels.push({
+    type: 'SubscriptionModel',
+    usageTypes: ['OnDemandStream'],
+    price: null,
+    currency: 'USD'
+  })
+  
+  updateProduct()
+}
+
+const removeCommercialModel = (index) => {
+  if (localProduct.value.commercialModels.length > 1) {
+    localProduct.value.commercialModels.splice(index, 1)
+    updateProduct()
+  }
+}
+
+const updateCommercialModel = (index) => {
+  // Clear usage types when commercial model changes
+  // as different models support different usage types
+  localProduct.value.commercialModels[index].usageTypes = []
+  
+  // Set a default usage type based on the model
+  const modelType = localProduct.value.commercialModels[index].type
+  const availableTypes = getAvailableUsageTypes(modelType)
+  
+  if (availableTypes.length > 0) {
+    localProduct.value.commercialModels[index].usageTypes = [availableTypes[0].value]
+  }
+  
+  updateProduct()
+}
 </script>
 
 <style scoped>
-/* Previous styles remain the same */
 .product-form {
   display: flex;
   flex-direction: column;
@@ -365,5 +497,67 @@ const updateProduct = () => {
 
 .checkbox-label input[type="checkbox"] {
   cursor: pointer;
+}
+
+.commercial-models-section {
+  margin-top: var(--space-md);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.commercial-model-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.model-header {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.model-header .form-select {
+  flex: 1;
+}
+
+.model-usage-types {
+  margin-bottom: var(--space-md);
+}
+
+.price-section {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.form-error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  margin-top: var(--space-xs);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs);
+  transition: color var(--transition-base);
+}
+
+.btn-icon:hover {
+  color: var(--color-error);
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

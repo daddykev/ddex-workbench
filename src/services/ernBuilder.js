@@ -261,12 +261,17 @@ export class ERNBuilder {
 
   buildDealList(product) {
     const startDate = product.dealStartDate || new Date().toISOString().split('T')[0]
-    const usageTypes = product.usageTypes || ['OnDemandStream']
+    const commercialModels = product.commercialModels || [{
+      type: 'PayAsYouGoModel',
+      usageTypes: ['PermanentDownload']
+    }]
     
-    return `<DealList>
-    <ReleaseDeal>
+    // Create a deal for each commercial model
+    const deals = commercialModels.map((model, index) => {
+      return `<ReleaseDeal>
       <DealReleaseReference>${product.releaseReference}</DealReleaseReference>
       <Deal>
+        <DealId>${product.releaseReference}_DEAL_${index + 1}</DealId>
         <DealTerms>
           <Territory>
             <TerritoryCode>${product.territoryCode}</TerritoryCode>
@@ -275,20 +280,24 @@ export class ERNBuilder {
             <StartDate>${startDate}</StartDate>
             ${product.dealEndDate ? `<EndDate>${product.dealEndDate}</EndDate>` : ''}
           </ValidityPeriod>
-          <CommercialModelType>${product.commercialModel || 'PayAsYouGoModel'}</CommercialModelType>
-          ${usageTypes.map(useType => `<Usage>
+          <CommercialModelType>${model.type}</CommercialModelType>
+          ${model.usageTypes.map(useType => `<Usage>
             <UseType>${useType}</UseType>
           </Usage>`).join('\n          ')}
-          ${product.priceInformation ? `<PriceInformation>
-            <PriceType>${product.priceInformation.priceType || 'WholesalePricePerUnit'}</PriceType>
-            ${product.priceInformation.price ? `<Price>
-              <Amount CurrencyCode="${product.priceInformation.currency || 'USD'}">${product.priceInformation.price}</Amount>
-            </Price>` : ''}
+          ${model.price && model.type === 'PayAsYouGoModel' ? `<PriceInformation>
+            <PriceType>WholesalePricePerUnit</PriceType>
+            <Price>
+              <Amount CurrencyCode="${model.currency || 'USD'}">${model.price}</Amount>
+            </Price>
           </PriceInformation>` : ''}
         </DealTerms>
       </Deal>
-    </ReleaseDeal>
-  </DealList>`
+    </ReleaseDeal>`
+    }).join('\n    ')
+    
+    return `<DealList>
+      ${deals}
+    </DealList>`
   }
 
   generateMessageId() {
