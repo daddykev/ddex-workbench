@@ -96,7 +96,6 @@ DSR processing represents the largest greenfield opportunity:
 
 Success requires more than technical excellence—it demands community adoption:
 
-- **DDEX Working Group Engagement**: Present to ERN and DSR working groups for official recognition
 - **Developer Evangelism**: Create comprehensive documentation, tutorials, and integration examples
 - **Industry Partnerships**: Collaborate with music tech organizations for distribution and credibility
 - **Open Source Leadership**: Transparent development, clear contribution guidelines, regular community calls
@@ -105,8 +104,8 @@ Success requires more than technical excellence—it demands community adoption:
 
 ### Phase 1 Targets (3 months post-launch)
 - 1,000+ validations per week
-- 20+ registered API developers
-- 50+ community-contributed snippets
+- 50+ registered API developers
+- 20+ community-contributed snippets
 - <2 second validation for typical files
 - 99.9% uptime
 
