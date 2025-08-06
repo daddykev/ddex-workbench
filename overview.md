@@ -57,7 +57,7 @@ The validator serves as our beachhead—a focused, high-value tool that:
 
 ### Phase 2: DDEX ERN Sandbox
 **Timeline**: Post-launch Phase 1
-**Market Need**: Transformative  
+**Market Need**: Transformative
 **Competition**: None
 
 Visual form-based ERN creation that democratizes DDEX message generation:
