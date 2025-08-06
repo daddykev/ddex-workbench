@@ -10,18 +10,60 @@
         </p>
       </div>
 
+      <!-- Import Status Messages -->
+      <div v-if="importSuccess" class="alert alert-success mb-lg">
+        <font-awesome-icon :icon="['fas', 'check-circle']" />
+        Successfully imported "{{ product.title }}" with {{ resources.length }} tracks from Deezer
+      </div>
+
+      <div v-if="importError" class="alert alert-error mb-lg">
+        <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
+        {{ importError }}
+      </div>
+
+      <div v-if="fetchingISRCs" class="alert alert-info mb-lg">
+        <font-awesome-icon :icon="['fas', 'spinner']" spin />
+        Fetching ISRCs for tracks... {{ isrcProgress }}/{{ resources.length }}
+      </div>
+
       <!-- Main Content -->
       <div class="sandbox-layout">
         <!-- Left Panel - Form -->
         <div class="sandbox-panel">
           <div class="panel-header">
             <h2 class="panel-title">Message Builder</h2>
-            <select v-model="selectedTemplate" class="form-select" @change="loadTemplate">
-              <option value="">Start from scratch</option>
-              <option value="single">Audio Single Template</option>
-              <option value="album">Audio Album Template</option>
-              <option value="video">Video Template</option>
-            </select>
+            <div class="panel-controls">
+              <!-- Deezer Import -->
+              <div class="upc-search">
+                <input
+                  v-model="upcInput"
+                  type="text"
+                  class="form-input"
+                  placeholder="Enter UPC/EAN"
+                  maxlength="14"
+                  @keyup.enter="searchDeezer"
+                />
+                <button 
+                  @click="searchDeezer" 
+                  class="btn btn-sm btn-secondary"
+                  :disabled="!upcInput || searching"
+                >
+                  <font-awesome-icon 
+                    :icon="['fas', searching ? 'spinner' : 'search']" 
+                    :spin="searching"
+                  />
+                  {{ searching ? 'Searching...' : 'Import from Deezer' }}
+                </button>
+              </div>
+              
+              <!-- Templates -->
+              <select v-model="selectedTemplate" class="form-select" @change="loadTemplate">
+                <option value="">Start from scratch</option>
+                <option value="single">Audio Single Template</option>
+                <option value="album">Audio Album Template</option>
+                <option value="video">Video Template</option>
+              </select>
+            </div>
           </div>
 
           <!-- Product Section -->
@@ -116,12 +158,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Debug Panel (remove in production) -->
-      <div v-if="debugMode" class="debug-panel">
-        <h3>Debug Info</h3>
-        <pre>{{ debugInfo }}</pre>
-      </div>
     </div>
   </div>
 </template>
@@ -131,10 +167,8 @@ import { ref, computed, nextTick } from 'vue'
 import ProductForm from '@/components/sandbox/ProductForm.vue'
 import ResourceForm from '@/components/sandbox/ResourceForm.vue'
 import ernBuilder from '@/services/ernBuilder'
+import deezerApi from '@/services/deezerApi'
 import { validateERN as validateERNApi } from '@/services/api'
-
-// Debug mode flag
-const debugMode = ref(true) // Set to false in production
 
 // Data
 const selectedTemplate = ref('')
@@ -155,13 +189,13 @@ const validating = ref(false)
 const validationResult = ref(null)
 const isGenerating = ref(false)
 
-// Debug info
-const debugInfo = computed(() => ({
-  productTitle: product.value.title,
-  resourceCount: resources.value.length,
-  isGenerating: isGenerating.value,
-  lastResourceId: resources.value[resources.value.length - 1]?.id || null
-}))
+// Deezer integration
+const upcInput = ref('')
+const searching = ref(false)
+const importSuccess = ref(false)
+const importError = ref('')
+const fetchingISRCs = ref(false)
+const isrcProgress = ref(0)
 
 // Computed
 const highlightedXml = computed(() => {
@@ -177,11 +211,10 @@ const highlightedXml = computed(() => {
     .replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>')
 })
 
-// Methods with logging
+// Methods
 const generateERN = async () => {
   console.log('[generateERN] Starting generation...')
   
-  // Prevent concurrent generation
   if (isGenerating.value) {
     console.log('[generateERN] Already generating, skipping...')
     return
@@ -214,9 +247,110 @@ const generateERN = async () => {
   } catch (error) {
     console.error('[generateERN] Error:', error)
   } finally {
-    // Use nextTick to ensure Vue has processed all updates
     await nextTick()
     isGenerating.value = false
+  }
+}
+
+// Deezer search
+const searchDeezer = async () => {
+  if (!upcInput.value || searching.value) return
+  
+  searching.value = true
+  importSuccess.value = false
+  importError.value = ''
+  
+  try {
+    // Step 1: Search for album by UPC
+    console.log('Searching Deezer for UPC:', upcInput.value)
+    const result = await deezerApi.searchByUPC(upcInput.value)
+    
+    if (!result.success) {
+      importError.value = result.error || 'Album not found on Deezer'
+      return
+    }
+    
+    const album = result.album
+    console.log('Found album:', album)
+    
+    // Step 2: Get all tracks
+    const tracks = await deezerApi.getAlbumTracks(album.id)
+    console.log(`Found ${tracks.length} tracks`)
+    
+    // Step 3: Convert to DDEX format
+    product.value = {
+      ...deezerApi.convertToProduct(album),
+      upc: upcInput.value // Keep the original UPC input
+    }
+    
+    // Step 4: Convert tracks to resources
+    resources.value = tracks.map((track, index) => 
+      deezerApi.convertToResource(track, index, {
+        genre: product.value.genre,
+        pLineYear: product.value.pLineYear,
+        label: product.value.label,
+        artist: album.artist?.name,
+        parentalWarning: product.value.parentalWarning
+      })
+    )
+    
+    importSuccess.value = true
+    
+    // Step 5: Optionally fetch ISRCs (rate limited)
+    if (tracks.length > 0 && confirm(`Fetch ISRCs for ${tracks.length} tracks? This may take ${Math.ceil(tracks.length / 40) * 5} seconds due to rate limits.`)) {
+      await fetchISRCs(tracks)
+    }
+    
+    // Generate ERN after import
+    generateERN()
+    
+  } catch (error) {
+    console.error('Import failed:', error)
+    importError.value = `Import failed: ${error.message}`
+  } finally {
+    searching.value = false
+  }
+}
+
+// Fetch ISRCs with rate limiting
+const fetchISRCs = async (tracks) => {
+  fetchingISRCs.value = true
+  isrcProgress.value = 0
+  const batchSize = 40 // Stay under rate limits
+  
+  try {
+    for (let i = 0; i < tracks.length; i += batchSize) {
+      const batch = tracks.slice(i, i + batchSize)
+      const trackIds = batch.map(t => t.id)
+      
+      // Use batch endpoint
+      const results = await deezerApi.batchFetchISRCs(trackIds)
+      
+      // Update resources with ISRCs
+      results.forEach((result, batchIndex) => {
+        if (result.isrc) {
+          const resourceIndex = i + batchIndex
+          resources.value[resourceIndex].isrc = result.isrc
+          isrcProgress.value++
+        }
+      })
+      
+      // Wait between batches to respect rate limits
+      if (i + batchSize < tracks.length) {
+        console.log(`Fetched ISRCs for ${Math.min(i + batchSize, tracks.length)}/${tracks.length} tracks...`)
+        await new Promise(resolve => setTimeout(resolve, 2000)) // 2 seconds between batches
+      }
+    }
+    
+    console.log('All ISRCs fetched successfully')
+    generateERN() // Regenerate with ISRCs
+    
+  } catch (error) {
+    console.error('Error fetching ISRCs:', error)
+    importError.value = `Failed to fetch some ISRCs: ${error.message}`
+  } finally {
+    fetchingISRCs.value = false
+    isrcProgress.value = 0
   }
 }
 
@@ -241,7 +375,6 @@ const addResource = () => {
   console.log('[addResource] New resource:', newResource)
   resources.value.push(newResource)
   
-  // Manually trigger generation after adding
   generateERN()
 }
 
@@ -272,6 +405,10 @@ const handleResourceUpdate = () => {
 const loadTemplate = () => {
   console.log('[loadTemplate] Loading template:', selectedTemplate.value)
   
+  // Clear any import messages
+  importSuccess.value = false
+  importError.value = ''
+  
   switch (selectedTemplate.value) {
     case 'single':
       loadSingleTemplate()
@@ -299,20 +436,8 @@ const loadSingleTemplate = () => {
     label: 'Example Label',
     releaseType: 'Single',
     territoryCode: 'Worldwide',
-    commercialModels: [
-      {
-        type: 'PayAsYouGoModel',
-        usageTypes: ['PermanentDownload'],
-        price: 0.99,
-        currency: 'USD'
-      },
-      {
-        type: 'SubscriptionModel',
-        usageTypes: ['OnDemandStream'],
-        price: null,
-        currency: 'USD'
-      }
-    ],
+    commercialModel: 'PayAsYouGoModel',
+    usageTypes: ['OnDemandStream'],
     dealStartDate: new Date().toISOString().split('T')[0],
     tracks: []
   }
@@ -325,8 +450,8 @@ const loadSingleTemplate = () => {
     artist: 'Example Artist',
     duration: 'PT3M30S',
     type: 'MusicalWorkSoundRecording',
-    pLineYear: '2024',
-    pLineText: '(P) 2024 Example Label',
+    pLineYear: new Date().getFullYear().toString(),
+    pLineText: `${new Date().getFullYear()} Example Label`,
     previewStartTime: 30,
     fileUri: 'example_track.wav',
     territoryCode: 'Worldwide'
@@ -336,6 +461,8 @@ const loadSingleTemplate = () => {
 const loadAlbumTemplate = () => {
   console.log('[loadAlbumTemplate] Loading album template')
   
+  const currentYear = new Date().getFullYear().toString()
+  
   product.value = {
     upc: '00000000000001',
     releaseReference: 'R0',
@@ -344,6 +471,9 @@ const loadAlbumTemplate = () => {
     label: 'Example Label',
     releaseType: 'Album',
     territoryCode: 'Worldwide',
+    commercialModel: 'PayAsYouGoModel',
+    usageTypes: ['OnDemandStream'],
+    dealStartDate: new Date().toISOString().split('T')[0],
     tracks: []
   }
   
@@ -356,8 +486,8 @@ const loadAlbumTemplate = () => {
       artist: 'Example Artist',
       duration: 'PT3M30S',
       type: 'MusicalWorkSoundRecording',
-      pLineYear: '2024',
-      pLineText: '(P) 2024 Example Label',
+      pLineYear: currentYear,
+      pLineText: `${currentYear} Example Label`,
       previewStartTime: 30,
       fileUri: 'track_001.wav',
       territoryCode: 'Worldwide'
@@ -370,8 +500,8 @@ const loadAlbumTemplate = () => {
       artist: 'Example Artist',
       duration: 'PT4M15S',
       type: 'MusicalWorkSoundRecording',
-      pLineYear: '2024',
-      pLineText: '(P) 2024 Example Label',
+      pLineYear: currentYear,
+      pLineText: `${currentYear} Example Label`,
       previewStartTime: 45,
       fileUri: 'track_002.wav',
       territoryCode: 'Worldwide'
@@ -382,6 +512,8 @@ const loadAlbumTemplate = () => {
 const loadVideoTemplate = () => {
   console.log('[loadVideoTemplate] Loading video template')
   
+  const currentYear = new Date().getFullYear().toString()
+  
   product.value = {
     upc: '00000000000002',
     releaseReference: 'R0',
@@ -390,6 +522,9 @@ const loadVideoTemplate = () => {
     label: 'Example Label',
     releaseType: 'Video',
     territoryCode: 'Worldwide',
+    commercialModel: 'PayAsYouGoModel',
+    usageTypes: ['OnDemandStream'],
+    dealStartDate: new Date().toISOString().split('T')[0],
     tracks: []
   }
   
@@ -401,8 +536,8 @@ const loadVideoTemplate = () => {
     artist: 'Example Artist',
     duration: 'PT4M0S',
     type: 'MusicalWorkVideoRecording',
-    pLineYear: '2024',
-    pLineText: '(P) 2024 Example Label',
+    pLineYear: currentYear,
+    pLineText: `${currentYear} Example Label`,
     previewStartTime: 60,
     fileUri: 'example_video.mp4',
     territoryCode: 'Worldwide'
@@ -425,6 +560,8 @@ const resetForm = () => {
   resources.value = []
   ernXml.value = ''
   validationResult.value = null
+  importSuccess.value = false
+  importError.value = ''
 }
 
 const copyToClipboard = async () => {
@@ -433,6 +570,7 @@ const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(ernXml.value)
     console.log('[copyToClipboard] Successfully copied')
+    // Could add a toast notification here
   } catch (err) {
     console.error('[copyToClipboard] Failed to copy:', err)
   }
@@ -469,35 +607,9 @@ const validateERN = async () => {
     validating.value = false
   }
 }
-
-// Initialize with an empty resource on mount
-console.log('[SandboxView] Component mounted')
 </script>
 
 <style scoped>
-/* Previous styles remain the same */
-
-/* Debug Panel */
-.debug-panel {
-  margin-top: var(--space-xl);
-  padding: var(--space-lg);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.debug-panel h3 {
-  margin-bottom: var(--space-md);
-  color: var(--color-warning);
-}
-
-.debug-panel pre {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-/* Rest of styles... */
 .sandbox-page {
   padding: var(--space-2xl) 0;
   min-height: calc(100vh - 64px - 280px);
@@ -518,6 +630,40 @@ console.log('[SandboxView] Component mounted')
   font-size: var(--text-lg);
 }
 
+/* Alerts */
+.alert {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-base);
+}
+
+.alert-success {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.alert-error {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.alert-info {
+  background-color: var(--color-info);
+  color: white;
+}
+
+.mb-lg {
+  margin-bottom: var(--space-lg);
+}
+
+.mt-lg {
+  margin-top: var(--space-lg);
+}
+
+/* Layout */
 .sandbox-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -535,14 +681,26 @@ console.log('[SandboxView] Component mounted')
 .panel-header {
   padding: var(--space-lg);
   border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .panel-title {
   font-size: var(--text-xl);
-  margin: 0;
+  margin: 0 0 var(--space-md) 0;
+}
+
+.panel-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.upc-search {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.upc-search .form-input {
+  flex: 1;
 }
 
 .panel-actions {
@@ -577,6 +735,7 @@ console.log('[SandboxView] Component mounted')
   gap: var(--space-md);
 }
 
+/* XML Preview */
 .xml-preview {
   padding: var(--space-lg);
   background: var(--color-bg);
@@ -593,20 +752,20 @@ console.log('[SandboxView] Component mounted')
 }
 
 /* XML Syntax Highlighting */
-.xml-tag {
+:deep(.xml-tag) {
   color: var(--color-primary);
   font-weight: var(--font-medium);
 }
 
-.xml-attr {
+:deep(.xml-attr) {
   color: var(--color-secondary);
 }
 
-.xml-value {
+:deep(.xml-value) {
   color: var(--color-warning);
 }
 
-.xml-comment {
+:deep(.xml-comment) {
   color: var(--color-text-tertiary);
   font-style: italic;
 }
@@ -622,6 +781,7 @@ console.log('[SandboxView] Component mounted')
   margin-bottom: var(--space-md);
 }
 
+/* Validation Results */
 .validation-results {
   padding: var(--space-lg);
   border-top: 1px solid var(--color-border);
@@ -671,6 +831,16 @@ console.log('[SandboxView] Component mounted')
   
   .sandbox-panel:first-child {
     margin-bottom: var(--space-xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-controls {
+    flex-direction: column;
+  }
+  
+  .upc-search {
+    flex-direction: column;
   }
 }
 </style>

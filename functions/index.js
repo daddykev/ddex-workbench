@@ -44,12 +44,12 @@ app.use((req, res, next) => {
 // Import route handlers
 const validateRoutes = require('./api/validate');
 const keyRoutes = require('./api/keys');
-// REMOVED: const snippetRoutes = require('./api/snippets');
+const deezerRoutes = require('./api/deezer');
 
 // API Routes
 app.use('/api/validate', validateRoutes);
 app.use('/api/keys', keyRoutes);
-// REMOVED: app.use('/api/snippets', snippetRoutes);
+app.use('/api/deezer', deezerRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
