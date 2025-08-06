@@ -132,8 +132,4 @@ Success requires more than technical excellence—it demands community adoption:
 
 The confluence of mandatory migration, absent tooling, and modern cloud capabilities creates a unique window of opportunity. DDEX Workbench isn't just another tool—it's essential infrastructure for the future of digital music distribution.
 
-By starting with DDEX Connect, we deliver immediate value while building toward a transformative vision: democratizing access to the digital music supply chain through modern, collaborative, open-source tools.
-
-The industry needs this. The timing is perfect. The technology is ready.
-
-Let's build the bridge together.
+By starting with DDEX ERN validation, we deliver immediate value while building toward a transformative vision: democratizing access to the digital music supply chain through modern, open-source tools.
