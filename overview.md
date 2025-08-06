@@ -55,8 +55,19 @@ The validator serves as our beachhead—a focused, high-value tool that:
 - Creates a foundation for community knowledge sharing
 - Generates user base for future phases
 
-### Phase 2: DSR-Flow (The Processor)
-**Timeline**: Post-launch Phase 1  
+### Phase 2: DDEX ERN Sandbox
+**Timeline**: Post-launch Phase 1
+**Market Need**: Transformative  
+**Competition**: None
+
+Visual form-based ERN creation that democratizes DDEX message generation:
+- **Interactive Form Builder**: No XML knowledge required - simple forms for product metadata and resources
+- **Pre-built Templates**: Quick-start templates for Audio Singles, Albums, and Music Videos
+- **Real-time XML Generation**: Live preview with syntax highlighting as you type
+- **Integrated Validation**: One-click validation ensures generated messages meet DDEX standards
+
+### Phase 3: DSR-Flow (Royalty Processor)
+**Timeline**: Following Phase 2 success  
 **Market Need**: Critical, underserved  
 **Competition**: One abandoned Python library from 2017
 
@@ -64,17 +75,6 @@ DSR processing represents the largest greenfield opportunity:
 - First modern tool for flat-file DSR validation
 - Multi-profile aware (Basic Audio, UGC, etc.)
 - Transforms financial reporting from error-prone manual process to automated pipeline
-
-### Phase 3: DDEX Workbench (The Hub)
-**Timeline**: Following Phase 2 success  
-**Market Need**: Transformative  
-**Competition**: None at this scale
-
-The full workbench vision:
-- Collaborative metadata management platform
-- Template-driven release creation
-- Integrated validation and export
-- Team-based workflows
 
 ## Market Dynamics & Opportunity
 

@@ -140,7 +140,7 @@ ddex-workbench/
 │   │   ├── NavBar.vue         # Navigation with auth state
 │   │   ├── CreateSnippetModal.vue  # Modal for creating new snippets
 │   │   ├── EditSnippetModal.vue    # Modal for editing existing snippets
-│   │   └── sandbox/           # Sandbox components (NEW)
+│   │   └── sandbox/           # ERN Sandbox components
 │   │       ├── ProductForm.vue     # Product metadata form
 │   │       └── ResourceForm.vue    # Resource (track/video) form
 │   ├── views/                 # Vue router views/pages
@@ -148,7 +148,7 @@ ddex-workbench/
 │   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
 │   │   ├── ApiDocsView.vue    # Comprehensive API documentation
 │   │   ├── SnippetsView.vue   # Community snippets page with CRUD operations
-│   │   ├── SandboxView.vue    # ERN message builder (NEW)
+│   │   ├── SandboxView.vue    # ERN Sandbox message builder
 │   │   ├── DeveloperView.vue  # Developer CV
 │   │   ├── UserSettings.vue   # User profile & API keys management
 │   │   ├── NotFoundView.vue   # 404 page
@@ -603,7 +603,7 @@ headers: {
   - Create, edit, and manage snippets
   - Vote on snippets (pending implementation)
 
-  ### 8. ERN Message Sandbox (NEW)
+  ### 8. ERN Sandbox (NEW)
 - **Interactive Message Builder**: Visual form-based ERN creation
 - **Templates**: Pre-filled templates for common scenarios
   - Audio Single

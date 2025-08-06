@@ -208,11 +208,11 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 - [x] JSON and text report generation
 - [ ] Usage analytics
 
-### Phase 2: DSR-Flow (Q3 2025)
-Digital Sales Reporting processor for financial data workflows
+### Phase 2: ERN Sandbox (Q3 2025)
+Visual, form-based ERN creation
 
-### Phase 3: DDEX Workbench (Q4 2025)
-Full collaborative metadata management platform
+### Phase 3: DSR-Flow (Q4 2025)
+Digital Sales Reporting processor for financial data workflows
 
 ## 🤝 Contributing
 

@@ -182,10 +182,34 @@
         </div>
 
         <div class="roadmap-timeline">
-          <!-- Phase 2: DSR Flow -->
+
+          <!-- Phase 2: DDEX ERN Sandbox -->
           <div class="roadmap-item">
             <div class="roadmap-marker">
               <span class="roadmap-phase">Phase 2</span>
+            </div>
+            <div class="roadmap-content card">
+              <div class="card-body">
+                <h3 class="text-xl font-semibold mb-sm">ERN Sandbox</h3>
+                <p class="text-secondary mb-md">
+                  Visual form-based ERN creation without writing XML
+                </p>
+                <ul class="roadmap-features">
+                  <li>Interactive forms for metadata and resources</li>
+                  <li>Pre-built templates (Single, Album, Video)</li>
+                  <li>Real-time XML generation with syntax highlighting</li>
+                  <li>Human-friendly input (e.g., duration as MM:SS)</li>
+                  <li>One-click validation and export</li>
+                </ul>
+                <span class="roadmap-status">Q2 2025</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 3: DSR Flow -->
+          <div class="roadmap-item">
+            <div class="roadmap-marker">
+              <span class="roadmap-phase">Phase 3</span>
             </div>
             <div class="roadmap-content card">
               <div class="card-body">
@@ -199,33 +223,11 @@
                   <li>Automated processing pipelines</li>
                   <li>Financial reporting transformation</li>
                 </ul>
-                <span class="roadmap-status">Sep 2025</span>
+                <span class="roadmap-status">Q4 2025</span>
               </div>
             </div>
           </div>
 
-          <!-- Phase 3: DDEX Workbench -->
-          <div class="roadmap-item">
-            <div class="roadmap-marker">
-              <span class="roadmap-phase">Phase 3</span>
-            </div>
-            <div class="roadmap-content card">
-              <div class="card-body">
-                <h3 class="text-xl font-semibold mb-sm">DDEX Workbench</h3>
-                <p class="text-secondary mb-md">
-                  Complete ERN creation and management platform
-                </p>
-                <ul class="roadmap-features">
-                  <li>Visual ERN message builder</li>
-                  <li>Template-driven creation</li>
-                  <li>Collaborative metadata management</li>
-                  <li>Team-based workflows</li>
-                  <li>Integrated validation & export</li>
-                </ul>
-                <span class="roadmap-status">Oct 2025</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
