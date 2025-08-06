@@ -45,7 +45,7 @@
         <div class="text-center features-header">
           <h2 class="text-3xl font-semibold mb-md">Available Now</h2>
           <p class="text-lg text-secondary">
-            Essential tools for the modern music industry
+            Essential tools for digital music supply chains
           </p>
         </div>
         
@@ -130,34 +130,54 @@
             <h2 class="text-3xl font-semibold mb-lg">The ERN 4.3 Migration Challenge</h2>
             <p class="text-lg mb-md">
               DDEX is mandating ERN 4.3 migration by March 2026, sunsetting all previous versions. 
-              This isn't a minor update—it's a complete re-architecture that breaks compatibility with existing tools.
+              This isn't a minor update—it's a complete re-architecture that breaks compatibility with existing systems.
             </p>
             <p class="mb-lg">
-              The entire music industry needs modern tooling that simply doesn't exist in the open-source 
-              landscape. Until now.
+              The entire music industry faces a complex transition with limited time and resources. 
+              DDEX Workbench validates ERN 4.3 with the latest XSD, business rules, and Schematron profiles.
+              Migrate with less stress.
             </p>
             <div class="challenge-stats">
               <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="stat-icon" />
-                <span>Zero maintained open-source ERN 4.3 tools</span>
+                <font-awesome-icon :icon="['fas', 'clock']" class="stat-icon warning" />
+                <span>Less than 7 months until ERN 3.x sunset</span>
               </div>
               <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="stat-icon" />
-                <span>No modern DSR processing solutions</span>
+                <font-awesome-icon :icon="['fas', 'code-branch']" class="stat-icon warning" />
+                <span>Breaking changes require complete XML restructuring</span>
               </div>
               <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="stat-icon" />
-                <span>Lack of accessible creation tools</span>
+                <font-awesome-icon :icon="['fas', 'users']" class="stat-icon warning" />
+                <span>Hundreds of aggregators need migration support</span>
               </div>
             </div>
           </div>
           <div class="challenge-image">
-            <!-- Placeholder for future graphic -->
+            <!-- Updated graphic to show solution -->
             <div class="challenge-graphic">
-              <div class="timeline">
+              <div class="solution-highlight">
+                <div class="solution-label">Your Migration Path</div>
+                <div class="solution-steps">
+                  <div class="step">
+                    <font-awesome-icon :icon="['fas', 'file-code']" />
+                    <span>Validate existing ERN</span>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step">
+                    <font-awesome-icon :icon="['fas', 'wrench']" />
+                    <span>Use Sandbox for ERN 4.3</span>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step">
+                    <font-awesome-icon :icon="['fas', 'check-circle']" />
+                    <span>Deploy with confidence</span>
+                  </div>
+                </div>
+              </div>
+              <div class="timeline mt-lg">
                 <div class="timeline-item">
                   <div class="timeline-date">Now</div>
-                  <div class="timeline-label">ERN 3.8.2 & 4.2</div>
+                  <div class="timeline-label">Start Migration</div>
                 </div>
                 <div class="timeline-arrow">→</div>
                 <div class="timeline-item highlight">
@@ -174,9 +194,9 @@
     <!-- Future Roadmap -->
     <section class="roadmap-section section bg-secondary">
       <div class="container">
-        <div class="text-center mb-3xl">  <!-- Changed from mb-2xl to mb-3xl -->
-          <h2 class="text-3xl font-semibold mb-md">Coming Soon</h2>
-          <p class="text-lg text-secondary mb-xl">  <!-- Added mb-xl to the paragraph -->
+        <div class="text-center mb-3xl">
+          <h2 class="text-3xl font-semibold mb-md">Roadmap</h2>
+          <p class="text-lg text-secondary mb-xl">
             Building a better DDEX ecosystem, one tool at a time
           </p>
         </div>
@@ -437,11 +457,70 @@
   font-size: var(--text-xl);
 }
 
+.stat-icon.warning {
+  color: var(--color-warning);
+}
+
+.stat-item.success {
+  background: var(--color-success-light);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+
+.stat-item.success .stat-icon {
+  color: var(--color-success);
+}
+
 .challenge-graphic {
   background: var(--color-bg-secondary);
   padding: var(--space-2xl);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
+}
+
+.solution-highlight {
+  background: var(--color-primary-light);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.solution-label {
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+.solution-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  text-align: center;
+}
+
+.step svg {
+  font-size: var(--text-2xl);
+  color: var(--color-primary);
+}
+
+.step span {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.step-arrow {
+  color: var(--color-text-tertiary);
 }
 
 .timeline {
@@ -575,7 +654,15 @@
   box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
 }
 
-/* Dark theme adjustment */
+/* Dark theme adjustments */
+[data-theme="dark"] .stat-item.success {
+  background: rgba(65, 196, 100, 0.1);
+}
+
+[data-theme="dark"] .solution-highlight {
+  background: rgba(66, 133, 244, 0.1);
+}
+
 [data-theme="dark"] .roadmap-beta-btn {
   background: var(--color-success);
   color: var(--color-bg);
@@ -620,6 +707,10 @@
   margin-right: var(--space-sm);
 }
 
+.mt-lg {
+  margin-top: var(--space-lg);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .hero-actions {
@@ -639,6 +730,14 @@
   
   .challenge-content {
     grid-template-columns: 1fr;
+  }
+  
+  .solution-steps {
+    flex-direction: column;
+  }
+  
+  .step-arrow {
+    transform: rotate(90deg);
   }
   
   .cta-actions {
