@@ -11,7 +11,7 @@ Create modern, accessible tools that lower the barrier to entry for DDEX impleme
 **URL**: [https://ddex-workbench.org](https://ddex-workbench.org)
 
 ### Phase 1: DDEX ERN Validation
-A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with comprehensive API documentation and community knowledge sharing capabilities.
+A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with comprehensive API documentation, multiple SDK options, and community knowledge sharing capabilities.
 
 ## Technical Architecture
 
@@ -31,6 +31,48 @@ A web-based ERN validator supporting multiple versions (3.8.2, 4.2, 4.3) with co
   - Security enforced through Firestore rules
 - **Validation**: Server-side Cloud Functions (requires XML processing)
 - **API Keys**: Server-side Cloud Functions (requires secure key generation)
+
+## Available SDKs
+
+### JavaScript/TypeScript SDK ✅
+**npm Package**: [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- Full TypeScript support
+- Browser and Node.js compatible
+- Promise-based API
+- Version: 1.0.0+
+
+```bash
+npm install @ddex-workbench/sdk
+```
+
+### Python SDK ✅
+**PyPI Package**: [ddex-workbench](https://pypi.org/project/ddex-workbench/)
+- Full type hints with dataclasses
+- Python 3.7+ support
+- Async support with retry logic
+- Version: 1.0.0+
+
+```bash
+pip install ddex-workbench
+```
+
+## Quick Start Examples
+
+### JavaScript/TypeScript
+```javascript
+import { DDEXClient } from '@ddex-workbench/sdk';
+
+const client = new DDEXClient({ apiKey: 'ddex_your-api-key' });
+const result = await client.validate(xmlContent, { version: '4.3' });
+```
+
+### Python
+```python
+from ddex_workbench import DDEXClient
+
+client = DDEXClient(api_key="ddex_your-api-key")
+result = client.validate(xml_content, version="4.3")
+```
 
 ## Current API Status (Production-Ready)
 
@@ -207,28 +249,56 @@ ddex-workbench/
 │   ├── index.js               # Functions entry with trust proxy
 │   ├── package.json           # Functions dependencies
 │   └── package-lock.json      # Locked dependencies
-├── packages/                  # NPM packages
-│   └── sdk/                   # DDEX Workbench SDK
-│       ├── src/               # SDK source code
-│       │   ├── client.ts      # Main API client class
-│       │   ├── validator.ts   # High-level validation helper
-│       │   ├── types.ts       # TypeScript type definitions
-│       │   ├── errors.ts      # Custom error classes and utilities
-│       │   └── index.ts       # SDK entry point and exports
-│       ├── dist/              # Built SDK files (git ignored)
-│       │   ├── index.js       # CommonJS build
-│       │   ├── index.mjs      # ES module build
-│       │   ├── index.d.ts     # TypeScript declarations
-│       │   └── *.map          # Source maps
-│       ├── README.md          # SDK documentation and usage examples
-│       ├── package.json       # SDK dependencies and scripts
-│       ├── package-lock.json  # Locked SDK dependencies
-│       ├── tsconfig.json      # TypeScript configuration
-│       └── tsup.config.ts     # Build configuration
+├── packages/                  # SDK packages
+│   ├── sdk/                   # JavaScript/TypeScript SDK ✅
+│   │   ├── src/               # SDK source code
+│   │   │   ├── client.ts      # Main API client class
+│   │   │   ├── validator.ts   # High-level validation helper
+│   │   │   ├── types.ts       # TypeScript type definitions
+│   │   │   ├── errors.ts      # Custom error classes and utilities
+│   │   │   └── index.ts       # SDK entry point and exports
+│   │   ├── dist/              # Built SDK files (git ignored)
+│   │   │   ├── index.js       # CommonJS build
+│   │   │   ├── index.mjs      # ES module build
+│   │   │   ├── index.d.ts     # TypeScript declarations
+│   │   │   └── *.map          # Source maps
+│   │   ├── README.md          # SDK documentation and usage examples
+│   │   ├── package.json       # SDK dependencies and scripts
+│   │   ├── package-lock.json  # Locked SDK dependencies
+│   │   ├── tsconfig.json      # TypeScript configuration
+│   │   └── tsup.config.ts     # Build configuration
+│   └── python-sdk/            # Python SDK ✅
+│       ├── ddex_workbench/    # Python package source
+│       │   ├── __init__.py    # Package initialization
+│       │   ├── client.py      # Main API client class
+│       │   ├── validator.py   # High-level validation helpers
+│       │   ├── types.py       # Type definitions with dataclasses
+│       │   ├── errors.py      # Exception classes
+│       │   ├── utils.py       # Utility functions
+│       │   └── py.typed       # Type hint marker
+│       ├── tests/             # Test suite
+│       │   ├── __init__.py
+│       │   ├── test_client.py
+│       │   ├── test_validator.py
+│       │   └── test_integration.py
+│       ├── examples/          # Example scripts
+│       │   ├── basic_validation.py
+│       │   ├── batch_processing.py
+│       │   └── ci_integration.py
+│       ├── README.md          # Python SDK documentation
+│       ├── setup.py           # Package configuration
+│       ├── requirements.txt   # Dependencies
+│       ├── requirements-dev.txt # Development dependencies
+│       ├── tox.ini            # Testing configuration
+│       ├── MANIFEST.in        # Package manifest
+│       ├── CHANGELOG.md       # Version history
+│       └── LICENSE            # MIT License
 ├── public/                    # Static public assets
 │   └── favicon.ico
 ├── docs/                      # Documentation
 │   ├── API.md                 # API documentation
+│   ├── SDK_JS.md              # JavaScript SDK guide
+│   ├── SDK_PYTHON.md          # Python SDK guide
 │   └── SETUP.md               # Setup instructions
 ├── .firebase/                 # Firebase cache (git ignored)
 ├── .vscode/                   # VS Code settings (git ignored)
@@ -325,7 +395,7 @@ The `ValidatorView.vue` component now includes:
 The `ApiDocsView.vue` provides comprehensive API documentation:
 
 - **Interactive Code Examples**: 
-  - Support for cURL, JavaScript, Python, and PHP
+  - Support for cURL, JavaScript (SDK), Python (SDK), and PHP
   - Complete working examples for common use cases
   - File validation examples
 - **Detailed Endpoint Documentation**:
@@ -335,96 +405,54 @@ The `ApiDocsView.vue` provides comprehensive API documentation:
   - Rate limiting information
 - **Live Response Examples**: Actual JSON responses for all endpoints
 - **Version Information**: Supported DDEX versions and profiles with descriptions
+- **SDK Installation**: Both npm and PyPI packages documented
 - **Sticky Navigation**: Easy navigation through documentation sections
 - **Mobile Responsive**: Optimized for all screen sizes
 
-## DDEX Workbench SDK
+## Multi-Language SDK Support
 
-### Overview
+### Language Coverage
+- ✅ **JavaScript/TypeScript** - Published to npm as `@ddex-workbench/sdk`
+- ✅ **Python** - Published to PyPI as `ddex-workbench`
+- 🔄 **PHP** - Planned for Phase 2
+- 🔄 **Ruby** - Community contribution welcome
+- 🔄 **Java** - Community contribution welcome
+- 🔄 **Go** - Community contribution welcome
 
-The DDEX Workbench SDK (`@ddex-workbench/sdk`) is a TypeScript/JavaScript client library that provides programmatic access to all DDEX validation capabilities. It enables developers to integrate DDEX validation directly into their applications, CI/CD pipelines, and automated workflows.
+### SDK Feature Parity
 
-**🎉 Now Available on npm: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)**
+| Feature | JavaScript SDK | Python SDK |
+|---------|---------------|------------|
+| Basic Validation | ✅ | ✅ |
+| Batch Processing | ✅ | ✅ |
+| Auto-detection | ✅ | ✅ |
+| Type Safety | ✅ TypeScript | ✅ Type Hints |
+| Retry Logic | ✅ | ✅ |
+| File Upload | ✅ | ✅ |
+| URL Validation | ✅ | ✅ |
+| Report Generation | ✅ | ✅ |
+| CI/CD Examples | ✅ | ✅ |
+| Async Support | ✅ | ✅ |
+| Published | ✅ npm | ✅ PyPI |
 
-### Key Features
+### SDK Publishing Status ✅
 
-- 🚀 **Simple API** - Intuitive methods for all validation operations
-- 📦 **TypeScript Support** - Full type definitions with IntelliSense support
-- 🌐 **Universal Compatibility** - Works in Node.js (14+) and modern browsers
-- 🔄 **Smart Retry Logic** - Automatic retry with exponential backoff
-- 🔑 **API Key Management** - Built-in authentication handling
-- 📊 **Batch Operations** - Validate multiple files efficiently
-- 🎯 **Version Detection** - Automatic ERN version detection
-- ⚡ **Optimized Performance** - Minimal bundle size (~6KB minified)
-
-### Installation
-
-```bash
-npm install @ddex-workbench/sdk
-# or
-yarn add @ddex-workbench/sdk
-# or
-pnpm add @ddex-workbench/sdk
-```
-
-### Quick Start
-
-```javascript
-import { DDEXClient } from '@ddex-workbench/sdk';
-
-const client = new DDEXClient({
-  apiKey: 'ddex_your-api-key' // Optional - for higher rate limits
-});
-
-// Validate ERN XML
-const result = await client.validate(xmlContent, {
-  version: '4.3',
-  profile: 'AudioAlbum'
-});
-
-if (!result.valid) {
-  console.log('Validation errors:', result.errors);
-}
-```
-
-### SDK Architecture
-
-The SDK is built with modern TypeScript and provides:
-
-1. **DDEXClient** - Main client class for API interactions
-2. **DDEXValidator** - High-level validation helpers with version-specific methods
-3. **Type Definitions** - Complete TypeScript types for all API operations
-4. **Error Classes** - Structured error handling with retry strategies
-5. **Platform Detection** - Automatic environment detection (Node.js/Browser)
-
-### Use Cases
-
-- **CI/CD Integration** - Validate releases before distribution
-- **Bulk Processing** - Validate entire catalogs programmatically
-- **Custom Workflows** - Build validation into your release pipeline
-- **Development Tools** - Create custom DDEX tools and utilities
-- **Quality Assurance** - Automated testing of DDEX compliance
-
-### SDK vs Direct API
-
-| Feature | SDK | Direct API |
-|---------|-----|------------|
-| Type Safety | ✅ Full TypeScript support | ❌ Manual typing |
-| Retry Logic | ✅ Automatic with backoff | ❌ Manual implementation |
-| Error Handling | ✅ Structured error classes | ❌ Raw HTTP errors |
-| File Uploads | ✅ Simplified interface | ⚠️ FormData handling |
-| Batch Operations | ✅ Built-in support | ❌ Manual orchestration |
-| Version Detection | ✅ Automatic | ❌ Manual parsing |
-| Bundle Size | ~6KB gzipped | N/A |
-
-### Publishing Status ✅
-
+#### JavaScript SDK
 The SDK is officially published to npm as `@ddex-workbench/sdk`:
 - **npm Package**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
 - **Version**: 1.0.0+ (Semantic versioning)
 - **License**: MIT
 - **Weekly Downloads**: Growing 📈
 - **Bundle Formats**: CommonJS, ESM, TypeScript definitions
+- **Documentation**: Comprehensive README with examples
+
+#### Python SDK
+The SDK is officially published to PyPI as `ddex-workbench`:
+- **PyPI Package**: [https://pypi.org/project/ddex-workbench/](https://pypi.org/project/ddex-workbench/)
+- **Version**: 1.0.0+ (Semantic versioning)
+- **License**: MIT
+- **Downloads**: Track via [pypistats.org](https://pypistats.org/packages/ddex-workbench)
+- **Python Support**: 3.7+ with full type hints
 - **Documentation**: Comprehensive README with examples
 
 ### Browser Support
@@ -439,12 +467,21 @@ The SDK is officially published to npm as `@ddex-workbench/sdk`:
 - Full ESM and CommonJS support
 - Native FormData handling for file uploads
 
+### Python Support
+
+- Python 3.7.0 or higher
+- Full type hints with dataclasses
+- Async support with retry logic
+- Compatible with CPython and PyPy
+
 ### Related Documentation
 
-- [SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package page
-- [SDK Source Code](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk) - GitHub repository
+- [JavaScript SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package page
+- [Python SDK Documentation](https://pypi.org/project/ddex-workbench/) - PyPI package page
+- [JavaScript SDK Source Code](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk) - GitHub repository
+- [Python SDK Source Code](https://github.com/daddykev/ddex-workbench/tree/main/packages/python-sdk) - GitHub repository
 - [API Documentation](https://ddex-workbench.org/api) - REST API reference
-- [Code Examples](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#examples) - Sample implementations
+- [Code Examples](https://github.com/daddykev/ddex-workbench/tree/main/packages) - Sample implementations
 
 ## Authentication Architecture
 
@@ -702,11 +739,16 @@ headers: {
 
 ### 5. API Documentation
 - **Comprehensive Documentation Page**: Full API reference with examples
-- **Interactive Code Examples**: 4 languages with syntax highlighting
+- **Interactive Code Examples**: Multiple languages with syntax highlighting
+  - cURL
+  - JavaScript (using SDK)
+  - Python (using SDK)
+  - PHP
 - **Live Response Examples**: Actual API responses
 - **Authentication Guide**: How to get and use API keys
 - **Rate Limiting Info**: Clear limits and upgrade paths
 - **Version Support**: Detailed ERN version information
+- **SDK Installation**: Both npm and PyPI packages
 - **Error Reference**: Complete error response documentation
 
 ### 6. Community Snippets Library
@@ -883,7 +925,8 @@ Semantic utility classes for:
 - [x] API documentation page (comprehensive)
 - [x] Trust proxy configuration
 - [x] Interactive code examples
-- [ ] Client SDK (npm package)
+- [x] JavaScript/TypeScript SDK (npm package) ✅
+- [x] Python SDK (PyPI package) ✅
 - [ ] File upload endpoint
 
 ### Week 11-12: Enhanced Validation
@@ -947,9 +990,11 @@ Semantic utility classes for:
 - Full authentication system with Google OAuth ✓
 - API key generation and management ✓
 - Multi-version ERN validation (3.8.2, 4.2, 4.3) ✓
+- JavaScript SDK on npm (@ddex-workbench/sdk) ✓
+- Python SDK on PyPI (ddex-workbench) ✓
 - Enhanced three-stage validation pipeline ✓
 - Rate-limited public API ✓
-- Comprehensive API documentation with interactive examples ✓
+- Comprehensive API documentation with SDK examples ✓
 - Secure Firestore rules ✓
 - User settings management ✓
 - Theme switching (light/dark/auto) ✓
@@ -971,6 +1016,15 @@ Semantic utility classes for:
 - BETA: Batch ISRC retrieval with rate limiting ✓
 - BETA: Real-time ERN XML generation ✓
 
+### SDK Availability:
+```bash
+# JavaScript/TypeScript
+npm install @ddex-workbench/sdk
+
+# Python
+pip install ddex-workbench
+```
+
 ### Tested & Confirmed:
 - API key authentication working ✓
 - Rate limiting enforced (10/60 req/min) ✓
@@ -983,6 +1037,8 @@ Semantic utility classes for:
 - Trust proxy enabled ✓
 - API documentation fully functional ✓
 - Interactive code examples in 4 languages ✓
+- JavaScript SDK published to npm ✓
+- Python SDK published to PyPI ✓
 
 ### API Base URL:
 ```
@@ -999,6 +1055,9 @@ https://ddex-workbench.org
 - **Adoption**: 1000+ validations/week within 3 months
 - **User Growth**: 500+ registered users in first quarter
 - **API Usage**: 50+ active API keys
+- **SDK Downloads**: 
+  - npm: Track via npm stats for @ddex-workbench/sdk
+  - PyPI: Track via [pypistats.org](https://pypistats.org/packages/ddex-workbench) for ddex-workbench
 - **Community**: 100+ contributed snippets
 - **Performance**: <2s validation for typical files ✓ (Currently ~2-100ms depending on mode)
 - **Reliability**: 99.9% uptime
@@ -1016,6 +1075,41 @@ https://ddex-workbench.org
 - Common UI components library
 - Reusable validation patterns
 - API infrastructure foundation
+
+## SDK Development Guidelines
+
+### For SDK Contributors
+
+#### Python SDK Maintenance
+```bash
+# Version update process
+cd packages/python-sdk
+# 1. Update version in setup.py and __init__.py
+# 2. Update CHANGELOG.md
+# 3. Build and test
+python -m build
+pytest tests/
+# 4. Publish to PyPI
+twine upload dist/*
+# 5. Tag release
+git tag python-sdk-v1.x.x
+git push origin python-sdk-v1.x.x
+```
+
+#### JavaScript SDK Maintenance
+```bash
+# Version update process
+cd packages/sdk
+# 1. Update version in package.json
+# 2. Build and test
+npm run build
+npm test
+# 3. Publish to npm
+npm publish
+# 4. Tag release
+git tag js-sdk-v1.x.x
+git push origin js-sdk-v1.x.x
+```
 
 ## Open Source Strategy
 
@@ -1045,10 +1139,22 @@ https://ddex-workbench.org
    firebase deploy
    ```
 
-3. **Post-deployment Verification**:
-   - Test at https://ddex-workbench.web.app
+3. **SDK Updates**:
+   ```bash
+   # JavaScript SDK
+   cd packages/sdk
+   npm run build && npm publish
+   
+   # Python SDK
+   cd packages/python-sdk
+   python -m build && twine upload dist/*
+   ```
+
+4. **Post-deployment Verification**:
+   - Test at https://ddex-workbench.org
    - Verify all validation modes work
    - Check real-time validation
    - Test file upload and URL loading
    - Confirm API documentation displays correctly
    - Test interactive code examples
+   - Verify SDK installations from npm and PyPI
