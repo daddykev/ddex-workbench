@@ -69,7 +69,8 @@ import {
   faGithub,
   faNode,
   faLinkedin,
-  faGoogle
+  faGoogle,
+  faNpm
 } from '@fortawesome/free-brands-svg-icons'
 
 // Add icons to the library
@@ -114,14 +115,14 @@ library.add(
   faSave,
   faShare,
   faEdit,
-  faClock,        // Added for migration timeline
-  faCodeBranch,   // Added for breaking changes
-  faRocket,       // Added for solution highlight
-  faInfoCircle,   // Added for info messages
-  faKey,          // Added for API keys
-  faCog,          // Added for settings
-  faUser,         // Added for user profile
-  faHome,         // Added for navigation
+  faClock,
+  faCodeBranch,
+  faRocket,
+  faInfoCircle,
+  faKey,
+  faCog,
+  faUser,
+  faHome,
   // Brand icons
   faJs,
   faPython,
@@ -129,7 +130,8 @@ library.add(
   faGithub,
   faNode,
   faLinkedin,
-  faGoogle        // Added for Google OAuth
+  faGoogle,
+  faNpm
 )
 
 const app = createApp(App)

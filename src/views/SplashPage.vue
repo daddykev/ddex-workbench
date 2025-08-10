@@ -19,6 +19,23 @@
               View API Docs
             </router-link>
           </div>
+          
+          <!-- NEW: SDK Quick Link -->
+          <div class="hero-sdk-banner">
+            <span class="sdk-badge">NEW</span>
+            <font-awesome-icon :icon="['fab', 'npm']" class="npm-icon" />
+            <span>Official SDK now available:</span>
+            <code class="sdk-install">npm install @ddex-workbench/sdk</code>
+            <a 
+              href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
+              target="_blank" 
+              rel="noopener"
+              class="sdk-link"
+            >
+              View on npm →
+            </a>
+          </div>
+          
           <div class="hero-stats">
             <div class="stat">
               <div class="stat-value">ERN 4.3</div>
@@ -49,7 +66,8 @@
           </p>
         </div>
         
-        <div class="grid grid-cols-md-3 gap-lg">
+        <!-- Changed to 4-column grid on desktop, 2 on tablet -->
+        <div class="grid grid-cols-md-2 grid-cols-lg-4 gap-lg">
           <!-- DDEX Validator -->
           <div class="feature-card card card-hover">
             <div class="card-body">
@@ -58,8 +76,8 @@
               </div>
               <h3 class="feature-title">DDEX Validator</h3>
               <p class="feature-description">
-                Validate ERN messages against DDEX standards. Support for ERN 3.8.2, 4.2, and 4.3 
-                with profile-specific validation rules.
+                Validate against DDEX standards. Support for ERN 3.8.2, 4.2, and 4.3 
+                with profile-specific rules.
               </p>
               <ul class="feature-list">
                 <li>Instant validation results</li>
@@ -116,6 +134,36 @@
               <router-link to="/api" class="btn btn-primary mt-lg">
                 API Documentation
               </router-link>
+            </div>
+          </div>
+
+          <!-- NEW: SDK Feature Card -->
+          <div class="feature-card card card-hover">
+            <div class="card-body">
+              <div class="feature-icon">
+                <font-awesome-icon :icon="['fab', 'npm']" size="3x" />
+              </div>
+              <h3 class="feature-title">
+                Official SDK
+                <span class="new-badge">NEW</span>
+              </h3>
+              <p class="feature-description">
+                TypeScript/JavaScript SDK for seamless integration. Available on npm for easy installation.
+              </p>
+              <ul class="feature-list">
+                <li>TypeScript support</li>
+                <li>Auto retry logic</li>
+                <li>Node.js & browser</li>
+                <li>Only ~6KB gzipped</li>
+              </ul>
+              <a 
+                href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
+                target="_blank"
+                rel="noopener"
+                class="btn btn-primary mt-lg"
+              >
+                View on npm
+              </a>
             </div>
           </div>
         </div>
@@ -331,7 +379,7 @@
   display: flex;
   gap: var(--space-md);
   justify-content: center;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-xl);
 }
 
 /* Custom hero secondary button for better contrast */
@@ -347,6 +395,53 @@
   border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* SDK Banner in Hero */
+.hero-sdk-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: rgba(255, 255, 255, 0.1);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-xl);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: var(--text-sm);
+  color: white;
+}
+
+.sdk-badge {
+  background: var(--color-success);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-xs);
+}
+
+.npm-icon {
+  color: #CB3837;
+  font-size: var(--text-lg);
+}
+
+.sdk-install {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  color: white;
+}
+
+.sdk-link {
+  color: white;
+  text-decoration: underline;
+  transition: opacity var(--transition-base);
+}
+
+.sdk-link:hover {
+  opacity: 0.8;
 }
 
 .hero-stats {
@@ -429,6 +524,24 @@
   left: 0;
   color: var(--color-success);
   font-weight: bold;
+}
+
+/* New badge for SDK card */
+.new-badge {
+  display: inline-block;
+  background: var(--color-success);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-xs);
+  vertical-align: super;
+}
+
+/* Grid adjustment for 4 columns */
+.grid-cols-lg-4 {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 /* Challenge Section */
@@ -712,10 +825,29 @@
 }
 
 /* Responsive */
+@media (min-width: 1024px) {
+  .grid-cols-lg-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 768px) {
+  .grid-cols-lg-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .hero-actions {
     flex-direction: column;
     align-items: center;
+  }
+  
+  .hero-sdk-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
   }
   
   .hero-stats {
@@ -738,6 +870,10 @@
   
   .step-arrow {
     transform: rotate(90deg);
+  }
+  
+  .grid-cols-lg-4 {
+    grid-template-columns: 1fr;
   }
   
   .cta-actions {
