@@ -1,0 +1,50 @@
+# Update requirements-dev.txt with compatible versions
+cat > requirements-dev.txt << 'EOF'
+# Development dependencies for DDEX Workbench SDK
+
+# Include production dependencies
+-r requirements.txt
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.1.0
+responses>=0.22.0
+faker>=18.0.0
+
+# Code quality (Python 3.8 compatible versions)
+black>=23.0.0
+mypy>=1.0.0
+flake8>=5.0.0,<6.0.0  # flake8 6.0+ requires Python 3.8.1+
+flake8-docstrings>=1.7.0
+flake8-annotations>=2.9.0
+isort>=5.12.0
+pylint>=2.17.0
+
+# Type stubs
+types-requests>=2.28.0
+types-dataclasses>=0.6.0; python_version < '3.7'
+
+# Documentation
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.2.0
+sphinx-autodoc-typehints>=1.22.0
+
+# Build and publishing
+tox>=4.0.0
+twine>=4.0.0
+wheel>=0.38.0
+build>=0.10.0
+setuptools>=65.0.0
+
+# Development tools
+ipython>=8.0.0
+ipdb>=0.13.0
+pre-commit>=3.0.0
+
+# Performance testing
+locust>=2.0.0
+memory-profiler>=0.60.0
+EOF

@@ -1,0 +1,63 @@
+# packages/python-sdk/pyproject.toml
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ddex-workbench"
+version = "1.0.0"
+description = "Official Python SDK for DDEX Workbench - Open-source DDEX validation tools"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+authors = [
+    {name = "DDEX Workbench Contributors", email = "support@ddex-workbench.org"}
+]
+keywords = [
+    "ddex",
+    "ern",
+    "music",
+    "metadata",
+    "validation",
+    "xml",
+    "music-industry",
+    "sdk"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Sound/Audio"
+]
+
+dependencies = [
+    "requests>=2.28.0",
+    "typing-extensions>=4.0.0;python_version<'3.8'",
+    "dataclasses>=0.6;python_version<'3.7'"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "flake8>=6.0.0",
+    "tox>=4.0.0",
+    "twine>=4.0.0"
+]
+
+[project.urls]
+Homepage = "https://ddex-workbench.org"
+Documentation = "https://ddex-workbench.org/docs"
+Repository = "https://github.com/daddykev/ddex-workbench"
+Issues = "https://github.com/daddykev/ddex-workbench/issues"

@@ -1,0 +1,44 @@
+# packages/python-sdk/MANIFEST.in
+# Include/exclude rules for package distribution
+
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+
+# Include requirements files
+include requirements.txt
+include requirements-dev.txt
+
+# Include type information
+include ddex_workbench/py.typed
+
+# Include test configuration
+include tox.ini
+include .coveragerc
+include pytest.ini
+include mypy.ini
+
+# Include examples
+recursive-include examples *.py *.xml *.md
+
+# Include tests in source distribution (but not in wheel)
+recursive-include tests *.py *.xml *.json
+
+# Include docs
+recursive-include docs *.rst *.py *.md Makefile
+
+# Exclude unnecessary files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude .coverage
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude .tox
+global-exclude .vscode
+global-exclude .idea
+global-exclude *.egg-info
+recursive-exclude tests *
+recursive-exclude docs/_build *
