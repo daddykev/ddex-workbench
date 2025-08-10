@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
+[![npm](https://img.shields.io/npm/v/@ddex-workbench/sdk.svg)](https://www.npmjs.com/package/@ddex-workbench/sdk)
 
 > Modern, open-source DDEX validation tools for the music industry.
 
@@ -67,35 +68,6 @@ A production-ready web-based ERN validator supporting multiple versions with com
 - **Copy to validator** for quick testing
 - **Direct Firestore integration** for real-time updates
 
-#### ✅ Public Validation API
-
-**Base URL**: `https://api.ddex-workbench.org/v1`
-
-```javascript
-// POST /validate
-{
-  "content": "<?xml version=\"1.0\"?>...",
-  "type": "ERN",
-  "version": "4.3",  // or "4.2", "3.8.2"
-  "profile": "AudioAlbum"
-}
-
-// Optional authentication for higher rate limits
-headers: {
-  "X-API-Key": "ddex_your-api-key"
-}
-```
-
-#### ✅ Comprehensive API Documentation
-- Interactive code examples (cURL, JavaScript, Python, PHP)
-- Live response examples
-- Complete endpoint reference
-- Authentication guide
-- Version and profile information
-
-#### 🚧 Coming Soon
-- Usage analytics dashboard
-
 ### 🎉 Official SDK Now Available!
 
 We're excited to announce that the **DDEX Workbench SDK** is now available on npm! This makes it easier than ever to integrate DDEX validation into your applications.
@@ -140,11 +112,33 @@ if (result.valid) {
 **📦 View on npm**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
 
 **📚 Full Documentation**: [SDK README](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#readme)
+
+#### ✅ Public Validation API
+
+**Base URL**: `https://api.ddex-workbench.org/v1`
+
+```javascript
+// POST /validate
+{
+  "content": "<?xml version=\"1.0\"?>...",
+  "type": "ERN",
+  "version": "4.3",  // or "4.2", "3.8.2"
+  "profile": "AudioAlbum"
+}
+
+// Optional authentication for higher rate limits
+headers: {
+  "X-API-Key": "ddex_your-api-key"
+}
 ```
 
-Also update the "Coming Soon" section to reflect the SDK is now live:
+#### ✅ Comprehensive API Documentation
+- Interactive code examples (cURL, JavaScript, Python, PHP)
+- Live response examples
+- Complete endpoint reference
+- Authentication guide
+- Version and profile information
 
-```markdown
 #### ✅ Production-Ready Features
 - Multi-version ERN validation (3.8.2, 4.2, 4.3)
 - Three-stage validation pipeline
@@ -158,8 +152,6 @@ Also update the "Coming Soon" section to reflect the SDK is now live:
 
 #### 🚧 Coming Soon
 - Usage analytics dashboard
-- Batch validation UI
-- ERN Sandbox enhancements
 
 ## 🛠️ Tech Stack
 
@@ -270,6 +262,7 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 - [x] Enhanced error display with grouping/filtering
 - [x] Community snippet library
 - [x] JSON and text report generation
+- [x] Official npm SDK - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
 - [ ] Usage analytics
 
 ### Phase 2: ERN Sandbox (Q3 2025)
@@ -294,6 +287,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - [Technical Blueprint](blueprint.md) - Detailed technical architecture and implementation details
 - [Strategic Overview](overview.md) - Market analysis and business case
 - [API Documentation](https://ddex-workbench.web.app/api) - Live interactive API docs
+- [SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package documentation
 - [Setup Guide](docs/SETUP.md) - Detailed development environment setup
 
 ## 🎯 Performance & Metrics
@@ -317,6 +311,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Live App**: [https://ddex-workbench.org](https://ddex-workbench.org)
 - **API**: [https://api.ddex-workbench.org/v1](https://api.ddex-workbench.org/v1)
+- **npm Package**: [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
 - **GitHub Issues**: For bug reports and feature requests
 - **Email**: daddykev@gmail.com
 
