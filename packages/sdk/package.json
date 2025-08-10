@@ -18,7 +18,9 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run build",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "prepack": "npm run build",
+    "version": "npm run format && git add -A src"
   },
   "exports": {
     ".": {
@@ -37,18 +39,31 @@
     "digital-distribution",
     "music-industry",
     "sdk",
-    "api-client"
+    "api-client",
+    "typescript",
+    "ddex-validation",
+    "ern-validation",
+    "music-api"
   ],
-  "author": "DDEX Workbench Contributors",
+  "author": "DDEX Workbench Contributors <support@ddex-workbench.org>",
+  "contributors": [
+    "Kevin Moo <daddykev@gmail.com>"
+  ],
   "license": "MIT",
   "homepage": "https://ddex-workbench.org",
   "repository": {
     "type": "git",
-    "url": "https://github.com/daddykev/ddex-workbench.git",
+    "url": "git+https://github.com/daddykev/ddex-workbench.git",
     "directory": "packages/sdk"
   },
   "bugs": {
-    "url": "https://github.com/daddykev/ddex-workbench/issues"
+    "url": "https://github.com/daddykev/ddex-workbench/issues",
+    "email": "support@ddex-workbench.org"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -66,10 +81,27 @@
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   },
+  "peerDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
   },
   "browser": {
     "form-data": false
+  },
+  "sideEffects": false,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/index.d.ts"
+      ]
+    }
   }
 }

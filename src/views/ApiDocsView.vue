@@ -506,6 +506,7 @@ onUnmounted(() => {
               <h3 class="nav-section-title">Getting Started</h3>
               <ul class="nav-list">
                 <li><a href="#introduction" @click="scrollToSection('introduction')" :class="{ active: activeSection === 'introduction' }">Introduction</a></li>
+                <li><a href="#sdk" @click="scrollToSection('sdk')" :class="{ active: activeSection === 'sdk' }">SDK & Libraries</a></li>
                 <li><a href="#authentication" @click="scrollToSection('authentication')" :class="{ active: activeSection === 'authentication' }">Authentication</a></li>
                 <li><a href="#rate-limiting" @click="scrollToSection('rate-limiting')" :class="{ active: activeSection === 'rate-limiting' }">Rate Limiting</a></li>
                 <li><a href="#errors" @click="scrollToSection('errors')" :class="{ active: activeSection === 'errors' }">Error Handling</a></li>
@@ -565,6 +566,93 @@ onUnmounted(() => {
                 </div>
                 <pre class="code-block"><code>{{ getCodeExample('quickstart', activeLanguage) }}</code></pre>
               </div>
+            </section>
+
+            <section id="sdk" class="doc-section">
+              <h2>SDK & Client Libraries</h2>
+              <p>
+                For easier integration, we provide an official SDK that handles authentication, 
+                retry logic, and provides type-safe access to all API endpoints.
+              </p>
+
+              <div class="sdk-card card">
+                <div class="card-body">
+                  <div class="sdk-header">
+                    <h3>
+                      <font-awesome-icon :icon="['fab', 'npm']" class="sdk-icon" />
+                      Official JavaScript/TypeScript SDK
+                    </h3>
+                    <span class="badge badge-success">Recommended</span>
+                  </div>
+                  
+                  <p class="sdk-description">
+                    Full-featured client library with TypeScript support, automatic retries, 
+                    and simplified error handling.
+                  </p>
+
+                  <h4>Installation</h4>
+                  <div class="code-example">
+                    <pre class="code-block"><code>npm install @ddex-workbench/sdk</code></pre>
+                  </div>
+
+                  <h4>Quick Example</h4>
+                  <div class="code-example">
+                    <pre class="code-block"><code>import { DDEXClient } from '@ddex-workbench/sdk';
+
+const client = new DDEXClient({
+  apiKey: 'ddex_your-api-key' // Optional
+});
+
+const result = await client.validate(xmlContent, {
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
+
+console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
+                  </div>
+
+                  <h4>Key Features</h4>
+                  <ul class="feature-list">
+                    <li>TypeScript support with full type definitions</li>
+                    <li>Automatic retry logic with exponential backoff</li>
+                    <li>Works in Node.js and browsers</li>
+                    <li>Batch validation support</li>
+                    <li>Automatic ERN version detection</li>
+                    <li>Structured error handling</li>
+                    <li>File upload helpers</li>
+                  </ul>
+
+                  <div class="sdk-links">
+                    <a href="https://www.npmjs.com/package/@ddex-workbench/sdk" target="_blank" class="sdk-link">
+                      <font-awesome-icon :icon="['fab', 'npm']" /> npm Package
+                    </a>
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk" target="_blank" class="sdk-link">
+                      <font-awesome-icon :icon="['fab', 'github']" /> GitHub
+                    </a>
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#readme" target="_blank" class="sdk-link">
+                      <font-awesome-icon :icon="['fas', 'book']" /> Documentation
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="info-box mt-lg">
+                <h4>Why use the SDK?</h4>
+                <p>While you can call the API directly, the SDK provides:</p>
+                <ul>
+                  <li><strong>Type Safety:</strong> Full TypeScript support with IntelliSense</li>
+                  <li><strong>Error Handling:</strong> Structured errors with retry strategies</li>
+                  <li><strong>Convenience Methods:</strong> Shortcuts like <code>validateERN43()</code></li>
+                  <li><strong>Platform Support:</strong> Works seamlessly in Node.js and browsers</li>
+                  <li><strong>Maintained:</strong> Regular updates with new API features</li>
+                </ul>
+              </div>
+
+              <h3 class="mt-xl">Direct API Access</h3>
+              <p>
+                If you prefer to call the API directly or need to use a different language, 
+                continue reading for the REST API documentation with examples in cURL, Python, and PHP.
+              </p>
             </section>
 
             <!-- Authentication -->
@@ -1320,6 +1408,62 @@ onUnmounted(() => {
   font-size: var(--text-sm);
 }
 
+/* SDK Section Styles */
+.sdk-card {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.sdk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.sdk-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.sdk-icon {
+  color: #cb3837; /* npm red */
+  font-size: var(--text-xl);
+}
+
+.sdk-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.sdk-links {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.sdk-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: all var(--transition-base);
+}
+
+.sdk-link:hover {
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 /* Utilities */
 .mt-lg {
   margin-top: var(--space-lg);
@@ -1381,5 +1525,15 @@ onUnmounted(() => {
   .params-table td {
     padding: var(--space-xs) var(--space-sm);
   }
+
+  .sdk-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  
+  .sdk-links {
+    flex-direction: column;
+  }  
 }
 </style>

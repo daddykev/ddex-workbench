@@ -1,0 +1,13 @@
+# packages/sdk/.npmignore
+src/
+*.ts
+!*.d.ts
+tsconfig.json
+tsup.config.ts
+.gitignore
+node_modules/
+*.test.js
+*.spec.js
+coverage/
+.vscode/
+.idea/
