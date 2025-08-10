@@ -95,7 +95,71 @@ headers: {
 
 #### 🚧 Coming Soon
 - Usage analytics dashboard
-- npm client SDK
+
+### 🎉 Official SDK Now Available!
+
+We're excited to announce that the **DDEX Workbench SDK** is now available on npm! This makes it easier than ever to integrate DDEX validation into your applications.
+
+#### Installation
+```bash
+npm install @ddex-workbench/sdk
+```
+
+#### Quick Example
+```javascript
+import { DDEXClient } from '@ddex-workbench/sdk';
+
+const client = new DDEXClient({
+  apiKey: 'ddex_your-api-key' // Optional - for higher rate limits
+});
+
+// Validate ERN XML
+const result = await client.validate(xmlContent, {
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
+
+if (result.valid) {
+  console.log('✅ Valid DDEX file!');
+} else {
+  console.log(`❌ Found ${result.errors.length} errors`);
+  result.errors.forEach(error => {
+    console.log(`  Line ${error.line}: ${error.message}`);
+  });
+}
+```
+
+#### Why Use the SDK?
+- **TypeScript Support** - Full type definitions with IntelliSense
+- **Automatic Retry Logic** - Built-in exponential backoff for resilience
+- **Cross-Platform** - Works in Node.js and browsers
+- **Simplified API** - Clean, promise-based interface
+- **Error Handling** - Structured errors with helpful messages
+- **Small Bundle** - Only ~6KB gzipped
+
+**📦 View on npm**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+
+**📚 Full Documentation**: [SDK README](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#readme)
+```
+
+Also update the "Coming Soon" section to reflect the SDK is now live:
+
+```markdown
+#### ✅ Production-Ready Features
+- Multi-version ERN validation (3.8.2, 4.2, 4.3)
+- Three-stage validation pipeline
+- Real-time validation
+- Authentication & API keys
+- Community snippets library
+- Public REST API
+- **Official npm SDK** - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- Comprehensive API documentation
+- Theme system (light/dark/auto)
+
+#### 🚧 Coming Soon
+- Usage analytics dashboard
+- Batch validation UI
+- ERN Sandbox enhancements
 
 ## 🛠️ Tech Stack
 

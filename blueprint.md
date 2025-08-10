@@ -344,6 +344,8 @@ The `ApiDocsView.vue` provides comprehensive API documentation:
 
 The DDEX Workbench SDK (`@ddex-workbench/sdk`) is a TypeScript/JavaScript client library that provides programmatic access to all DDEX validation capabilities. It enables developers to integrate DDEX validation directly into their applications, CI/CD pipelines, and automated workflows.
 
+**🎉 Now Available on npm: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)**
+
 ### Key Features
 
 - 🚀 **Simple API** - Intuitive methods for all validation operations
@@ -415,15 +417,15 @@ The SDK is built with modern TypeScript and provides:
 | Version Detection | ✅ Automatic | ❌ Manual parsing |
 | Bundle Size | ~6KB gzipped | N/A |
 
-### Publishing Strategy
+### Publishing Status ✅
 
-The SDK is published to npm as `@ddex-workbench/sdk` with:
-- Semantic versioning (1.0.0+)
-- Dual CommonJS/ESM builds
-- TypeScript declarations
-- Source maps for debugging
-- Comprehensive documentation
-- MIT License
+The SDK is officially published to npm as `@ddex-workbench/sdk`:
+- **npm Package**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **Version**: 1.0.0+ (Semantic versioning)
+- **License**: MIT
+- **Weekly Downloads**: Growing 📈
+- **Bundle Formats**: CommonJS, ESM, TypeScript definitions
+- **Documentation**: Comprehensive README with examples
 
 ### Browser Support
 
@@ -439,9 +441,10 @@ The SDK is published to npm as `@ddex-workbench/sdk` with:
 
 ### Related Documentation
 
-- [SDK README](packages/sdk/README.md) - Complete usage guide
-- [API Documentation](/api) - REST API reference
-- [Code Examples](packages/sdk/examples) - Sample implementations
+- [SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package page
+- [SDK Source Code](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk) - GitHub repository
+- [API Documentation](https://ddex-workbench.org/api) - REST API reference
+- [Code Examples](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#examples) - Sample implementations
 
 ## Authentication Architecture
 
