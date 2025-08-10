@@ -4,6 +4,7 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
 [![npm](https://img.shields.io/npm/v/@ddex-workbench/sdk.svg)](https://www.npmjs.com/package/@ddex-workbench/sdk)
+[![PyPI](https://img.shields.io/pypi/v/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 
 > Modern, open-source DDEX validation tools for the music industry.
 
@@ -68,16 +69,18 @@ A production-ready web-based ERN validator supporting multiple versions with com
 - **Copy to validator** for quick testing
 - **Direct Firestore integration** for real-time updates
 
-### 🎉 Official SDK Now Available!
+### 🎉 Official SDKs Now Available!
 
-We're excited to announce that the **DDEX Workbench SDK** is now available on npm! This makes it easier than ever to integrate DDEX validation into your applications.
+We're excited to announce that **DDEX Workbench SDKs** are now available for both JavaScript/TypeScript and Python! This makes it easier than ever to integrate DDEX validation into your applications.
 
-#### Installation
+## 📦 JavaScript/TypeScript SDK
+
+### Installation
 ```bash
 npm install @ddex-workbench/sdk
 ```
 
-#### Quick Example
+### Quick Example
 ```javascript
 import { DDEXClient } from '@ddex-workbench/sdk';
 
@@ -101,7 +104,7 @@ if (result.valid) {
 }
 ```
 
-#### Why Use the SDK?
+### Why Use the JavaScript SDK?
 - **TypeScript Support** - Full type definitions with IntelliSense
 - **Automatic Retry Logic** - Built-in exponential backoff for resilience
 - **Cross-Platform** - Works in Node.js and browsers
@@ -111,9 +114,46 @@ if (result.valid) {
 
 **📦 View on npm**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
 
-**📚 Full Documentation**: [SDK README](https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#readme)
+## 🐍 Python SDK
 
-#### ✅ Public Validation API
+### Installation
+```bash
+pip install ddex-workbench
+```
+
+### Quick Example
+```python
+from ddex_workbench import DDEXClient
+
+# Initialize client (API key optional for higher rate limits)
+client = DDEXClient(api_key="ddex_your-api-key")
+
+# Validate ERN XML
+result = client.validate(
+    xml_content,
+    version="4.3",
+    profile="AudioAlbum"
+)
+
+if result.valid:
+    print("✅ Valid DDEX file!")
+else:
+    print(f"❌ Found {len(result.errors)} errors")
+    for error in result.errors:
+        print(f"  Line {error.line}: {error.message}")
+```
+
+### Why Use the Python SDK?
+- **Type Hints** - Full type annotations with dataclasses
+- **Async Support** - Built-in async/await support with retry logic
+- **Python 3.7+** - Compatible with modern Python versions
+- **Auto-Detection** - Automatically detect ERN version and profile
+- **Batch Processing** - Validate multiple files efficiently
+- **CI/CD Ready** - Examples for integration with GitHub Actions
+
+**📦 View on PyPI**: [https://pypi.org/project/ddex-workbench/](https://pypi.org/project/ddex-workbench/)
+
+## 🌐 Public Validation API
 
 **Base URL**: `https://api.ddex-workbench.org/v1`
 
@@ -132,26 +172,24 @@ headers: {
 }
 ```
 
-#### ✅ Comprehensive API Documentation
+### API Documentation
 - Interactive code examples (cURL, JavaScript, Python, PHP)
 - Live response examples
 - Complete endpoint reference
 - Authentication guide
 - Version and profile information
 
-#### ✅ Production-Ready Features
+## ✅ Production-Ready Features
 - Multi-version ERN validation (3.8.2, 4.2, 4.3)
 - Three-stage validation pipeline
 - Real-time validation
 - Authentication & API keys
 - Community snippets library
 - Public REST API
-- **Official npm SDK** - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **Official JavaScript/TypeScript SDK** - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **Official Python SDK** - [ddex-workbench](https://pypi.org/project/ddex-workbench/)
 - Comprehensive API documentation
 - Theme system (light/dark/auto)
-
-#### 🚧 Coming Soon
-- Usage analytics dashboard
 
 ## 🛠️ Tech Stack
 
@@ -262,7 +300,8 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 - [x] Enhanced error display with grouping/filtering
 - [x] Community snippet library
 - [x] JSON and text report generation
-- [x] Official npm SDK - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- [x] Official JavaScript/TypeScript SDK - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- [x] Official Python SDK - [ddex-workbench](https://pypi.org/project/ddex-workbench/)
 - [ ] Usage analytics
 
 ### Phase 2: ERN Sandbox (Q3 2025)
@@ -287,7 +326,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - [Technical Blueprint](blueprint.md) - Detailed technical architecture and implementation details
 - [Strategic Overview](overview.md) - Market analysis and business case
 - [API Documentation](https://ddex-workbench.web.app/api) - Live interactive API docs
-- [SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package documentation
+- [JavaScript SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package documentation
+- [Python SDK Documentation](https://pypi.org/project/ddex-workbench/) - PyPI package documentation
 - [Setup Guide](docs/SETUP.md) - Detailed development environment setup
 
 ## 🎯 Performance & Metrics
@@ -296,6 +336,10 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - **Validation speed**: 2-100ms depending on file size and mode
 - **API response time**: <200ms average
 - **Uptime**: 99.9% target
+
+### SDK Downloads
+- **JavaScript SDK**: Track via [npm stats](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **Python SDK**: Track via [pypistats.org](https://pypistats.org/packages/ddex-workbench)
 
 ## 📄 License
 
@@ -311,7 +355,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Live App**: [https://ddex-workbench.org](https://ddex-workbench.org)
 - **API**: [https://api.ddex-workbench.org/v1](https://api.ddex-workbench.org/v1)
-- **npm Package**: [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **JavaScript SDK**: [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+- **Python SDK**: [ddex-workbench](https://pypi.org/project/ddex-workbench/)
 - **GitHub Issues**: For bug reports and feature requests
 - **Email**: daddykev@gmail.com
 
