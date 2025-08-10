@@ -207,6 +207,24 @@ ddex-workbench/
 │   ├── index.js               # Functions entry with trust proxy
 │   ├── package.json           # Functions dependencies
 │   └── package-lock.json      # Locked dependencies
+├── packages/                  # NPM packages
+│   └── sdk/                   # DDEX Workbench SDK
+│       ├── src/               # SDK source code
+│       │   ├── client.ts      # Main API client class
+│       │   ├── validator.ts   # High-level validation helper
+│       │   ├── types.ts       # TypeScript type definitions
+│       │   ├── errors.ts      # Custom error classes and utilities
+│       │   └── index.ts       # SDK entry point and exports
+│       ├── dist/              # Built SDK files (git ignored)
+│       │   ├── index.js       # CommonJS build
+│       │   ├── index.mjs      # ES module build
+│       │   ├── index.d.ts     # TypeScript declarations
+│       │   └── *.map          # Source maps
+│       ├── README.md          # SDK documentation and usage examples
+│       ├── package.json       # SDK dependencies and scripts
+│       ├── package-lock.json  # Locked SDK dependencies
+│       ├── tsconfig.json      # TypeScript configuration
+│       └── tsup.config.ts     # Build configuration
 ├── public/                    # Static public assets
 │   └── favicon.ico
 ├── docs/                      # Documentation
