@@ -338,6 +338,111 @@ The `ApiDocsView.vue` provides comprehensive API documentation:
 - **Sticky Navigation**: Easy navigation through documentation sections
 - **Mobile Responsive**: Optimized for all screen sizes
 
+## DDEX Workbench SDK
+
+### Overview
+
+The DDEX Workbench SDK (`@ddex-workbench/sdk`) is a TypeScript/JavaScript client library that provides programmatic access to all DDEX validation capabilities. It enables developers to integrate DDEX validation directly into their applications, CI/CD pipelines, and automated workflows.
+
+### Key Features
+
+- 🚀 **Simple API** - Intuitive methods for all validation operations
+- 📦 **TypeScript Support** - Full type definitions with IntelliSense support
+- 🌐 **Universal Compatibility** - Works in Node.js (14+) and modern browsers
+- 🔄 **Smart Retry Logic** - Automatic retry with exponential backoff
+- 🔑 **API Key Management** - Built-in authentication handling
+- 📊 **Batch Operations** - Validate multiple files efficiently
+- 🎯 **Version Detection** - Automatic ERN version detection
+- ⚡ **Optimized Performance** - Minimal bundle size (~6KB minified)
+
+### Installation
+
+```bash
+npm install @ddex-workbench/sdk
+# or
+yarn add @ddex-workbench/sdk
+# or
+pnpm add @ddex-workbench/sdk
+```
+
+### Quick Start
+
+```javascript
+import { DDEXClient } from '@ddex-workbench/sdk';
+
+const client = new DDEXClient({
+  apiKey: 'ddex_your-api-key' // Optional - for higher rate limits
+});
+
+// Validate ERN XML
+const result = await client.validate(xmlContent, {
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
+
+if (!result.valid) {
+  console.log('Validation errors:', result.errors);
+}
+```
+
+### SDK Architecture
+
+The SDK is built with modern TypeScript and provides:
+
+1. **DDEXClient** - Main client class for API interactions
+2. **DDEXValidator** - High-level validation helpers with version-specific methods
+3. **Type Definitions** - Complete TypeScript types for all API operations
+4. **Error Classes** - Structured error handling with retry strategies
+5. **Platform Detection** - Automatic environment detection (Node.js/Browser)
+
+### Use Cases
+
+- **CI/CD Integration** - Validate releases before distribution
+- **Bulk Processing** - Validate entire catalogs programmatically
+- **Custom Workflows** - Build validation into your release pipeline
+- **Development Tools** - Create custom DDEX tools and utilities
+- **Quality Assurance** - Automated testing of DDEX compliance
+
+### SDK vs Direct API
+
+| Feature | SDK | Direct API |
+|---------|-----|------------|
+| Type Safety | ✅ Full TypeScript support | ❌ Manual typing |
+| Retry Logic | ✅ Automatic with backoff | ❌ Manual implementation |
+| Error Handling | ✅ Structured error classes | ❌ Raw HTTP errors |
+| File Uploads | ✅ Simplified interface | ⚠️ FormData handling |
+| Batch Operations | ✅ Built-in support | ❌ Manual orchestration |
+| Version Detection | ✅ Automatic | ❌ Manual parsing |
+| Bundle Size | ~6KB gzipped | N/A |
+
+### Publishing Strategy
+
+The SDK is published to npm as `@ddex-workbench/sdk` with:
+- Semantic versioning (1.0.0+)
+- Dual CommonJS/ESM builds
+- TypeScript declarations
+- Source maps for debugging
+- Comprehensive documentation
+- MIT License
+
+### Browser Support
+
+- Modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+- Internet Explorer is not supported
+- Requires Promise and async/await support
+
+### Node.js Support
+
+- Node.js 14.0.0 or higher
+- Full ESM and CommonJS support
+- Native FormData handling for file uploads
+
+### Related Documentation
+
+- [SDK README](packages/sdk/README.md) - Complete usage guide
+- [API Documentation](/api) - REST API reference
+- [Code Examples](packages/sdk/examples) - Sample implementations
+
 ## Authentication Architecture
 
 ### Auth Flow
