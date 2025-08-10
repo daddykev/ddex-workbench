@@ -20,20 +20,37 @@
             </router-link>
           </div>
           
-          <!-- NEW: SDK Quick Link -->
-          <div class="hero-sdk-banner">
-            <span class="sdk-badge">NEW</span>
-            <font-awesome-icon :icon="['fab', 'npm']" class="npm-icon" />
-            <span>Official SDK now available:</span>
-            <code class="sdk-install">npm install @ddex-workbench/sdk</code>
-            <a 
-              href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
-              target="_blank" 
-              rel="noopener"
-              class="sdk-link"
-            >
-              View on npm →
-            </a>
+          <!-- UPDATED: SDK Quick Links showing both npm and pip -->
+          <div class="hero-sdk-section">
+            <div class="hero-sdk-banner">
+              <span class="sdk-badge">NEW</span>
+              <font-awesome-icon :icon="['fab', 'npm']" class="npm-icon" />
+              <span>JavaScript/TypeScript:</span>
+              <code class="sdk-install">npm install @ddex-workbench/sdk</code>
+              <a 
+                href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
+                target="_blank" 
+                rel="noopener"
+                class="sdk-link"
+              >
+                View on npm →
+              </a>
+            </div>
+            
+            <div class="hero-sdk-banner">
+              <span class="sdk-badge">NEW</span>
+              <font-awesome-icon :icon="['fab', 'python']" class="python-icon" />
+              <span>Python SDK:</span>
+              <code class="sdk-install">pip install ddex-workbench</code>
+              <a 
+                href="https://pypi.org/project/ddex-workbench/" 
+                target="_blank" 
+                rel="noopener"
+                class="sdk-link"
+              >
+                View on PyPI →
+              </a>
+            </div>
           </div>
           
           <div class="hero-stats">
@@ -137,35 +154,47 @@
             </div>
           </div>
 
-          <!-- NEW: SDK Feature Card -->
+          <!-- Official SDKs Feature Card -->
           <div class="feature-card card card-hover">
             <div class="card-body">
-              <div class="feature-icon">
+              <div class="feature-icon sdk-icons">
                 <font-awesome-icon :icon="['fab', 'npm']" size="3x" />
+                <font-awesome-icon :icon="['fab', 'python']" size="3x" />
               </div>
               <h3 class="feature-title">
-                Official SDK
+                Official SDKs
                 <span class="new-badge">NEW</span>
               </h3>
               <p class="feature-description">
-                TypeScript/JavaScript SDK for seamless integration. Available on npm for easy installation.
+                Native SDKs for JavaScript/TypeScript and Python. Easy integration with type safety.
               </p>
               <ul class="feature-list">
-                <li>TypeScript support</li>
+                <li>Full type support</li>
                 <li>Auto retry logic</li>
-                <li>Node.js & browser</li>
-                <li>Only ~6KB gzipped</li>
+                <li>Cross-platform</li>
+                <li>Lightweight & fast</li>
               </ul>
-              <a 
-                href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
-                target="_blank"
-                rel="noopener"
-                class="btn btn-primary mt-lg"
-              >
-                View on npm
-              </a>
+              <div class="sdk-buttons">
+                <a 
+                  href="https://www.npmjs.com/package/@ddex-workbench/sdk" 
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-primary"
+                >
+                  npm
+                </a>
+                <a 
+                  href="https://pypi.org/project/ddex-workbench/" 
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-primary"
+                >
+                  PyPI
+                </a>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </section>
@@ -397,7 +426,15 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* SDK Banner in Hero */
+/* SDK Section - now supports multiple banners */
+.hero-sdk-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
 .hero-sdk-banner {
   display: inline-flex;
   align-items: center;
@@ -405,7 +442,6 @@
   background: rgba(255, 255, 255, 0.1);
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-full);
-  margin-bottom: var(--space-xl);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: var(--text-sm);
@@ -423,6 +459,11 @@
 
 .npm-icon {
   color: #CB3837;
+  font-size: var(--text-lg);
+}
+
+.python-icon {
+  color: #3776AB;
   font-size: var(--text-lg);
 }
 
@@ -496,6 +537,25 @@
   margin-bottom: var(--space-lg);
 }
 
+/* SDK icons container - display both icons horizontally */
+.sdk-icons {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: flex-start;
+}
+
+/* SDK buttons - horizontal layout */
+.sdk-buttons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.sdk-buttons .btn {
+  flex: 1;
+  justify-content: center;
+}
+
 .feature-title {
   font-size: var(--text-xl);
   margin-bottom: var(--space-md);
@@ -537,6 +597,14 @@
   font-weight: var(--font-semibold);
   margin-left: var(--space-xs);
   vertical-align: super;
+}
+
+/* SDK buttons */
+.sdk-buttons {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-top: var(--space-lg);
 }
 
 /* Grid adjustment for 4 columns */
@@ -843,11 +911,16 @@
     align-items: center;
   }
   
+  .hero-sdk-section {
+    gap: var(--space-sm);
+  }
+  
   .hero-sdk-banner {
     flex-direction: column;
     text-align: center;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-xs);
   }
   
   .hero-stats {
