@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Stardust Distro is a 100% open-source, npm-installable music distribution platform that enables labels and artists to manage their catalog, generate DDEX-compliant ERN messages, and deliver releases to Digital Service Providers (DSPs). Built with a **completely open-source core** and an **optional plugin marketplace** for specialized features.
+Stardust Distro is an open-source, npm-installable music distribution platform that enables labels and artists to manage their catalog, generate DDEX-compliant ERN messages, and deliver releases to Digital Service Providers (DSPs). Built with an **open-source core** and an **optional plugin marketplace** for specialized features.
 
 ### Vision
 Democratize music distribution by providing a complete, DDEX-compliant distribution platform that's truly free and open, with an optional marketplace for specialized plugins from both our team and third-party developers.
@@ -17,7 +17,7 @@ Democratize music distribution by providing a complete, DDEX-compliant distribut
 
 ### Platform Architecture
 
-#### DDEX Distro Core (100% Open Source - MIT License)
+#### Stardust Distro Core (100% Open Source - MIT License)
 **Complete distribution platform for everyone**
 - Full ERN generation (3.8.2, 4.2, 4.3)
 - All delivery protocols (FTP/SFTP/API/S3/Azure)
@@ -39,7 +39,7 @@ The marketplace welcomes plugins from:
 - **Open Source Plugins**: Free community contributions
 
 Example plugin categories:
-- **Audio Processing**: Dolby Atmos, Sony 360, Apple Digital Masters, Stem Management
+- **Audio Processing**: Dolby Atmos, Apple Digital Masters, Stem Management
 - **Advanced Metadata**: Session musicians, engineering credits, studio details
 - **Workflow Automation**: Delivery orchestration, bulk operations, smart scheduling
 - **Analytics & Reporting**: Advanced metrics, custom reports, BI integrations
@@ -87,7 +87,7 @@ Example plugin categories:
 ### Deployment Model
 ```bash
 # One-command deployment
-npx create-ddex-distro my-label-distro
+npx create-stardust-distro my-label-distro
 cd my-label-distro
 npm run deploy
 ```
@@ -104,11 +104,11 @@ Stardust Distro shares authentication with the DDEX Workbench app ecosystem:
 
 ```javascript
 // Shared auth configuration
-import { initializeAuth } from '@ddex/auth';
+import { initializeAuth } from '@stardust/auth';
 
 const auth = initializeAuth({
-  project: 'ddex-ecosystem',
-  domain: 'auth.ddex-ecosystem.org'
+  project: 'stardust-ecosystem',
+  domain: 'auth.stardust-ecosystem.org'
 });
 
 // Single sign-on across:
@@ -118,7 +118,7 @@ const auth = initializeAuth({
 ```
 
 ### Benefits
-- **Test Workflows**: Users can test distributions by sending to their own DDEX DSP instance
+- **Test Workflows**: Users can test distributions by sending to their own Stardust DSP instance
 - **Unified Dashboard**: Single login for all DDEX tools
 - **Cross-Platform Analytics**: Track releases from creation to consumption
 - **Shared API Keys**: One API key works across all services
@@ -129,7 +129,7 @@ const auth = initializeAuth({
 stardust-distro/
 ├── cli/                           # CLI tool for scaffolding
 │   ├── bin/                       # Executable scripts
-│   │   └── ddex-distro.js         # Main CLI entry ✅
+│   │   └── stardust-distro.js     # Main CLI entry ✅
 │   ├── commands/                  # CLI commands
 │   │   ├── create.js              # Create new project ✅
 │   │   ├── init.js                # Initialize Firebase ✅
@@ -144,7 +144,7 @@ stardust-distro/
 │   │   └── custom/                # Custom configurations ❌
 │   └── package.json               # CLI dependencies ✅
 ├── packages/                      # Core packages
-│   ├── @ddex/common/              # Common types and utilities ✅
+│   ├── @stardust/common/          # Common types and utilities ✅
 │   │   ├── src/
 │   │   │   ├── types/             # TypeScript types ✅
 │   │   │   │   ├── index.ts       # Type exports ✅
@@ -160,7 +160,7 @@ stardust-distro/
 │   │   │   └── index.ts           # Main export ✅
 │   │   ├── package.json           # Package config ✅
 │   │   └── tsconfig.json          # TypeScript config ✅
-│   ├── @ddex/distro-core/         # Core distribution logic ❌
+│   ├── @stardust/distro-core/     # Core distribution logic ❌
 │   │   ├── src/
 │   │   │   ├── catalog/           # Catalog management
 │   │   │   ├── delivery/          # Delivery engine
@@ -168,13 +168,13 @@ stardust-distro/
 │   │   │   ├── validation/        # Workbench integration
 │   │   │   └── plugin-system/     # Plugin architecture
 │   │   └── package.json
-│   ├── @ddex/cms/                 # Content management ❌
+│   ├── @stardust/cms/             # Content management ❌
 │   │   ├── src/
 │   │   │   ├── components/        # Vue components
 │   │   │   ├── stores/            # Pinia stores
 │   │   │   └── views/             # Page components
 │   │   └── package.json
-│   └── @ddex/delivery-engine/     # Delivery workers ❌
+│   └── @stardust/delivery-engine/   # Delivery workers ❌
 │       ├── src/
 │       │   ├── protocols/         # FTP, SFTP, S3, API
 │       │   ├── queue/             # Job queue management
@@ -822,10 +822,10 @@ class WorkbenchClient {
   }
 }
 
-// DDEX DSP Test Integration
+// Stardust DSP Test Integration
 class DSPTestClient {
   async sendTestDelivery(release, targetDSP) {
-    // Send to user's DDEX DSP instance for testing
+    // Send to user's Stardust DSP instance for testing
     return fetch(`${targetDSP.endpoint}/api/deliveries`, {
       method: 'POST',
       headers: {
@@ -843,12 +843,12 @@ class DSPTestClient {
 
 ```javascript
 // Base plugin interface
-class DDEXPlugin {
+class StardustPlugin {
   static metadata = {
     name: 'plugin-name',
     version: '1.0.0',
     author: 'Developer Name',
-    requires: ['@ddex/core@^2.0.0'],
+    requires: ['@stardust/core@^2.0.0'],
     hooks: ['beforeRelease', 'afterRelease', 'beforeDelivery']
   };
   
@@ -874,7 +874,7 @@ class PluginLoader {
   }
   
   async loadPlugin(name) {
-    const plugin = await import(`@ddex-plugins/${name}`);
+    const plugin = await import(`@stardust-plugins/${name}`);
     
     // Validate plugin compatibility
     if (!this.validateRequirements(plugin.metadata.requires)) {
@@ -904,12 +904,12 @@ class PluginLoader {
 
 ```javascript
 // Example: Dolby Atmos Plugin (third-party or core team)
-export class DolbyAtmosPlugin extends DDEXPlugin {
+export class DolbyAtmosPlugin extends StardustPlugin {
   static metadata = {
     name: 'dolby-atmos',
     version: '1.0.0',
     author: 'Audio Processing Inc.',
-    requires: ['@ddex/core@^2.0.0'],
+    requires: ['@stardust/core@^2.0.0'],
     hooks: ['beforeAssetProcess', 'afterAssetProcess', 'beforeDelivery']
   };
   
@@ -1015,16 +1015,16 @@ class PluginMarketplace {
 ### Installation & Setup
 ```bash
 # Global installation
-npm install -g @ddex/distro-cli
+npm install -g @stardust/distro-cli
 
 # Create new project
-ddex-distro create my-label \
+stardust-distro create my-label \
   --template=default \
   --region=us-central1
 
 # Interactive setup
 cd my-label
-ddex-distro init
+stardust-distro init
 # Prompts for:
 # - Firebase project selection/creation
 # - Authentication configuration
@@ -1035,36 +1035,36 @@ ddex-distro init
 ### CLI Commands
 ```bash
 # Project management
-ddex-distro create <name>    # Create new project
-ddex-distro init             # Initialize Firebase
-ddex-distro deploy           # Deploy to Firebase
-ddex-distro update           # Update to latest version
+stardust-distro create <name>    # Create new project
+stardust-distro init             # Initialize Firebase
+stardust-distro deploy           # Deploy to Firebase
+stardust-distro update           # Update to latest version
 
 # Configuration
-ddex-distro config set <key> <value>
-ddex-distro config get <key>
-ddex-distro target add       # Add delivery target
-ddex-distro target test      # Test delivery target
-ddex-distro target list      # List configured targets
+stardust-distro config set <key> <value>
+stardust-distro config get <key>
+stardust-distro target add       # Add delivery target
+stardust-distro target test      # Test delivery target
+stardust-distro target list      # List configured targets
 
 # Development
-ddex-distro dev              # Start local development
-ddex-distro build            # Build for production
-ddex-distro emulators        # Start Firebase emulators
-ddex-distro test             # Run test suite
+stardust-distro dev              # Start local development
+stardust-distro build            # Build for production
+stardust-distro emulators        # Start Firebase emulators
+stardust-distro test             # Run test suite
 
 # Plugin Management
-ddex-distro plugin search    # Search marketplace
-ddex-distro plugin install   # Install plugin
-ddex-distro plugin remove    # Remove plugin
-ddex-distro plugin list      # List installed plugins
-ddex-distro plugin develop   # Create new plugin
+stardust-distro plugin search    # Search marketplace
+stardust-distro plugin install   # Install plugin
+stardust-distro plugin remove    # Remove plugin
+stardust-distro plugin list      # List installed plugins
+stardust-distro plugin develop   # Create new plugin
 
 # Migration & Backup
-ddex-distro import           # Import existing catalog
-ddex-distro export           # Export catalog data
-ddex-distro backup           # Backup to cloud storage
-ddex-distro restore          # Restore from backup
+stardust-distro import           # Import existing catalog
+stardust-distro export           # Export catalog data
+stardust-distro backup           # Backup to cloud storage
+stardust-distro restore          # Restore from backup
 ```
 
 ## Security Architecture
@@ -1077,7 +1077,7 @@ import { getAuth } from 'firebase/auth';
 
 // Shared auth configuration
 const app = initializeApp({
-  authDomain: 'auth.ddex-ecosystem.org',
+  authDomain: 'auth.stardust-ecosystem.org',
   // ... other config
 });
 
@@ -1172,7 +1172,7 @@ distro.registerProtocol('custom', CustomDeliveryProtocol);
 
 ```javascript
 // Complete release creation and delivery
-import { ReleaseCreator, DeliveryManager } from '@ddex/distro-core';
+import { ReleaseCreator, DeliveryManager } from '@stardust/distro-core';
 
 // Create release with full metadata
 const release = {
@@ -1258,8 +1258,8 @@ if (validation.valid) {
 
 ```javascript
 // Using plugins for specialized features
-import { ReleaseCreator, DeliveryManager } from '@ddex/distro-core';
-import { PluginLoader } from '@ddex/plugin-system';
+import { ReleaseCreator, DeliveryManager } from '@stardust/distro-core';
+import { PluginLoader } from '@stardust/plugin-system';
 
 // Load plugins (if licensed)
 const plugins = new PluginLoader();
@@ -1459,7 +1459,7 @@ const results = await delivery.deliver(ddexRelease);
 ### Monitoring & Logging
 ```javascript
 // Comprehensive logging
-import { logger } from '@ddex/distro-core';
+import { logger } from '@stardust/distro-core';
 
 logger.info('Delivery started', {
   releaseId,
@@ -1470,7 +1470,7 @@ logger.info('Delivery started', {
 });
 
 // Performance monitoring
-import { performance } from '@ddex/monitoring';
+import { performance } from '@stardust/monitoring';
 
 const timer = performance.startTimer('ern-generation');
 const ern = await generateERN(release);
@@ -1501,7 +1501,7 @@ timer.end({ releaseId, trackCount: release.tracks.length });
 ### Quick Start
 ```bash
 # Clone and set up the development environment
-git clone https://github.com/ddex-distro/ddex-distro.git
+git clone https://github.com/daddykev/stardust-distro.git
 cd ddex-distro
 
 # Install CLI dependencies
@@ -1509,11 +1509,11 @@ cd cli
 npm install
 
 # Test the CLI locally
-./bin/ddex-distro.js create my-distro
+./bin/stardust-distro.js create my-distro
 
 # Or install globally for development
 npm link
-ddex-distro create my-distro
+stardust-distro create my-distro
 
 # Deploy to Firebase
 cd my-distro
@@ -1527,7 +1527,7 @@ npm run deploy
 ### Plugin Development
 ```bash
 # Create new plugin project
-ddex-distro plugin create my-plugin
+stardust-distro plugin create my-plugin
 
 # Navigate to plugin directory
 cd my-plugin
@@ -1535,11 +1535,11 @@ cd my-plugin
 # Develop your plugin
 npm run dev
 
-# Test with local DDEX Distro instance
+# Test with local Stardust Distro instance
 npm run test
 
 # Publish to marketplace
-ddex-distro plugin publish
+stardust-distro plugin publish
 ```
 
 ### Next Steps
