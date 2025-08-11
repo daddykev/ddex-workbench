@@ -8,10 +8,9 @@ Stardust Distro is an open-source, npm-installable music distribution platform t
 Democratize music distribution by providing a complete, DDEX-compliant distribution platform that's truly free and open, with an optional marketplace for specialized plugins from both our team and third-party developers.
 
 ### Core Value Propositions
-- **100% Open Source**: Every line of core code is MIT licensed
-- **Complete Platform**: Full production-ready system, no limitations
-- **Open Plugin Marketplace**: Optional add-ons from any developer
-- **No Vendor Lock-in**: Core platform is complete without plugins
+- **Instant Distribution Platform**: Deploy a functional distribution system with one command
+- **Multi-Protocol Delivery**: Supports FTP, SFTP, Amazon S3, and Google Cloud methods
+- **No Vendor Lock-in**: Core platform is a full production-ready system
 - **Community Driven**: Open development, transparent roadmap
 - **Developer Ecosystem**: Anyone can build and sell plugins
 
@@ -306,7 +305,7 @@ stardust-distro/
 ### Summary of Actual vs Planned:
 - **Core App (template/)**: 95% complete - all views, routing, and core services done
 - **CLI Tool**: ✅ 100% complete - All commands created and functional
-- **Packages**: ✅ 40% complete - @ddex/common created with types, constants, utils, schemas
+- **Packages**: ✅ 40% complete - @stardust-distro/common created with types, constants, utils, schemas
 - **Services**: ✅ 40% complete - catalog and assets services created
 - **Composables**: ✅ 50% complete - useAuth and useCatalog created
 - **Functions**: 0% complete - not yet created
@@ -1236,10 +1235,10 @@ const release = {
 
 // Create and validate release
 const creator = new ReleaseCreator();
-const ddexRelease = await creator.createRelease(release);
+const stardustRelease = await creator.createRelease(release);
 
 // Generate ERN
-const ern = await creator.generateERN(ddexRelease);
+const ern = await creator.generateERN(stardustRelease);
 
 // Validate with Workbench
 const validation = await creator.validate(ern);
@@ -1249,7 +1248,7 @@ if (validation.valid) {
   const delivery = new DeliveryManager();
   
   for (const target of release.delivery.targets) {
-    await delivery.deliver(ddexRelease, target);
+    await delivery.deliver(stardustRelease, target);
   }
 }
 ```
@@ -1309,11 +1308,11 @@ const release = {
 
 // Process with plugins
 const creator = new ReleaseCreator({ plugins });
-const ddexRelease = await creator.createRelease(release);
+const stardustRelease = await creator.createRelease(release);
 
 // Deliver with orchestration
 const delivery = new DeliveryManager({ plugins });
-const results = await delivery.deliver(ddexRelease);
+const results = await delivery.deliver(stardustRelease);
 ```
 
 ## Implementation Roadmap
@@ -1328,7 +1327,7 @@ const results = await delivery.deliver(ddexRelease);
 - [x] Create placeholder views for all routes
 - [x] Create CLI scaffolding tool
 - [x] Set up monorepo with Lerna/Yarn workspaces
-- [x] Create shared packages (@ddex/common)
+- [x] Create shared packages (@stardust-distro/common)
 - [x] Design Firestore schema
 
 #### Phase 1 Accomplishments:
@@ -1337,7 +1336,7 @@ const results = await delivery.deliver(ddexRelease);
 - **UI/UX**: Professional design system with light/dark themes
 - **CLI Tool**: Fully functional CLI with all commands (create, init, deploy, configure, target, dev)
 - **Monorepo**: Lerna configuration with workspaces support
-- **Shared Packages**: @ddex/common package with types, constants, utils, and schemas
+- **Shared Packages**: @stardust-distro/common package with types, constants, utils, and schemas
 - **Templates**: Complete default template with full Vue app structure
 - **Views Created**: All 12 views (Splash, Login, Signup, Dashboard, Settings, Catalog, NewRelease, ReleaseDetail, Deliveries, NewDelivery, Analytics, NotFound)
 - **Deployment**: Successfully deployed to Firebase Hosting
@@ -1502,7 +1501,7 @@ timer.end({ releaseId, trackCount: release.tracks.length });
 ```bash
 # Clone and set up the development environment
 git clone https://github.com/daddykev/stardust-distro.git
-cd ddex-distro
+cd stardust-distro
 
 # Install CLI dependencies
 cd cli
