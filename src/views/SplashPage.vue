@@ -458,12 +458,12 @@
 }
 
 .npm-icon {
-  color: #CB3837;
+  color: rgba(255, 255, 255, 0.95);  /* Nearly white with slight opacity */
   font-size: var(--text-lg);
 }
 
 .python-icon {
-  color: #3776AB;
+  color: rgba(255, 255, 255, 0.95);  /* Nearly white with slight opacity */
   font-size: var(--text-lg);
 }
 
@@ -526,6 +526,14 @@
 .feature-card {
   height: 100%;
   transition: transform var(--transition-base);
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-card .card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .feature-card:hover {
@@ -544,18 +552,6 @@
   justify-content: flex-start;
 }
 
-/* SDK buttons - horizontal layout */
-.sdk-buttons {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-}
-
-.sdk-buttons .btn {
-  flex: 1;
-  justify-content: center;
-}
-
 .feature-title {
   font-size: var(--text-xl);
   margin-bottom: var(--space-md);
@@ -569,6 +565,7 @@
 .feature-list {
   list-style: none;
   margin-bottom: var(--space-lg);
+  flex-grow: 1; /* This pushes the buttons to the bottom */
 }
 
 .feature-list li {
@@ -586,6 +583,11 @@
   font-weight: bold;
 }
 
+/* Make all feature card buttons full width */
+.feature-card .btn {
+  width: 100%;
+}
+
 /* New badge for SDK card */
 .new-badge {
   display: inline-block;
@@ -599,12 +601,16 @@
   vertical-align: super;
 }
 
-/* SDK buttons */
+/* SDK buttons - ensure they're at the bottom and full width */
 .sdk-buttons {
   display: flex;
   gap: var(--space-sm);
+  margin-top: auto; /* Push to bottom */
+}
+
+.sdk-buttons .btn {
+  flex: 1;
   justify-content: center;
-  margin-top: var(--space-lg);
 }
 
 /* Grid adjustment for 4 columns */
