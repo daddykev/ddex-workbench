@@ -5,7 +5,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const activeSection = ref('introduction')
 const activeLanguage = ref('curl')
 const activeEndpointLang = ref('curl')
-const activeFileExampleLang = ref('javascript') // New state for file examples
+const activeFileExampleLang = ref('javascript')
+const activeHealthLang = ref('curl')
+const copiedStates = ref({}) // Track which code blocks have been copied
 
 // Language options
 const languages = [
@@ -19,23 +21,17 @@ const languages = [
 const codeExamples = {
   quickstart: {
     curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "content": "<?xml version=\\"1.0\\"?>...",
-    "type": "ERN",
-    "version": "4.3",
-    "profile": "AudioAlbum"
-  }'`,
+-H "Content-Type: application/json" \\
+-d '{"content":"<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>","type":"ERN","version":"4.3"}'`,
     javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    content: '<?xml version="1.0"?>...',
+    content: '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
     type: 'ERN',
-    version: '4.3',
-    profile: 'AudioAlbum'
+    version: '4.3'
   })
 });
 
@@ -46,10 +42,9 @@ console.log(result.valid ? '✓ Valid' : '✗ Invalid');`,
 response = requests.post(
     'https://api.ddex-workbench.org/v1/validate',
     json={
-        'content': '<?xml version="1.0"?>...',
+        'content': '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
         'type': 'ERN',
-        'version': '4.3',
-        'profile': 'AudioAlbum'
+        'version': '4.3'
     }
 )
 
@@ -58,15 +53,29 @@ print('✓ Valid' if result['valid'] else '✗ Invalid')`,
     php: `$client = new \\GuzzleHttp\\Client();
 $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
     'json' => [
-        'content' => '<?xml version="1.0"?>...',
+        'content' => '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
         'type' => 'ERN',
-        'version' => '4.3',
-        'profile' => 'AudioAlbum'
+        'version' => '4.3'
     ]
 ]);
 
 $result = json_decode($response->getBody(), true);
 echo $result['valid'] ? '✓ Valid' : '✗ Invalid';`
+  },
+  healthCheck: {
+    curl: `curl https://api.ddex-workbench.org/v1/health`,
+    javascript: `fetch('https://api.ddex-workbench.org/v1/health')
+  .then(response => response.json())
+  .then(data => console.log('API Status:', data.status))
+  .catch(error => console.error('API is down:', error));`,
+    python: `import requests
+
+response = requests.get('https://api.ddex-workbench.org/v1/health')
+data = response.json()
+print(f"API Status: {data['status']}")`,
+    php: `$response = file_get_contents('https://api.ddex-workbench.org/v1/health');
+$data = json_decode($response, true);
+echo "API Status: " . $data['status'];`
   },
   errorFormat: {
     json: `{
@@ -77,15 +86,8 @@ echo $result['valid'] ? '✓ Valid' : '✗ Invalid';`
   },
   validateEndpoint: {
     curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
-  -H "Content-Type: application/json" \\
-  -d @- << 'EOF'
-{
-  "content": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<ern:NewReleaseMessage...>",
-  "type": "ERN",
-  "version": "4.3",
-  "profile": "AudioAlbum"
-}
-EOF`,
+-H "Content-Type: application/json" \\
+-d '{"content":"<NewReleaseMessage><MessageHeader><MessageId>MSG123</MessageId><MessageCreatedDateTime>2025-01-01T00:00:00</MessageCreatedDateTime></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference><Type>MusicalWorkSoundRecording</Type></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference><ReleaseId><ICPN>123456789012</ICPN></ReleaseId></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>","type":"ERN","version":"4.3","profile":"AudioAlbum"}'`,
     javascript: `// Basic validation request
 const validateERN = async (xmlContent, version = '4.3', profile = 'AudioAlbum') => {
   const response = await fetch(
@@ -445,6 +447,39 @@ const getCodeExample = (example, language) => {
   return codeExamples[example]?.[language] || '// Example not available'
 }
 
+// Copy to clipboard function
+const copyToClipboard = async (code, identifier) => {
+  try {
+    await navigator.clipboard.writeText(code)
+    // Set copied state for this specific code block
+    copiedStates.value[identifier] = true
+    
+    // Reset after 2 seconds
+    setTimeout(() => {
+      copiedStates.value[identifier] = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = code
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      copiedStates.value[identifier] = true
+      setTimeout(() => {
+        copiedStates.value[identifier] = false
+      }, 2000)
+    } catch (err) {
+      console.error('Fallback copy failed:', err)
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
 const scrollToSection = (sectionId) => {
   const element = document.getElementById(sectionId)
   if (element) {
@@ -549,8 +584,28 @@ onUnmounted(() => {
                 <p>The validation API is completely free and open. No API keys or authentication needed for basic validation!</p>
               </div>
 
+              <!-- Health Check section -->
+              <div class="warning-box mt-lg">
+                <h4>🩺 Test API Status</h4>
+                <p>Before integrating, check if the API is online:</p>
+                <code class="endpoint-url">https://api.ddex-workbench.org/v1/health</code>
+                <div class="code-example mt-sm">
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard('curl https://api.ddex-workbench.org/v1/health', 'health-quick')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['health-quick'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['health-quick'] ? 'check' : 'copy'" />
+                      {{ copiedStates['health-quick'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>curl https://api.ddex-workbench.org/v1/health</code></pre>
+                  </div>
+                </div>
+              </div>
+
               <h3 class="mt-xl">Quick Start</h3>
-              <p>Here's a simple example to validate an ERN file:</p>
+              <p>Here's a simple example to validate an ERN file. This command works in terminal, Reqbin, or any API testing tool:</p>
               
               <div class="code-example">
                 <div class="code-tabs">
@@ -564,15 +619,36 @@ onUnmounted(() => {
                     {{ lang.name }}
                   </button>
                 </div>
-                <pre class="code-block"><code>{{ getCodeExample('quickstart', activeLanguage) }}</code></pre>
+                <div class="code-block-wrapper">
+                  <button 
+                    @click="copyToClipboard(getCodeExample('quickstart', activeLanguage), `quickstart-${activeLanguage}`)"
+                    class="copy-button"
+                    :class="{ copied: copiedStates[`quickstart-${activeLanguage}`] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates[`quickstart-${activeLanguage}`] ? 'check' : 'copy'" />
+                    {{ copiedStates[`quickstart-${activeLanguage}`] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('quickstart', activeLanguage) }}</code></pre>
+                </div>
+              </div>
+
+              <div class="info-box mt-lg">
+                <h4>💡 Testing with Reqbin</h4>
+                <p>To test this API using <a href="https://reqbin.com" target="_blank">Reqbin.com</a>:</p>
+                <ol class="numbered-list">
+                  <li>Copy the cURL command above</li>
+                  <li>Go to Reqbin and click "Import cURL"</li>
+                  <li>Paste the command and click "Import"</li>
+                  <li>Click "Send" to execute the request</li>
+                </ol>
               </div>
             </section>
 
             <section id="sdk" class="doc-section">
               <h2>SDK & Client Libraries</h2>
               <p>
-                For easier integration, we provide an official SDK that handles authentication, 
-                retry logic, and provides type-safe access to all API endpoints.
+                For easier integration, we provide official SDKs that handle authentication, 
+                retry logic, and provide type-safe access to all API endpoints.
               </p>
 
               <div class="sdk-card card">
@@ -592,12 +668,42 @@ onUnmounted(() => {
 
                   <h4>Installation</h4>
                   <div class="code-example">
-                    <pre class="code-block"><code>npm install @ddex-workbench/sdk</code></pre>
+                    <div class="code-block-wrapper">
+                      <button 
+                        @click="copyToClipboard('npm install @ddex-workbench/sdk', 'sdk-npm-install')"
+                        class="copy-button"
+                        :class="{ copied: copiedStates['sdk-npm-install'] }"
+                      >
+                        <font-awesome-icon :icon="copiedStates['sdk-npm-install'] ? 'check' : 'copy'" />
+                        {{ copiedStates['sdk-npm-install'] ? 'Copied!' : 'Copy' }}
+                      </button>
+                      <pre class="code-block"><code>npm install @ddex-workbench/sdk</code></pre>
+                    </div>
                   </div>
 
                   <h4>Quick Example</h4>
                   <div class="code-example">
-                    <pre class="code-block"><code>import { DDEXClient } from '@ddex-workbench/sdk';
+                    <div class="code-block-wrapper">
+                      <button 
+                        @click="copyToClipboard(`import { DDEXClient } from '@ddex-workbench/sdk';
+
+const client = new DDEXClient({
+  apiKey: 'ddex_your-api-key' // Optional
+});
+
+const result = await client.validate(xmlContent, {
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
+
+console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');`, 'sdk-js-example')"
+                        class="copy-button"
+                        :class="{ copied: copiedStates['sdk-js-example'] }"
+                      >
+                        <font-awesome-icon :icon="copiedStates['sdk-js-example'] ? 'check' : 'copy'" />
+                        {{ copiedStates['sdk-js-example'] ? 'Copied!' : 'Copy' }}
+                      </button>
+                      <pre class="code-block"><code>import { DDEXClient } from '@ddex-workbench/sdk';
 
 const client = new DDEXClient({
   apiKey: 'ddex_your-api-key' // Optional
@@ -609,6 +715,7 @@ const result = await client.validate(xmlContent, {
 });
 
 console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
+                    </div>
                   </div>
 
                   <h4>Key Features</h4>
@@ -636,14 +743,79 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
                 </div>
               </div>
 
+              <div class="sdk-card card">
+                <div class="card-body">
+                  <div class="sdk-header">
+                    <h3>
+                      <font-awesome-icon :icon="['fab', 'python']" class="sdk-icon" />
+                      Official Python SDK
+                    </h3>
+                    <span class="badge badge-success">Available</span>
+                  </div>
+                  
+                  <p class="sdk-description">
+                    Python client library with type hints, async support, and comprehensive error handling.
+                  </p>
+
+                  <h4>Installation</h4>
+                  <div class="code-example">
+                    <div class="code-block-wrapper">
+                      <button 
+                        @click="copyToClipboard('pip install ddex-workbench', 'sdk-pip-install')"
+                        class="copy-button"
+                        :class="{ copied: copiedStates['sdk-pip-install'] }"
+                      >
+                        <font-awesome-icon :icon="copiedStates['sdk-pip-install'] ? 'check' : 'copy'" />
+                        {{ copiedStates['sdk-pip-install'] ? 'Copied!' : 'Copy' }}
+                      </button>
+                      <pre class="code-block"><code>pip install ddex-workbench</code></pre>
+                    </div>
+                  </div>
+
+                  <h4>Quick Example</h4>
+                  <div class="code-example">
+                    <div class="code-block-wrapper">
+                      <button 
+                        @click="copyToClipboard('from ddex_workbench import DDEXClient\n\nclient = DDEXClient(api_key=\'ddex_your-api-key\')  # Optional\n\nresult = client.validate(\n    content=xml_content,\n    version=\'4.3\',\n    profile=\'AudioAlbum\'\n)\n\nprint(\'Valid ✅\' if result.valid else \'Invalid ❌\')', 'sdk-python-example')"
+                        class="copy-button"
+                        :class="{ copied: copiedStates['sdk-python-example'] }"
+                      >
+                        <font-awesome-icon :icon="copiedStates['sdk-python-example'] ? 'check' : 'copy'" />
+                        {{ copiedStates['sdk-python-example'] ? 'Copied!' : 'Copy' }}
+                      </button>
+                      <pre class="code-block"><code>from ddex_workbench import DDEXClient
+
+client = DDEXClient(api_key="ddex_your-api-key")  # Optional
+
+result = client.validate(
+    content=xml_content,
+    version="4.3",
+    profile="AudioAlbum"
+)
+
+print("Valid ✅" if result.valid else "Invalid ❌")</code></pre>
+                    </div>
+                  </div>
+
+                  <div class="sdk-links">
+                    <a href="https://pypi.org/project/ddex-workbench/" target="_blank" class="sdk-link">
+                      <font-awesome-icon :icon="['fab', 'python']" /> PyPI Package
+                    </a>
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/python-sdk" target="_blank" class="sdk-link">
+                      <font-awesome-icon :icon="['fab', 'github']" /> GitHub
+                    </a>
+                  </div>
+                </div>
+              </div>
+
               <div class="info-box mt-lg">
                 <h4>Why use the SDK?</h4>
                 <p>While you can call the API directly, the SDK provides:</p>
                 <ul>
-                  <li><strong>Type Safety:</strong> Full TypeScript support with IntelliSense</li>
+                  <li><strong>Type Safety:</strong> Full TypeScript/Python type support with IntelliSense</li>
                   <li><strong>Error Handling:</strong> Structured errors with retry strategies</li>
                   <li><strong>Convenience Methods:</strong> Shortcuts like <code>validateERN43()</code></li>
-                  <li><strong>Platform Support:</strong> Works seamlessly in Node.js and browsers</li>
+                  <li><strong>Platform Support:</strong> Works seamlessly in Node.js, browsers, and Python environments</li>
                   <li><strong>Maintained:</strong> Regular updates with new API features</li>
                 </ul>
               </div>
@@ -651,7 +823,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
               <h3 class="mt-xl">Direct API Access</h3>
               <p>
                 If you prefer to call the API directly or need to use a different language, 
-                continue reading for the REST API documentation with examples in cURL, Python, and PHP.
+                continue reading for the REST API documentation with examples in cURL, JavaScript, Python, and PHP.
               </p>
             </section>
 
@@ -732,7 +904,17 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 
               <h3>Error Response Format</h3>
               <div class="code-example">
-                <pre class="code-block"><code>{{ getCodeExample('errorFormat', 'json') }}</code></pre>
+                <div class="code-block-wrapper">
+                  <button 
+                    @click="copyToClipboard(getCodeExample('errorFormat', 'json'), 'error-format')"
+                    class="copy-button"
+                    :class="{ copied: copiedStates['error-format'] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates['error-format'] ? 'check' : 'copy'" />
+                    {{ copiedStates['error-format'] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('errorFormat', 'json') }}</code></pre>
+                </div>
               </div>
 
               <h3>Common HTTP Status Codes</h3>
@@ -825,12 +1007,32 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
                       {{ lang.name }}
                     </button>
                   </div>
-                  <pre class="code-block"><code>{{ getCodeExample('validateEndpoint', activeEndpointLang) }}</code></pre>
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(getCodeExample('validateEndpoint', activeEndpointLang), `validate-${activeEndpointLang}`)"
+                      class="copy-button"
+                      :class="{ copied: copiedStates[`validate-${activeEndpointLang}`] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates[`validate-${activeEndpointLang}`] ? 'check' : 'copy'" />
+                      {{ copiedStates[`validate-${activeEndpointLang}`] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('validateEndpoint', activeEndpointLang) }}</code></pre>
+                  </div>
                 </div>
 
                 <h3 class="mt-lg">Response</h3>
                 <div class="code-example">
-                  <pre class="code-block"><code>{{ getCodeExample('validateResponse', 'json') }}</code></pre>
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(getCodeExample('validateResponse', 'json'), 'validate-response')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['validate-response'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['validate-response'] ? 'check' : 'copy'" />
+                      {{ copiedStates['validate-response'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('validateResponse', 'json') }}</code></pre>
+                  </div>
                 </div>
 
                 <h3 class="mt-lg">Response Fields</h3>
@@ -881,7 +1083,17 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
               <div class="endpoint-details">
                 <h3>Example Response</h3>
                 <div class="code-example">
-                  <pre class="code-block"><code>{{ getCodeExample('formatsResponse', 'json') }}</code></pre>
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(getCodeExample('formatsResponse', 'json'), 'formats-response')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['formats-response'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['formats-response'] ? 'check' : 'copy'" />
+                      {{ copiedStates['formats-response'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('formatsResponse', 'json') }}</code></pre>
+                  </div>
                 </div>
               </div>
             </section>
@@ -889,12 +1101,48 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
             <!-- Health Endpoint -->
             <section id="health" class="doc-section">
               <h2>GET /health</h2>
-              <p>Check the API service health status.</p>
+              <p>Check the API service health status. Use this endpoint to verify the API is operational before sending validation requests.</p>
 
               <div class="endpoint-details">
-                <h3>Example Response</h3>
+                <h3>Quick Test</h3>
                 <div class="code-example">
-                  <pre class="code-block"><code>{{ getCodeExample('healthResponse', 'json') }}</code></pre>
+                  <div class="code-tabs">
+                    <button 
+                      v-for="lang in languages" 
+                      :key="lang.id"
+                      @click="activeHealthLang = lang.id"
+                      class="code-tab"
+                      :class="{ active: activeHealthLang === lang.id }"
+                    >
+                      {{ lang.name }}
+                    </button>
+                  </div>
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(getCodeExample('healthCheck', activeHealthLang), `health-${activeHealthLang}`)"
+                      class="copy-button"
+                      :class="{ copied: copiedStates[`health-${activeHealthLang}`] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates[`health-${activeHealthLang}`] ? 'check' : 'copy'" />
+                      {{ copiedStates[`health-${activeHealthLang}`] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('healthCheck', activeHealthLang) }}</code></pre>
+                  </div>
+                </div>
+
+                <h3 class="mt-lg">Example Response</h3>
+                <div class="code-example">
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(getCodeExample('healthResponse', 'json'), 'health-response')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['health-response'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['health-response'] ? 'check' : 'copy'" />
+                      {{ copiedStates['health-response'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('healthResponse', 'json') }}</code></pre>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1055,7 +1303,25 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
                     {{ lang.name }}
                   </button>
                 </div>
-                <pre class="code-block"><code>{{ getCodeExample('fileExamples', activeFileExampleLang) }}</code></pre>
+                <div class="code-block-wrapper">
+                  <button 
+                    @click="copyToClipboard(getCodeExample('fileExamples', activeFileExampleLang), `file-${activeFileExampleLang}`)"
+                    class="copy-button"
+                    :class="{ copied: copiedStates[`file-${activeFileExampleLang}`] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates[`file-${activeFileExampleLang}`] ? 'check' : 'copy'" />
+                    {{ copiedStates[`file-${activeFileExampleLang}`] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('fileExamples', activeFileExampleLang) }}</code></pre>
+                </div>
+              </div>
+
+              <div class="info-box mt-lg">
+                <h4>Need More Examples?</h4>
+                <p>Check out our GitHub repository for more code examples in various languages and frameworks:</p>
+                <a href="https://github.com/daddykev/ddex-workbench/tree/main/examples" target="_blank" class="btn btn-secondary">
+                  <font-awesome-icon :icon="['fab', 'github']" /> View Examples on GitHub
+                </a>
               </div>
             </section>
           </main>
@@ -1066,6 +1332,19 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 </template>
 
 <style scoped>
+/* Layout Container Fixes */
+.api-docs-view {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
 /* Hero Section */
 .hero-section {
   padding: var(--space-2xl) 0;
@@ -1090,6 +1369,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   display: flex;
   justify-content: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -1112,6 +1392,14 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   grid-template-columns: 260px 1fr;
   gap: var(--space-2xl);
   align-items: start;
+  max-width: 100%;
+}
+
+/* Main Content Area Fix */
+.docs-content {
+  max-width: 100%;
+  min-width: 0; /* Prevents grid blowout */
+  overflow-x: hidden;
 }
 
 /* Sidebar */
@@ -1120,6 +1408,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   top: calc(64px + var(--space-lg));
   max-height: calc(100vh - 100px);
   overflow-y: auto;
+  min-width: 0;
 }
 
 .docs-nav {
@@ -1173,6 +1462,8 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 .doc-section {
   margin-bottom: var(--space-3xl);
   scroll-margin-top: 80px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .doc-section h2 {
@@ -1187,10 +1478,18 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   color: var(--color-heading);
 }
 
+.doc-section h4 {
+  font-size: var(--text-base);
+  margin-bottom: var(--space-sm);
+  color: var(--color-heading);
+  font-weight: var(--font-semibold);
+}
+
 .doc-section p {
   color: var(--color-text);
   line-height: var(--leading-relaxed);
   margin-bottom: var(--space-md);
+  max-width: 100%;
 }
 
 /* Info Boxes */
@@ -1200,6 +1499,8 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .info-box {
@@ -1211,6 +1512,12 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   background-color: #fef3c7;
   border: 1px solid #f59e0b;
   color: #92400e;
+}
+
+[data-theme="dark"] .warning-box {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+  color: var(--color-text);
 }
 
 .success-box {
@@ -1226,20 +1533,24 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+  word-break: break-all;
+  max-width: 100%;
 }
 
-/* Code Examples */
+/* Code Examples - Fixed */
 .code-example {
   margin-bottom: var(--space-lg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  max-width: 100%;
 }
 
 .code-tabs {
   display: flex;
   background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
 }
 
 .code-tab {
@@ -1251,6 +1562,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-base);
+  white-space: nowrap;
 }
 
 .code-tab:hover {
@@ -1265,10 +1577,54 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   margin-bottom: -1px;
 }
 
+/* Code Block Wrapper for positioning copy button */
+.code-block-wrapper {
+  position: relative;
+  max-width: 100%;
+}
+
+/* Copy Button Styles */
+.copy-button {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-base);
+  z-index: 10;
+}
+
+.copy-button:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.copy-button.copied {
+  background-color: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+}
+
 .code-block {
   padding: var(--space-lg);
   background-color: var(--color-bg-tertiary);
   overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Adjust code block padding to accommodate copy button */
+.code-block-wrapper .code-block {
+  padding-top: calc(var(--space-lg) + var(--space-xl));
 }
 
 .code-block code {
@@ -1277,14 +1633,25 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   line-height: 1.5;
   color: var(--color-text);
   white-space: pre;
+  display: block;
 }
 
-/* Tables */
+/* Ensure pre elements don't break layout */
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* Tables - Fixed */
 .data-table,
 .params-table {
   width: 100%;
   margin-bottom: var(--space-lg);
   border-collapse: collapse;
+  table-layout: auto;
+  display: block;
+  overflow-x: auto;
 }
 
 .data-table th,
@@ -1295,6 +1662,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
   border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
 }
 
 .data-table td,
@@ -1310,6 +1678,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
 /* Lists */
@@ -1412,6 +1781,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 .sdk-card {
   margin-top: var(--space-lg);
   margin-bottom: var(--space-xl);
+  max-width: 100%;
 }
 
 .sdk-header {
@@ -1419,6 +1789,8 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 .sdk-header h3 {
@@ -1429,8 +1801,16 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 }
 
 .sdk-icon {
-  color: #cb3837; /* npm red */
   font-size: var(--text-xl);
+}
+
+/* Icon colors for different SDKs */
+.sdk-header h3 .sdk-icon:first-child {
+  color: #cb3837; /* npm red */
+}
+
+.sdk-card:nth-child(2) .sdk-icon {
+  color: #3776ab; /* Python blue */
 }
 
 .sdk-description {
@@ -1464,7 +1844,17 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   color: var(--color-primary);
 }
 
+/* Endpoint Details */
+.endpoint-details {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Utilities */
+.mt-sm {
+  margin-top: var(--space-sm);
+}
+
 .mt-lg {
   margin-top: var(--space-lg);
 }
@@ -1481,6 +1871,19 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   margin-bottom: var(--space-md);
 }
 
+/* Dark theme adjustments for copy button */
+[data-theme="dark"] .copy-button {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .copy-button:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
   .docs-layout {
@@ -1493,6 +1896,7 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
     padding: var(--space-lg);
     background-color: var(--color-bg-secondary);
     border-radius: var(--radius-lg);
+    max-height: none;
   }
   
   .docs-nav {
@@ -1503,6 +1907,10 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
 @media (max-width: 768px) {
   .hero-title {
     font-size: var(--text-2xl);
+  }
+  
+  .hero-subtitle {
+    font-size: var(--text-base);
   }
   
   .code-tabs {
@@ -1534,6 +1942,20 @@ console.log(result.valid ? 'Valid ✅' : 'Invalid ❌');</code></pre>
   
   .sdk-links {
     flex-direction: column;
-  }  
+  }
+  
+  .container {
+    padding: 0 var(--space-md);
+  }
+}
+
+/* Ensure code doesn't overlap with button on small screens */
+@media (max-width: 640px) {
+  .copy-button {
+    top: var(--space-xs);
+    right: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
 }
 </style>
