@@ -19,6 +19,9 @@ const corsOptions = {
     'https://ddex-workbench.org',
     'https://ddex-workbench.web.app',
     'https://ddex-workbench.firebaseapp.com',
+    'https://stardust-distro.org',  // Add Stardust DSP domain
+    'https://stardust-dsp.org',  // Add Stardust DSP domain
+    'https://*.cloudfunctions.net',  // Add if calling from Cloud Functions
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:3000'
@@ -46,12 +49,26 @@ const validateRoutes = require('./api/validate');
 const keyRoutes = require('./api/keys');
 const deezerRoutes = require('./api/deezer');
 
-// API Routes
+// Mount routes WITHOUT /api prefix (to match Cloudflare Worker output)
+app.use('/validate', validateRoutes);
+app.use('/keys', keyRoutes);
+app.use('/deezer', deezerRoutes);
+
+// Also keep /api routes for backward compatibility with direct access
 app.use('/api/validate', validateRoutes);
 app.use('/api/keys', keyRoutes);
 app.use('/api/deezer', deezerRoutes);
 
-// Health check endpoint
+// Health check endpoint (both paths)
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'DDEX Workbench API',
+    version: '1.0.0'
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -61,7 +78,22 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Supported formats endpoint (public)
+// Supported formats endpoint (both paths)
+app.get('/formats', (req, res) => {
+  const { ERN_CONFIGS } = require('./validators/ernValidator');
+  
+  const formats = {
+    types: ['ERN'],
+    versions: Object.keys(ERN_CONFIGS).map(version => ({
+      version,
+      profiles: ERN_CONFIGS[version].profiles,
+      status: version === '4.3' ? 'recommended' : 'supported'
+    }))
+  };
+
+  res.json(formats);
+});
+
 app.get('/api/formats', (req, res) => {
   const { ERN_CONFIGS } = require('./validators/ernValidator');
   
