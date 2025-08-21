@@ -605,7 +605,7 @@ onUnmounted(() => {
               </div>
 
               <h3 class="mt-xl">Quick Start</h3>
-              <p>Here's a simple example to validate an ERN file. This command works in terminal, Reqbin, or any API testing tool:</p>
+              <p>Here's a simple example to validate an ERN file. This command works in terminal, ReqBin, or any API testing tool:</p>
               
               <div class="code-example">
                 <div class="code-tabs">
@@ -633,13 +633,13 @@ onUnmounted(() => {
               </div>
 
               <div class="info-box mt-lg">
-                <h4>💡 Testing with Reqbin</h4>
+                <h4>💡 Testing with ReqBin</h4>
                 <p>To test this API using <a href="https://reqbin.com" target="_blank">Reqbin.com</a>:</p>
                 <ol class="numbered-list">
                   <li>Copy the cURL command above</li>
-                  <li>Go to Reqbin and click "Import cURL"</li>
-                  <li>Paste the command and click "Import"</li>
-                  <li>Click "Send" to execute the request</li>
+                  <li>Go to ReqBin and click "Curl" from the top nav</li>
+                  <li>Paste the command into the text area</li>
+                  <li>Click "Run" to execute the request</li>
                 </ol>
               </div>
             </section>
