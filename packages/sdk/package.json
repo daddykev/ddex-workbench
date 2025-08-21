@@ -1,6 +1,6 @@
 {
   "name": "@ddex-workbench/sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official SDK for DDEX Workbench - Open-source DDEX validation and processing tools",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

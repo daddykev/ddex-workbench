@@ -1,12 +1,12 @@
 // packages/sdk/src/validator.ts
-import { DDEXClient } from './client';
-import { 
-  ValidationResult, 
+import { DDEXClient } from "./client";
+import {
+  ValidationResult,
   ValidationOptions,
   ValidationErrorDetail,
   ERNVersion,
-  ERNProfile
-} from './types';
+  ERNProfile,
+} from "./types";
 
 /**
  * High-level validation helper
@@ -19,12 +19,12 @@ export class DDEXValidator {
    */
   async validateERN43(
     content: string,
-    profile?: ERNProfile
+    profile?: ERNProfile,
   ): Promise<ValidationResult> {
     return this.client.validate(content, {
-      type: 'ERN',
-      version: '4.3',
-      profile
+      type: "ERN",
+      version: "4.3",
+      profile,
     });
   }
 
@@ -33,12 +33,12 @@ export class DDEXValidator {
    */
   async validateERN42(
     content: string,
-    profile?: ERNProfile
+    profile?: ERNProfile,
   ): Promise<ValidationResult> {
     return this.client.validate(content, {
-      type: 'ERN',
-      version: '4.2',
-      profile
+      type: "ERN",
+      version: "4.2",
+      profile,
     });
   }
 
@@ -47,12 +47,12 @@ export class DDEXValidator {
    */
   async validateERN382(
     content: string,
-    profile?: ERNProfile
+    profile?: ERNProfile,
   ): Promise<ValidationResult> {
     return this.client.validate(content, {
-      type: 'ERN',
-      version: '3.8.2',
-      profile
+      type: "ERN",
+      version: "3.8.2",
+      profile,
     });
   }
 
@@ -61,32 +61,34 @@ export class DDEXValidator {
    */
   async validateAuto(content: string): Promise<ValidationResult> {
     const version = this.detectVersion(content);
-    
+
     if (!version) {
       return {
         valid: false,
-        errors: [{
-          line: 0,
-          column: 0,
-          message: 'Unable to detect ERN version from XML content',
-          severity: 'error',
-          rule: 'Version-Detection'
-        }],
+        errors: [
+          {
+            line: 0,
+            column: 0,
+            message: "Unable to detect ERN version from XML content",
+            severity: "error",
+            rule: "Version-Detection",
+          },
+        ],
         warnings: [],
         metadata: {
           processingTime: 0,
-          schemaVersion: 'unknown',
+          schemaVersion: "unknown",
           validatedAt: new Date().toISOString(),
           errorCount: 1,
           warningCount: 0,
-          validationSteps: []
-        }
+          validationSteps: [],
+        },
       };
     }
 
     return this.client.validate(content, {
-      type: 'ERN',
-      version
+      type: "ERN",
+      version,
     });
   }
 
@@ -94,27 +96,29 @@ export class DDEXValidator {
    * Batch validate multiple files
    */
   async validateBatch(
-    items: Array<{ content: string; options: ValidationOptions }>
+    items: Array<{ content: string; options: ValidationOptions }>,
   ): Promise<ValidationResult[]> {
     const results = await Promise.allSettled(
-      items.map(item => this.client.validate(item.content, item.options))
+      items.map((item) => this.client.validate(item.content, item.options)),
     );
 
     return results.map((result, index) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         return result.value;
       }
-      
+
       // Return error result for failed validations
       return {
         valid: false,
-        errors: [{
-          line: 0,
-          column: 0,
-          message: `Validation failed: ${result.reason.message}`,
-          severity: 'error' as const,
-          rule: 'Batch-Validation'
-        }],
+        errors: [
+          {
+            line: 0,
+            column: 0,
+            message: `Validation failed: ${result.reason.message}`,
+            severity: "error" as const,
+            rule: "Batch-Validation",
+          },
+        ],
         warnings: [],
         metadata: {
           processingTime: 0,
@@ -122,8 +126,8 @@ export class DDEXValidator {
           validatedAt: new Date().toISOString(),
           errorCount: 1,
           warningCount: 0,
-          validationSteps: []
-        }
+          validationSteps: [],
+        },
       };
     });
   }
@@ -141,7 +145,7 @@ export class DDEXValidator {
    */
   async getErrors(
     content: string,
-    options: ValidationOptions
+    options: ValidationOptions,
   ): Promise<ValidationErrorDetail[]> {
     const result = await this.client.validate(content, options);
     return result.errors;
@@ -152,21 +156,27 @@ export class DDEXValidator {
    */
   detectVersion(content: string): ERNVersion | null {
     // Check for ERN 4.3
-    if (content.includes('xmlns:ern="http://ddex.net/xml/ern/43"') ||
-        content.includes('MessageSchemaVersionId="ern/43"')) {
-      return '4.3';
+    if (
+      content.includes('xmlns:ern="http://ddex.net/xml/ern/43"') ||
+      content.includes('MessageSchemaVersionId="ern/43"')
+    ) {
+      return "4.3";
     }
-    
+
     // Check for ERN 4.2
-    if (content.includes('xmlns:ern="http://ddex.net/xml/ern/42"') ||
-        content.includes('MessageSchemaVersionId="ern/42"')) {
-      return '4.2';
+    if (
+      content.includes('xmlns:ern="http://ddex.net/xml/ern/42"') ||
+      content.includes('MessageSchemaVersionId="ern/42"')
+    ) {
+      return "4.2";
     }
-    
+
     // Check for ERN 3.8.2
-    if (content.includes('xmlns:ern="http://ddex.net/xml/ern/382"') ||
-        content.includes('MessageSchemaVersionId="ern/382"')) {
-      return '3.8.2';
+    if (
+      content.includes('xmlns:ern="http://ddex.net/xml/ern/382"') ||
+      content.includes('MessageSchemaVersionId="ern/382"')
+    ) {
+      return "3.8.2";
     }
 
     return null;

@@ -13,16 +13,16 @@ export class DDEXError extends Error {
 
   constructor(
     message: string,
-    code: string = 'DDEX_ERROR',
+    code: string = "DDEX_ERROR",
     statusCode?: number,
-    details?: any
+    details?: any,
   ) {
     super(message);
-    this.name = 'DDEXError';
+    this.name = "DDEXError";
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
-    
+
     // Maintains proper stack trace for where error was thrown
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -36,12 +36,9 @@ export class DDEXError extends Error {
 export class RateLimitError extends DDEXError {
   public readonly retryAfter?: number;
 
-  constructor(
-    message: string = 'Rate limit exceeded',
-    retryAfter?: number
-  ) {
-    super(message, 'RATE_LIMIT_EXCEEDED', 429);
-    this.name = 'RateLimitError';
+  constructor(message: string = "Rate limit exceeded", retryAfter?: number) {
+    super(message, "RATE_LIMIT_EXCEEDED", 429);
+    this.name = "RateLimitError";
     this.retryAfter = retryAfter;
   }
 
@@ -52,6 +49,6 @@ export class RateLimitError extends DDEXError {
     if (this.retryAfter) {
       return `Please retry after ${this.retryAfter} seconds`;
     }
-    return 'Please retry later';
+    return "Please retry later";
   }
 }

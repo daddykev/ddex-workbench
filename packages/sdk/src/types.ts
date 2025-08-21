@@ -11,25 +11,25 @@ export interface DDEXClientConfig {
   /** Request timeout in milliseconds */
   timeout: number;
   /** Environment (production, development, custom) */
-  environment: 'production' | 'development' | 'custom';
+  environment: "production" | "development" | "custom";
   /** Maximum number of retries for failed requests */
   maxRetries: number;
   /** Delay between retries in milliseconds */
   retryDelay: number;
 }
 
-export type ERNVersion = '4.3' | '4.2' | '3.8.2';
-export type ERNProfile = 
-  | 'AudioAlbum' 
-  | 'AudioSingle' 
-  | 'Video' 
-  | 'Mixed' 
-  | 'Classical'
-  | 'Ringtone'
-  | 'DJ'
-  | 'ReleaseByRelease';
+export type ERNVersion = "4.3" | "4.2" | "3.8.2";
+export type ERNProfile =
+  | "AudioAlbum"
+  | "AudioSingle"
+  | "Video"
+  | "Mixed"
+  | "Classical"
+  | "Ringtone"
+  | "DJ"
+  | "ReleaseByRelease";
 
-export type DDEXType = 'ERN' | 'DSR';
+export type DDEXType = "ERN" | "DSR";
 
 export interface ValidationOptions {
   /** Type of DDEX document */
@@ -39,7 +39,7 @@ export interface ValidationOptions {
   /** Profile for validation */
   profile?: ERNProfile;
   /** Validation mode */
-  mode?: 'full' | 'quick' | 'xsd' | 'business';
+  mode?: "full" | "quick" | "xsd" | "business";
   /** Strict mode (treat warnings as errors) */
   strict?: boolean;
 }
@@ -52,7 +52,7 @@ export interface ValidationErrorDetail {
   /** Error message */
   message: string;
   /** Error severity */
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   /** Validation rule that triggered the error */
   rule: string;
   /** Context showing the error location */
@@ -63,7 +63,7 @@ export interface ValidationErrorDetail {
 
 export interface ValidationStep {
   /** Type of validation step */
-  type: 'XSD' | 'BusinessRules' | 'Schematron';
+  type: "XSD" | "BusinessRules" | "Schematron";
   /** Duration in milliseconds */
   duration: number;
   /** Number of errors found */
@@ -105,13 +105,13 @@ export interface SupportedFormats {
   versions: Array<{
     version: string;
     profiles: string[];
-    status: 'recommended' | 'supported' | 'deprecated';
+    status: "recommended" | "supported" | "deprecated";
   }>;
 }
 
 export interface HealthStatus {
   /** Service status */
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   /** Service version */
   version: string;
   /** Timestamp */

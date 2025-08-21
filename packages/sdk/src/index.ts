@@ -1,6 +1,6 @@
 // packages/sdk/src/index.ts
-export { DDEXClient } from './client';
-export { DDEXValidator } from './validator';
+export { DDEXClient } from "./client";
+export { DDEXValidator } from "./validator";
 
 // Export all types
 export type {
@@ -15,11 +15,8 @@ export type {
   ValidationResult,
   SupportedFormats,
   HealthStatus,
-  ApiKey
-} from './types';
+  ApiKey,
+} from "./types";
 
 // Export only the essential error classes that exist
-export { 
-  DDEXError,
-  RateLimitError
-} from './errors';
+export { DDEXError, RateLimitError } from "./errors";
