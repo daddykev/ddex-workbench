@@ -1,5 +1,3 @@
-# Update requirements-dev.txt with compatible versions
-cat > requirements-dev.txt << 'EOF'
 # Development dependencies for DDEX Workbench SDK
 
 # Include production dependencies
@@ -17,7 +15,7 @@ faker>=18.0.0
 # Code quality (Python 3.8 compatible versions)
 black>=23.0.0
 mypy>=1.0.0
-flake8>=5.0.0,<6.0.0  # flake8 6.0+ requires Python 3.8.1+
+flake8>=5.0.0,<6.0.0
 flake8-docstrings>=1.7.0
 flake8-annotations>=2.9.0
 isort>=5.12.0
@@ -47,4 +45,3 @@ pre-commit>=3.0.0
 # Performance testing
 locust>=2.0.0
 memory-profiler>=0.60.0
-EOF

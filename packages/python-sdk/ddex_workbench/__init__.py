@@ -11,16 +11,20 @@ from .errors import (
     DDEXError,
     RateLimitError,
     ValidationError,
-    AuthenticationError
+    AuthenticationError,
+    NotFoundError
 )
 from .types import (
     ValidationResult,
     ValidationError as ValidationErrorDetail,
     ERNVersion,
-    ERNProfile
+    ERNProfile,
+    SupportedFormats,
+    HealthStatus,
+    ApiKey
 )
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __all__ = [
     "DDEXClient",
     "DDEXValidator",
@@ -28,8 +32,12 @@ __all__ = [
     "RateLimitError",
     "ValidationError",
     "AuthenticationError",
+    "NotFoundError",
     "ValidationResult",
     "ValidationErrorDetail",
     "ERNVersion",
-    "ERNProfile"
+    "ERNProfile",
+    "SupportedFormats",
+    "HealthStatus",
+    "ApiKey"
 ]

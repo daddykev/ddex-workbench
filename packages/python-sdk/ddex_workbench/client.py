@@ -2,7 +2,7 @@
 """DDEX Workbench API Client"""
 
 import time
-from typing import Optional, Dict, Any, BinaryIO, Union, List
+from typing import Optional, Dict, Any, Union, List
 from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
@@ -143,66 +143,7 @@ class DDEXClient:
         if strict:
             payload["strict"] = strict
         
-        response = self._post("/api/validate", json=payload)
-        return ValidationResult.from_dict(response)
-    
-    def validate_file(
-        self,
-        file_path: Union[str, Path, BinaryIO],
-        version: str,
-        profile: Optional[str] = None,
-        mode: Optional[str] = None
-    ) -> ValidationResult:
-        """
-        Validate DDEX XML file
-        
-        Args:
-            file_path: Path to XML file or file-like object
-            version: ERN version
-            profile: Optional profile
-            mode: Optional validation mode
-            
-        Returns:
-            ValidationResult object
-            
-        Example:
-            >>> result = client.validate_file("release.xml", version="4.3")
-            >>> print(f"Valid: {result.valid}")
-        """
-        if isinstance(file_path, str):
-            file_path = Path(file_path)
-        
-        if isinstance(file_path, Path):
-            if not file_path.exists():
-                raise FileNotFoundError(f"File not found: {file_path}")
-            
-            with open(file_path, 'rb') as f:
-                files = {'file': (file_path.name, f, 'text/xml')}
-                data = {
-                    'type': 'ERN',
-                    'version': version
-                }
-                if profile:
-                    data['profile'] = profile
-                if mode:
-                    data['mode'] = mode
-                
-                # Note: Don't use json parameter with files
-                response = self._post("/api/validate/file", files=files, data=data)
-        else:
-            # File-like object
-            files = {'file': ('document.xml', file_path, 'text/xml')}
-            data = {
-                'type': 'ERN',
-                'version': version
-            }
-            if profile:
-                data['profile'] = profile
-            if mode:
-                data['mode'] = mode
-            
-            response = self._post("/api/validate/file", files=files, data=data)
-        
+        response = self._post("/validate", json=payload)
         return ValidationResult.from_dict(response)
     
     def validate_url(
@@ -241,7 +182,7 @@ class DDEXClient:
         Returns:
             SupportedFormats object with version information
         """
-        response = self._get("/api/formats")
+        response = self._get("/formats")
         return SupportedFormats.from_dict(response)
     
     def check_health(self) -> HealthStatus:
@@ -251,7 +192,7 @@ class DDEXClient:
         Returns:
             HealthStatus object
         """
-        response = self._get("/api/health")
+        response = self._get("/health")
         return HealthStatus.from_dict(response)
     
     def list_api_keys(self, auth_token: str) -> List[ApiKey]:
@@ -265,7 +206,7 @@ class DDEXClient:
             List of ApiKey objects
         """
         headers = {"Authorization": f"Bearer {auth_token}"}
-        response = self._get("/api/keys", headers=headers)
+        response = self._get("/keys", headers=headers)
         return [ApiKey.from_dict(key) for key in response]
     
     def create_api_key(self, name: str, auth_token: str) -> ApiKey:
@@ -280,7 +221,7 @@ class DDEXClient:
             ApiKey object (includes the key value only on creation)
         """
         headers = {"Authorization": f"Bearer {auth_token}"}
-        response = self._post("/api/keys", json={"name": name}, headers=headers)
+        response = self._post("/keys", json={"name": name}, headers=headers)
         return ApiKey.from_dict(response)
     
     def revoke_api_key(self, key_id: str, auth_token: str) -> None:
@@ -292,7 +233,7 @@ class DDEXClient:
             auth_token: Firebase auth token
         """
         headers = {"Authorization": f"Bearer {auth_token}"}
-        self._delete(f"/api/keys/{key_id}", headers=headers)
+        self._delete(f"/keys/{key_id}", headers=headers)
     
     def set_api_key(self, api_key: str) -> None:
         """Update API key for this client instance"""
@@ -390,7 +331,7 @@ class DDEXClient:
             from . import __version__
             return __version__
         except ImportError:
-            return "1.0.0"
+            return "1.0.1"
     
     def __enter__(self):
         """Context manager support"""

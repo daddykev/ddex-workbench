@@ -2,6 +2,19 @@
 
 All notable changes to the DDEX Workbench Python SDK will be documented in this file.
 
+## [1.0.1] - 2025-08-21
+
+### Fixed
+- Corrected API endpoint paths to match documentation (removed `/api` prefix)
+- All endpoints now correctly route through Cloudflare Worker proxy
+
+### Removed
+- Removed `validate_file()` method to simplify SDK (users can read files themselves)
+- File upload functionality removed in favor of simpler content-based validation
+
+### Changed
+- Updated User-Agent version to 1.0.1
+
 ## [1.0.0] - 2025-08-10
 
 ### Added
@@ -23,4 +36,5 @@ All notable changes to the DDEX Workbench Python SDK will be documented in this 
 - Utility functions for XML processing and reporting
 - Example scripts for common use cases
 
+[1.0.1]: https://github.com/daddykev/ddex-workbench/releases/tag/python-sdk-v1.0.1
 [1.0.0]: https://github.com/daddykev/ddex-workbench/releases/tag/python-sdk-v1.0.0

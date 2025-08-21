@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ddex-workbench"
-version = "1.0.0"
+version = "1.0.1"
 description = "Official Python SDK for DDEX Workbench - Open-source DDEX validation tools"
 readme = "README.md"
 requires-python = ">=3.7"

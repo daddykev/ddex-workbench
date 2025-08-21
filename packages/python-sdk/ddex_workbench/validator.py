@@ -361,3 +361,5 @@ class DDEXValidator:
         Returns:
             List of critical ValidationError objects
         """
+        result = self.client.validate(content, version, profile)
+        return [e for e in result.errors if e.severity == 'error']

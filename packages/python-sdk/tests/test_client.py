@@ -52,7 +52,6 @@ class TestDDEXClient:
     @responses.activate
     def test_validate_success(self):
         """Test successful validation"""
-        # Mock API response
         mock_response = {
             "valid": True,
             "errors": [],
@@ -69,7 +68,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/validate",
+            f"{TEST_BASE_URL}/validate",
             json=mock_response,
             status=200
         )
@@ -111,7 +110,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/validate",
+            f"{TEST_BASE_URL}/validate",
             json=mock_response,
             status=200
         )
@@ -129,7 +128,7 @@ class TestDDEXClient:
         """Test rate limit error handling"""
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/validate",
+            f"{TEST_BASE_URL}/validate",
             status=429,
             headers={"Retry-After": "60"}
         )
@@ -147,7 +146,7 @@ class TestDDEXClient:
         """Test authentication error"""
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/validate",
+            f"{TEST_BASE_URL}/validate",
             status=401,
             json={"error": {"message": "Invalid API key"}}
         )
@@ -164,48 +163,14 @@ class TestDDEXClient:
         """Test 404 not found error"""
         responses.add(
             responses.GET,
-            f"{TEST_BASE_URL}/api/nonexistent",
+            f"{TEST_BASE_URL}/nonexistent",
             status=404
         )
         
         client = DDEXClient(base_url=TEST_BASE_URL)
         
         with pytest.raises(NotFoundError):
-            client._get("/api/nonexistent")
-    
-    def test_validate_file_with_path(self, tmp_path):
-        """Test validate_file with file path"""
-        # Create temporary XML file
-        xml_file = tmp_path / "test.xml"
-        xml_file.write_text(VALID_ERN_43_XML)
-        
-        with patch.object(DDEXClient, '_post') as mock_post:
-            mock_post.return_value = {
-                "valid": True,
-                "errors": [],
-                "warnings": [],
-                "metadata": {
-                    "processingTime": 50,
-                    "schemaVersion": "ERN 4.3",
-                    "validatedAt": "2024-01-01T00:00:00Z",
-                    "errorCount": 0,
-                    "warningCount": 0,
-                    "validationSteps": []
-                }
-            }
-            
-            client = DDEXClient()
-            result = client.validate_file(xml_file, version="4.3")
-            
-            assert result.valid is True
-            mock_post.assert_called_once()
-    
-    def test_validate_file_not_found(self):
-        """Test validate_file with non-existent file"""
-        client = DDEXClient()
-        
-        with pytest.raises(FileNotFoundError):
-            client.validate_file("nonexistent.xml", version="4.3")
+            client._get("/nonexistent")
     
     @responses.activate
     def test_validate_url(self):
@@ -223,7 +188,7 @@ class TestDDEXClient:
         # Mock validation
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/validate",
+            f"{TEST_BASE_URL}/validate",
             json={
                 "valid": True,
                 "errors": [],
@@ -261,7 +226,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.GET,
-            f"{TEST_BASE_URL}/api/formats",
+            f"{TEST_BASE_URL}/formats",
             json=mock_response,
             status=200
         )
@@ -284,7 +249,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.GET,
-            f"{TEST_BASE_URL}/api/health",
+            f"{TEST_BASE_URL}/health",
             json=mock_response,
             status=200
         )
@@ -338,7 +303,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.GET,
-            f"{TEST_BASE_URL}/api/keys",
+            f"{TEST_BASE_URL}/keys",
             json=mock_response,
             status=200
         )
@@ -364,7 +329,7 @@ class TestDDEXClient:
         
         responses.add(
             responses.POST,
-            f"{TEST_BASE_URL}/api/keys",
+            f"{TEST_BASE_URL}/keys",
             json=mock_response,
             status=200
         )
@@ -380,7 +345,7 @@ class TestDDEXClient:
         """Test revoke_api_key method"""
         responses.add(
             responses.DELETE,
-            f"{TEST_BASE_URL}/api/keys/key_id",
+            f"{TEST_BASE_URL}/keys/key_id",
             status=204
         )
         
