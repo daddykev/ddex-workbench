@@ -177,68 +177,29 @@ The ERN Message Sandbox represents our commitment to democratizing DDEX:
 
 ```
 ddex-workbench/
-├── src/                       # Vue 3 application source
-│   ├── components/            # Vue components
-│   │   ├── NavBar.vue         # Navigation with auth state
-│   │   ├── CreateSnippetModal.vue  # Modal for creating new snippets
-│   │   ├── EditSnippetModal.vue    # Modal for editing existing snippets
-│   │   └── sandbox/           # ERN Sandbox components
-│   │       ├── ProductForm.vue     # Product metadata form
-│   │       └── ResourceForm.vue    # Resource (track/video) form
-│   ├── views/                 # Vue router views/pages
-│   │   ├── SplashPage.vue     # Landing page with features overview
-│   │   ├── ValidatorView.vue  # Enhanced validator with real-time validation
-│   │   ├── ApiDocsView.vue    # Comprehensive API documentation
-│   │   ├── SnippetsView.vue   # Community snippets page with CRUD operations
-│   │   ├── SandboxView.vue    # ERN Sandbox message builder
-│   │   ├── DeveloperView.vue  # Developer CV
-│   │   ├── UserSettings.vue   # User profile & API keys management
-│   │   ├── NotFoundView.vue   # 404 page
-│   │   ├── auth/              # Authentication views
-│   │   │   ├── LoginView.vue  # Login page
-│   │   │   └── SignupView.vue # Registration page
-│   │   └── legal/             # Legal pages
-│   │       ├── PrivacyView.vue
-│   │       ├── TermsView.vue
-│   │       └── LicenseView.vue
-│   ├── services/              # External service integrations
-│   │   ├── api.js             # API calls for validation and API keys only
-│   │   ├── snippets.js        # Direct Firestore operations for snippets
-│   │   ├── ernBuilder.js      # ERN XML generation service
-│   │   └── deezerApi.js       # Deezer API wrapper for metadata import
-│   ├── composables/           # Vue composables
-│   │   └── useAuth.js         # Authentication composable
-│   ├── utils/                 # Utility functions
-│   │   ├── themeManager.js    # Theme switching logic
-│   │   └── debounce.js        # Debounce utility for real-time validation
-│   ├── router/                # Vue Router configuration
-│   │   └── index.js           # Routes with auth guards
-│   ├── assets/                # Static assets and styles
-│   │   ├── main.css           # Main stylesheet entry
-│   │   ├── base.css           # CSS reset/normalize
-│   │   ├── themes.css         # CSS custom properties
-│   │   ├── components.css     # Reusable component classes
-│   │   ├── fonts/             # Custom fonts
-│   │   └── images/            # Images and icons
-│   ├── App.vue                # Root component
-│   ├── firebase.js            # Firebase configuration & exports
-│   └── main.js                # Application entry point
+├── .firebase/                 # Firebase cache (git ignored)
+├── .vscode/                   # VS Code settings (git ignored)
+├── docs/                      # Documentation
+│   ├── API.md                 # API documentation
+│   ├── SDK_JS.md              # JavaScript SDK guide
+│   ├── SDK_PYTHON.md          # Python SDK guide
+│   └── SETUP.md               # Setup instructions
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
-│   │   ├── validate.js        # Enhanced validation endpoint
+│   │   ├── deezer.js          # Deezer API proxy endpoints
 │   │   ├── keys.js            # API key management
-│   │   └── deezer.js          # Deezer API proxy endpoints
+│   │   └── validate.js        # Enhanced validation endpoint
 │   ├── middleware/            # Express middleware
 │   │   ├── apiKeyAuth.js      # API key authentication
 │   │   └── rateLimiter.js     # Rate limiting with trust proxy fix
 │   ├── validators/            # Validation modules
 │   │   ├── ernValidator.js    # Multi-version ERN validator
-│   │   ├── xsdValidator.js    # XSD schema validation (libxmljs2)
-│   │   ├── schematronValidator.js # Profile-specific validation
-│   │   └── validationOrchestrator.js # Combines all validators
+│   │   ├── schematronValidator.js  # Profile-specific validation
+│   │   ├── validationOrchestrator.js  # Combines all validators
+│   │   └── xsdValidator.js    # XSD schema validation (libxmljs2)
 │   ├── schemas/               # Schema management
 │   │   ├── manager/           
-│   │   │   └── schemaManager.js # Schema download/cache management
+│   │   │   └── schemaManager.js  # Schema download/cache management
 │   │   ├── ern/               # Downloaded XSD schemas
 │   │   │   ├── 4.3/           # ERN 4.3 schemas
 │   │   │   ├── 4.2/           # ERN 4.2 schemas
@@ -253,10 +214,10 @@ ddex-workbench/
 │   ├── sdk/                   # JavaScript/TypeScript SDK ✅
 │   │   ├── src/               # SDK source code
 │   │   │   ├── client.ts      # Main API client class
-│   │   │   ├── validator.ts   # High-level validation helper
-│   │   │   ├── types.ts       # TypeScript type definitions
 │   │   │   ├── errors.ts      # Custom error classes and utilities
-│   │   │   └── index.ts       # SDK entry point and exports
+│   │   │   ├── index.ts       # SDK entry point and exports
+│   │   │   ├── types.ts       # TypeScript type definitions
+│   │   │   └── validator.ts   # High-level validation helper
 │   │   ├── dist/              # Built SDK files (git ignored)
 │   │   │   ├── index.js       # CommonJS build
 │   │   │   ├── index.mjs      # ES module build
@@ -271,53 +232,93 @@ ddex-workbench/
 │       ├── ddex_workbench/    # Python package source
 │       │   ├── __init__.py    # Package initialization
 │       │   ├── client.py      # Main API client class
-│       │   ├── validator.py   # High-level validation helpers
-│       │   ├── types.py       # Type definitions with dataclasses
 │       │   ├── errors.py      # Exception classes
+│       │   ├── py.typed       # Type hint marker
+│       │   ├── types.py       # Type definitions with dataclasses
 │       │   ├── utils.py       # Utility functions
-│       │   └── py.typed       # Type hint marker
-│       ├── tests/             # Test suite
-│       │   ├── __init__.py
-│       │   ├── test_client.py
-│       │   ├── test_validator.py
-│       │   └── test_integration.py
+│       │   └── validator.py   # High-level validation helpers
 │       ├── examples/          # Example scripts
 │       │   ├── basic_validation.py
 │       │   ├── batch_processing.py
 │       │   └── ci_integration.py
-│       ├── README.md          # Python SDK documentation
-│       ├── setup.py           # Package configuration
-│       ├── requirements.txt   # Dependencies
-│       ├── requirements-dev.txt # Development dependencies
-│       ├── tox.ini            # Testing configuration
-│       ├── MANIFEST.in        # Package manifest
+│       ├── tests/             # Test suite
+│       │   ├── __init__.py
+│       │   ├── test_client.py
+│       │   ├── test_integration.py
+│       │   └── test_validator.py
 │       ├── CHANGELOG.md       # Version history
-│       └── LICENSE            # MIT License
+│       ├── LICENSE            # MIT License
+│       ├── MANIFEST.in        # Package manifest
+│       ├── README.md          # Python SDK documentation
+│       ├── requirements.txt   # Dependencies
+│       ├── requirements-dev.txt  # Development dependencies
+│       ├── setup.py           # Package configuration
+│       └── tox.ini            # Testing configuration
 ├── public/                    # Static public assets
 │   └── favicon.ico
-├── docs/                      # Documentation
-│   ├── API.md                 # API documentation
-│   ├── SDK_JS.md              # JavaScript SDK guide
-│   ├── SDK_PYTHON.md          # Python SDK guide
-│   └── SETUP.md               # Setup instructions
-├── .firebase/                 # Firebase cache (git ignored)
-├── .vscode/                   # VS Code settings (git ignored)
-├── index.html                 # HTML entry point
-├── vite.config.js             # Vite configuration
-├── firebase.json              # Firebase configuration
-├── firestore.rules            # Firestore security rules
-├── storage.rules              # Storage security rules
-├── cors.json                  # CORS configuration for Storage
-├── .firebaserc                # Firebase project alias (git ignored)
-├── .gitignore                 # Git ignore file
+├── src/                       # Vue 3 application source
+│   ├── assets/                # Static assets and styles
+│   │   ├── base.css           # CSS reset/normalize
+│   │   ├── components.css     # Reusable component classes
+│   │   ├── fonts/             # Custom fonts
+│   │   ├── images/            # Images and icons
+│   │   ├── main.css           # Main stylesheet entry
+│   │   └── themes.css         # CSS custom properties
+│   ├── components/            # Vue components
+│   │   ├── sandbox/           # ERN Sandbox components
+│   │   │   ├── ProductForm.vue     # Product metadata form
+│   │   │   └── ResourceForm.vue    # Resource (track/video) form
+│   │   ├── CreateSnippetModal.vue  # Modal for creating new snippets
+│   │   ├── EditSnippetModal.vue    # Modal for editing existing snippets
+│   │   └── NavBar.vue         # Navigation with auth state
+│   ├── composables/           # Vue composables
+│   │   └── useAuth.js         # Authentication composable
+│   ├── router/                # Vue Router configuration
+│   │   └── index.js           # Routes with auth guards
+│   ├── services/              # External service integrations
+│   │   ├── api.js             # API calls for validation and API keys only
+│   │   ├── deezerApi.js       # Deezer API wrapper for metadata import
+│   │   ├── ernBuilder.js      # ERN XML generation service
+│   │   └── snippets.js        # Direct Firestore operations for snippets
+│   ├── utils/                 # Utility functions
+│   │   ├── themeManager.js    # Theme switching logic
+│   │   └── debounce.js        # Debounce utility for real-time validation
+│   ├── views/                 # Vue router views/pages
+│   │   ├── auth/              # Authentication views
+│   │   │   ├── LoginView.vue  # Login page
+│   │   │   └── SignupView.vue # Registration page
+│   │   ├── legal/             # Legal pages
+│   │   │   ├── LicenseView.vue
+│   │   │   ├── PrivacyView.vue
+│   │   │   └── TermsView.vue
+│   │   ├── ApiDocsView.vue    # Comprehensive API documentation
+│   │   ├── DeveloperView.vue  # Developer CV
+│   │   ├── NotFoundView.vue   # 404 page
+│   │   ├── SandboxView.vue    # ERN Sandbox message builder
+│   │   ├── SnippetsView.vue   # Community snippets page with CRUD operations
+│   │   ├── SplashPage.vue     # Landing page with features overview
+│   │   ├── UserSettings.vue   # User profile & API keys management
+│   │   └── ValidatorView.vue  # Enhanced validator with real-time validation
+│   ├── App.vue                # Root component
+│   ├── firebase.js            # Firebase configuration & exports
+│   └── main.js                # Application entry point
 ├── .env                       # Environment variables (git ignored)
 ├── .env.example               # Environment variables template
+├── .firebaserc                # Firebase project alias (git ignored)
+├── .gitignore                 # Git ignore file
+├── blueprint.md               # This file - project blueprint
+├── CONTRIBUTING.md            # Contribution guidelines
+├── cors.json                  # CORS configuration for Storage
+├── firebase.json              # Firebase configuration
+├── firestore.indexes.json     # Firestore indexes
+├── firestore.rules            # Firestore security rules
+├── index.html                 # HTML entry point
+├── LICENSE                    # MIT License
 ├── package.json               # Project dependencies
 ├── package-lock.json          # Locked dependencies
 ├── README.md                  # Project documentation
-├── LICENSE                    # MIT License
-├── CONTRIBUTING.md            # Contribution guidelines
-└── blueprint.md               # This file - project blueprint
+├── storage.rules              # Storage security rules
+└── vite.config.js             # Vite configuration
 ```
 
 ## Enhanced Validation Architecture
