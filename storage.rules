@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // DDEX Workbench does not currently use Cloud Storage.
+    // All file operations are handled through direct uploads to Cloud Functions
+    // for validation, and no files are permanently stored.
+    // 
+    // If Cloud Storage is needed in the future (e.g., for storing validation reports,
+    // user uploads, or cached schemas), update these rules accordingly.
+    //
+    // For now, deny all access for security:
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

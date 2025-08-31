@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own document, admins can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      
+      // Users can write their own document (except role field)
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        (!('role' in request.resource.data) || resource.data.role == request.resource.data.role);
+      
+      // Only admins can update other users (specifically the role field)
+      allow update: if isAdmin() && request.auth.uid != userId;
+      
+      allow delete: if false; // No one can delete user documents
+    }
+    
+    // API keys - users can only read/write their own keys
+    match /api_keys/{keyId} {
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        request.resource.data.active == true;
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if false; // Soft delete only via update
+    }
+    
+    // Snippets - public read, authenticated write
+    match /snippets/{snippetId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.author.uid;
+    }
+    
+    // Validation history - users can only read/write their own
+    match /validation_history/{historyId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    // User votes subcollection
+    match /users/{userId}/votes/{voteId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId;
+    }
+  }
+}
