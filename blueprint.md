@@ -281,8 +281,9 @@ ddex-workbench/
 │   │   ├── ernBuilder.js      # ERN XML generation service
 │   │   └── snippets.js        # Direct Firestore operations for snippets
 │   ├── utils/                 # Utility functions
+│   │   ├── debounce.js        # Debounce utility for real-time validation
 │   │   ├── themeManager.js    # Theme switching logic
-│   │   └── debounce.js        # Debounce utility for real-time validation
+│   │   └── xmlSecurity.js     # XML sanitization and validation
 │   ├── views/                 # Vue router views/pages
 │   │   ├── auth/              # Authentication views
 │   │   │   ├── LoginView.vue  # Login page

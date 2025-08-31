@@ -108,10 +108,35 @@
             </div>
           </div>
 
+          <!-- Security Warning Alert -->
+          <div v-if="securityError" class="security-warning alert alert-warning mb-lg">
+            <div class="flex items-start gap-sm">
+              <font-awesome-icon 
+                :icon="['fas', 'exclamation-triangle']" 
+                class="text-warning mt-xs"
+              />
+              <div class="flex-1">
+                <strong>Security Warning</strong>
+                <p class="text-sm mt-xs">{{ securityError }}</p>
+              </div>
+              <button 
+                @click="securityError = null"
+                class="btn btn-sm btn-ghost"
+              >
+                <font-awesome-icon :icon="['fas', 'times']" />
+              </button>
+            </div>
+          </div>
+
           <!-- Paste Method -->
           <div v-else-if="inputMethod === 'paste'" class="paste-area">
             <div class="form-group">
-              <label class="form-label">Paste your XML content</label>
+              <label class="form-label">
+                Paste your XML content
+                <span v-if="securityError" class="text-warning text-sm ml-sm">
+                  (Security warning detected)
+                </span>
+              </label>
               <div class="editor-container">
                 <textarea 
                   v-model="xmlContent"
@@ -606,6 +631,13 @@ import { useAuth } from '@/composables/useAuth'
 import { validateERN, getSupportedFormats } from '@/services/api'
 import { debounce } from '@/utils/debounce'
 
+import { 
+  validateXMLSecurity, 
+  validateFileType, 
+  validateURL,
+  sanitizeFileName 
+} from '@/utils/xmlSecurity'
+
 // Router
 const router = useRouter()
 
@@ -633,6 +665,9 @@ const showExportMenu = ref(false)
 // Dynamic profiles support
 const supportedFormats = ref(null)
 const availableProfiles = ref(['AudioAlbum', 'AudioSingle', 'Video', 'Mixed'])
+
+// Security refs
+const securityError = ref(null)
 
 const validationOptions = ref({
   version: '4.3',
@@ -832,25 +867,80 @@ const updateAvailableProfiles = () => {
   }
 }
 
-const handleDrop = (e) => {
+const handleDrop = async (e) => {
   e.preventDefault()
   isDragging.value = false
   
   const files = e.dataTransfer.files
   if (files.length > 0) {
     const file = files[0]
-    if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-      selectedFile.value = file
-    } else {
-      alert('Please drop an XML file')
+    
+    // Validate file type
+    const fileValidation = validateFileType(file)
+    if (!fileValidation.valid) {
+      securityError.value = fileValidation.error
+      alert(fileValidation.error)
+      return
     }
+    
+    // Read and validate content
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const content = event.target.result
+      
+      // Validate XML security
+      const securityValidation = validateXMLSecurity(content)
+      if (!securityValidation.valid) {
+        securityError.value = securityValidation.error
+        alert(`Security Warning: ${securityValidation.error}`)
+        return
+      }
+      
+      selectedFile.value = file
+      securityError.value = null
+    }
+    
+    reader.readAsText(file)
   }
 }
 
-const handleFileSelect = (e) => {
+const handleFileSelect = async (e) => {
   const files = e.target.files
   if (files.length > 0) {
-    selectedFile.value = files[0]
+    const file = files[0]
+    
+    // Validate file type and size
+    const fileValidation = validateFileType(file)
+    if (!fileValidation.valid) {
+      securityError.value = fileValidation.error
+      alert(fileValidation.error)
+      return
+    }
+    
+    // Read and validate content
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const content = event.target.result
+      
+      // Validate XML security
+      const securityValidation = validateXMLSecurity(content)
+      if (!securityValidation.valid) {
+        securityError.value = securityValidation.error
+        alert(`Security Warning: ${securityValidation.error}`)
+        selectedFile.value = null
+        return
+      }
+      
+      // If all validations pass, set the file
+      selectedFile.value = file
+      securityError.value = null
+    }
+    
+    reader.onerror = () => {
+      alert('Failed to read file')
+    }
+    
+    reader.readAsText(file)
   }
 }
 
@@ -865,16 +955,58 @@ const clearFile = () => {
 const loadFromUrl = async () => {
   if (!xmlUrl.value) return
   
+  // Validate URL
+  const urlValidation = validateURL(xmlUrl.value)
+  if (!urlValidation.valid) {
+    securityError.value = urlValidation.error
+    alert(urlValidation.error)
+    return
+  }
+  
   isLoadingUrl.value = true
+  securityError.value = null
+  
   try {
-    const response = await fetch(xmlUrl.value)
-    if (!response.ok) throw new Error('Failed to load URL')
+    // Add timeout for fetch
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+    
+    const response = await fetch(xmlUrl.value, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/xml, text/xml, text/plain'
+      }
+    })
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    // Check content type
+    const contentType = response.headers.get('content-type')
+    if (contentType && !contentType.includes('xml') && !contentType.includes('text')) {
+      throw new Error('URL does not return XML content')
+    }
     
     const content = await response.text()
+    
+    // Validate XML security
+    const securityValidation = validateXMLSecurity(content)
+    if (!securityValidation.valid) {
+      throw new Error(securityValidation.error)
+    }
+    
     xmlContent.value = content
     inputMethod.value = 'paste'
   } catch (error) {
-    alert(`Failed to load XML from URL: ${error.message}`)
+    if (error.name === 'AbortError') {
+      alert('Request timeout: URL took too long to respond')
+    } else {
+      alert(`Failed to load XML: ${error.message}`)
+    }
+    securityError.value = error.message
   } finally {
     isLoadingUrl.value = false
   }
@@ -898,18 +1030,59 @@ const countLines = (text) => {
 }
 
 const validateXML = async () => {
-  isValidating.value = true
+  // Clear previous results
   validationResult.value = null
-  errorTab.value = 'all'
-  errorSearch.value = ''
+  securityError.value = null
+  
+  let content = ''
+  
+  // Get content based on input method
+  if (inputMethod.value === 'upload' && selectedFile.value) {
+    const reader = new FileReader()
+    content = await new Promise((resolve, reject) => {
+      reader.onload = (e) => resolve(e.target.result)
+      reader.onerror = reject
+      reader.readAsText(selectedFile.value)
+    })
+  } else if (inputMethod.value === 'paste') {
+    content = xmlContent.value
+  }
+  
+  if (!content) {
+    alert('Please provide XML content to validate')
+    return
+  }
+  
+  // Security validation before sending to API
+  const securityValidation = validateXMLSecurity(content)
+  if (!securityValidation.valid) {
+    securityError.value = securityValidation.error
+    validationResult.value = {
+      valid: false,
+      errors: [{
+        line: 0,
+        column: 0,
+        message: `Security Check Failed: ${securityValidation.error}`,
+        severity: 'error',
+        rule: 'Security'
+      }],
+      warnings: [],  // Add empty warnings array
+      metadata: {
+        processingTime: 0,
+        schemaVersion: validationOptions.value.version,
+        validatedAt: new Date().toISOString(),
+        errorCount: 1,
+        warningCount: 0,
+        validationSteps: []  // Add empty validation steps
+      }
+    }
+    return
+  }
+  
+  isValidating.value = true
   
   try {
-    let content = xmlContent.value
-    
-    if (inputMethod.value === 'upload' && selectedFile.value) {
-      content = await readFileAsText(selectedFile.value)
-    }
-    
+    // Continue with existing validation logic...
     const result = await validateERN({
       content,
       type: 'ERN',
@@ -920,47 +1093,24 @@ const validateXML = async () => {
       validateReferences: validationOptions.value.validateReferences
     })
     
-    // Ensure validation steps are populated
-    const validationSteps = result.metadata?.validationSteps || []
-    
-    // If no steps returned but validation succeeded, create mock steps
-    if (validationSteps.length === 0 && result.valid) {
-      const totalTime = result.metadata?.processingTime || 25
-      validationSteps.push(
-        {
-          type: 'XSD',
-          duration: Math.floor(totalTime * 0.4),
-          errorCount: 0
-        },
-        {
-          type: 'BusinessRules',
-          duration: Math.floor(totalTime * 0.4),
-          errorCount: 0
-        }
-      )
-      
-      // Add Schematron step if profile is selected
-      if (validationOptions.value.profile) {
-        validationSteps.push({
-          type: 'Schematron',
-          duration: Math.floor(totalTime * 0.2),
-          errorCount: 0
-        })
-      }
-    }
-    
-    // Ensure arrays are always defined
+    // Ensure result has all expected properties
     validationResult.value = {
       valid: result.valid || false,
       errors: result.errors || [],
       warnings: result.warnings || [],
-      metadata: {
-        ...result.metadata,
-        errorCount: (result.errors || []).length,
-        warningCount: (result.warnings || []).length,
-        validationSteps
+      metadata: result.metadata || {
+        processingTime: 0,
+        schemaVersion: validationOptions.value.version,
+        validatedAt: new Date().toISOString(),
+        errorCount: result.errors?.length || 0,
+        warningCount: result.warnings?.length || 0,
+        validationSteps: []
       }
     }
+    
+    // Optional: Save to history if you implemented the function
+    // saveToHistory(validationResult.value)
+    
   } catch (error) {
     console.error('Validation error:', error)
     validationResult.value = {
@@ -968,14 +1118,14 @@ const validateXML = async () => {
       errors: [{
         line: 0,
         column: 0,
-        message: error.message || 'An error occurred during validation',
+        message: error.message || 'Validation failed',
         severity: 'error',
-        rule: 'System Error'
+        rule: 'API Error'
       }],
       warnings: [],
       metadata: {
         processingTime: 0,
-        schemaVersion: `ERN ${validationOptions.value.version}`,
+        schemaVersion: validationOptions.value.version,
         validatedAt: new Date().toISOString(),
         errorCount: 1,
         warningCount: 0,
@@ -986,6 +1136,26 @@ const validateXML = async () => {
     isValidating.value = false
   }
 }
+
+watch(xmlContent, (newContent) => {
+  if (newContent && inputMethod.value === 'paste') {
+    // Clear any previous security errors
+    securityError.value = null
+    
+    // Validate security (but don't block, just warn)
+    const securityValidation = validateXMLSecurity(newContent)
+    if (!securityValidation.valid) {
+      securityError.value = securityValidation.error
+      // Don't prevent validation, but show warning
+      console.warn('Security warning:', securityValidation.error)
+    }
+  }
+  
+  // Continue with existing real-time validation if enabled
+  if (validationOptions.value.realtime && newContent) {
+    validateRealtime()
+  }
+})
 
 const readFileAsText = (file) => {
   return new Promise((resolve, reject) => {
@@ -1630,6 +1800,29 @@ const shareResult = () => {
 
 .opacity-90 {
   opacity: 0.9;
+}
+
+.security-warning {
+  background-color: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+}
+
+[data-theme="dark"] .alert-warning {
+  background-color: #3d3200;
+  border-color: #ffc107;
+  color: #fff3cd;
+}
+
+.text-warning {
+  color: var(--color-warning);
 }
 
 /* Responsive */
