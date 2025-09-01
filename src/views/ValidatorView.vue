@@ -306,6 +306,24 @@
                     </label>
                     <p class="form-help">Check resource and party references</p>
                   </div>
+
+                  <div class="form-group mb-0">
+                    <label class="form-label flex items-center gap-xs">
+                      <input 
+                        v-model="validationOptions.generateSVRL" 
+                        type="checkbox"
+                        class="form-checkbox"
+                        :disabled="!validationOptions.profile"
+                      >
+                      Generate SVRL Report
+                    </label>
+                    <p class="form-help">
+                      Generate Schematron Validation Report
+                      <span v-if="!validationOptions.profile" class="text-warning">
+                        (Requires profile selection)
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -363,6 +381,70 @@
                 >
                   <font-awesome-icon :icon="['fas', 'times']" />
                 </button>
+              </div>
+            </div>
+
+            <!-- SVRL Report Notification -->
+            <div v-if="validationResult.svrl" class="svrl-notification card mt-lg p-lg">
+              <div class="flex items-start gap-md">
+                <div class="svrl-icon">
+                  <font-awesome-icon :icon="['fas', 'file-alt']" size="lg" class="text-primary" />
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold mb-xs">SVRL Report Generated</h4>
+                  <p class="text-sm text-secondary mb-sm">
+                    Schematron Validation Report Language (SVRL) report has been generated for profile: {{ validationOptions.profile }}
+                  </p>
+                  <div class="flex gap-sm">
+                    <button 
+                      @click="viewSVRL"
+                      class="btn btn-sm btn-secondary"
+                    >
+                      <font-awesome-icon :icon="['fas', 'eye']" class="mr-xs" />
+                      View SVRL
+                    </button>
+                    <button 
+                      @click="downloadSVRL"
+                      class="btn btn-sm btn-primary"
+                    >
+                      <font-awesome-icon :icon="['fas', 'download']" class="mr-xs" />
+                      Download SVRL
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SVRL Viewer Modal -->
+            <div v-if="showSVRLViewer" class="svrl-modal-overlay" @click.self="showSVRLViewer = false">
+              <div class="svrl-modal card">
+                <div class="svrl-modal-header">
+                  <h3 class="text-lg font-semibold">SVRL Report</h3>
+                  <button 
+                    @click="showSVRLViewer = false"
+                    class="btn btn-sm btn-ghost"
+                  >
+                    <font-awesome-icon :icon="['fas', 'times']" />
+                  </button>
+                </div>
+                <div class="svrl-modal-body">
+                  <pre class="svrl-content">{{ formattedSVRL }}</pre>
+                </div>
+                <div class="svrl-modal-footer">
+                  <button 
+                    @click="copySVRL"
+                    class="btn btn-sm btn-secondary"
+                  >
+                    <font-awesome-icon :icon="['fas', 'copy']" class="mr-xs" />
+                    Copy to Clipboard
+                  </button>
+                  <button 
+                    @click="showSVRLViewer = false"
+                    class="btn btn-sm btn-primary"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -592,6 +674,14 @@
                         Export as Text
                       </button>
                       <button 
+                        v-if="validationResult.svrl"
+                        @click="downloadSVRL"
+                        class="export-option"
+                      >
+                        <font-awesome-icon :icon="['fas', 'file-code']" class="mr-sm" />
+                        Export as SVRL
+                      </button>
+                      <button 
                         class="export-option disabled"
                         disabled
                       >
@@ -661,6 +751,7 @@ const errorGroupBy = ref('line')
 const collapsedGroups = ref({})
 const showAdvanced = ref(false)
 const showExportMenu = ref(false)
+const showSVRLViewer = ref(false)
 
 // Dynamic profiles support
 const supportedFormats = ref(null)
@@ -675,7 +766,8 @@ const validationOptions = ref({
   mode: 'full',
   realtime: false,
   strictMode: false,
-  validateReferences: true
+  validateReferences: true,
+  generateSVRL: false  // New option for SVRL generation
 })
 
 // Computed
@@ -691,6 +783,18 @@ const totalIssues = computed(() => {
   const errors = validationResult.value.errors?.length || 0
   const warnings = validationResult.value.warnings?.length || 0
   return errors + warnings
+})
+
+const formattedSVRL = computed(() => {
+  if (!validationResult.value?.svrl) return ''
+  
+  // If SVRL is already a string, return it
+  if (typeof validationResult.value.svrl === 'string') {
+    return validationResult.value.svrl
+  }
+  
+  // If it's an object, stringify it
+  return JSON.stringify(validationResult.value.svrl, null, 2)
 })
 
 const displayedErrors = computed(() => {
@@ -835,6 +939,14 @@ onUnmounted(() => {
 // Watch for version changes to update available profiles
 watch(() => validationOptions.value.version, () => {
   updateAvailableProfiles()
+})
+
+// Watch for profile changes to enable/disable SVRL generation
+watch(() => validationOptions.value.profile, (newProfile) => {
+  // Disable SVRL generation if no profile is selected
+  if (!newProfile) {
+    validationOptions.value.generateSVRL = false
+  }
 })
 
 // Watch for real-time validation
@@ -1082,8 +1194,8 @@ const validateXML = async () => {
   isValidating.value = true
   
   try {
-    // Continue with existing validation logic...
-    const result = await validateERN({
+    // Build payload with SVRL option if enabled
+    const payload = {
       content,
       type: 'ERN',
       version: validationOptions.value.version,
@@ -1091,13 +1203,21 @@ const validateXML = async () => {
       mode: validationOptions.value.mode,
       strictMode: validationOptions.value.strictMode,
       validateReferences: validationOptions.value.validateReferences
-    })
+    }
+    
+    // Add SVRL generation flag if enabled and profile is selected
+    if (validationOptions.value.generateSVRL && validationOptions.value.profile) {
+      payload.generateSVRL = true
+    }
+    
+    const result = await validateERN(payload)
     
     // Ensure result has all expected properties
     validationResult.value = {
       valid: result.valid || false,
       errors: result.errors || [],
       warnings: result.warnings || [],
+      svrl: result.svrl || null,  // Include SVRL if present
       metadata: result.metadata || {
         processingTime: 0,
         schemaVersion: validationOptions.value.version,
@@ -1171,6 +1291,7 @@ const clearResults = () => {
   errorTab.value = 'all'
   errorSearch.value = ''
   collapsedGroups.value = {}
+  showSVRLViewer.value = false
 }
 
 const toggleGroup = (key) => {
@@ -1200,6 +1321,48 @@ const openDDEXReference = (rule) => {
   window.open(`https://kb.ddex.net/reference/${ruleId}`, '_blank')
 }
 
+// SVRL-specific methods
+const viewSVRL = () => {
+  showSVRLViewer.value = true
+}
+
+const downloadSVRL = () => {
+  showExportMenu.value = false
+  
+  if (!validationResult.value?.svrl) return
+  
+  const svrlContent = typeof validationResult.value.svrl === 'string' 
+    ? validationResult.value.svrl 
+    : JSON.stringify(validationResult.value.svrl, null, 2)
+  
+  const blob = new Blob([svrlContent], { type: 'application/xml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ddex-svrl-report-${new Date().toISOString().split('T')[0]}.xml`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const copySVRL = () => {
+  const svrlContent = formattedSVRL.value
+  
+  navigator.clipboard.writeText(svrlContent).then(() => {
+    // Show temporary success message
+    const originalText = 'Copy to Clipboard'
+    const button = document.querySelector('.svrl-modal-footer button:first-child')
+    if (button) {
+      button.innerHTML = '<i class="fas fa-check mr-xs"></i>Copied!'
+      button.classList.add('text-success')
+      
+      setTimeout(() => {
+        button.innerHTML = `<i class="fas fa-copy mr-xs"></i>${originalText}`
+        button.classList.remove('text-success')
+      }, 2000)
+    }
+  })
+}
+
 const exportAsJSON = () => {
   showExportMenu.value = false
   
@@ -1222,7 +1385,8 @@ const exportAsJSON = () => {
     },
     validationSteps: validationResult.value.metadata.validationSteps,
     errors: validationResult.value.errors || [],
-    warnings: validationResult.value.warnings || []
+    warnings: validationResult.value.warnings || [],
+    svrl: validationResult.value.svrl || null  // Include SVRL if available
   }
   
   // Create and download the file
@@ -1252,6 +1416,7 @@ Validation Mode: ${formatValidationMode(validationOptions.value.mode)}
 Processing Time: ${validationResult.value.metadata.processingTime}ms
 Total Errors: ${validationResult.value.metadata.errorCount}
 Total Warnings: ${validationResult.value.metadata.warningCount}
+SVRL Report: ${validationResult.value.svrl ? 'Generated' : 'Not Generated'}
 
 VALIDATION STEPS
 ----------------
@@ -1319,7 +1484,8 @@ const copyResultsToClipboard = (event) => {
   const summary = `DDEX Validation: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
 ERN ${validationOptions.value.version} • ${validationOptions.value.profile || 'No Profile'}
 ${validationResult.value.metadata.errorCount} errors, ${validationResult.value.metadata.warningCount} warnings
-Processed in ${validationResult.value.metadata.processingTime}ms`
+Processed in ${validationResult.value.metadata.processingTime}ms
+${validationResult.value.svrl ? 'SVRL Report Generated' : ''}`
   
   navigator.clipboard.writeText(summary).then(() => {
     // Show a temporary success message
@@ -1354,6 +1520,7 @@ const shareResult = () => {
 </script>
 
 <style scoped>
+/* Existing styles remain the same... */
 /* Hero Section */
 .hero-section {
   padding: var(--space-3xl) 0;
@@ -1498,6 +1665,73 @@ const shareResult = () => {
   background: transparent;
   border: 1px solid white;
   color: white;
+}
+
+/* SVRL Notification Styles */
+.svrl-notification {
+  background-color: var(--color-surface);
+  border-left: 4px solid var(--color-primary);
+}
+
+.svrl-icon {
+  flex-shrink: 0;
+}
+
+/* SVRL Modal Styles */
+.svrl-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-lg);
+}
+
+.svrl-modal {
+  max-width: 800px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.svrl-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.svrl-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-lg);
+}
+
+.svrl-content {
+  background-color: var(--color-bg-secondary);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.svrl-modal-footer {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  padding: var(--space-lg);
+  border-top: 1px solid var(--color-border);
 }
 
 .steps-grid {
@@ -1762,6 +1996,14 @@ const shareResult = () => {
   margin-top: var(--space-xs);
 }
 
+.mb-xs {
+  margin-bottom: var(--space-xs);
+}
+
+.mb-sm {
+  margin-bottom: var(--space-sm);
+}
+
 .gap-xs {
   gap: var(--space-xs);
 }
@@ -1862,6 +2104,10 @@ const shareResult = () => {
   .export-menu {
     left: auto;
     right: 0;
+  }
+  
+  .svrl-modal {
+    max-height: 90vh;
   }
 }
 </style>

@@ -2,18 +2,29 @@
 const express = require('express');
 const router = express.Router();
 const { ERNValidator } = require('../validators/ernValidator');
+const SchematronValidator = require('../validators/schematronValidator');
+
+// Create a schematron validator instance for SVRL generation
+const schematronValidator = new SchematronValidator();
 
 // Validation endpoint - NO AUTHENTICATION REQUIRED
 router.post('/', async (req, res) => {
   try {
-    const { content, type, version, profile } = req.body;
+    const { 
+      content, 
+      type, 
+      version, 
+      profile,
+      generateSVRL  // Add this
+    } = req.body;
     
     // Log request for debugging
     console.log('Validation request:', { 
       type, 
       version, 
       profile, 
-      contentLength: content?.length 
+      contentLength: content?.length,
+      generateSVRL 
     });
     
     if (!content) {
@@ -51,14 +62,37 @@ router.post('/', async (req, res) => {
     const validationResult = await validator.validate(content, profile);
     const processingTime = Date.now() - startTime;
 
+    // Generate SVRL if requested and profile is specified
+    let svrl = null;
+    if (generateSVRL && profile) {
+      try {
+        const svrlResult = await schematronValidator.validate(
+          content,
+          version,
+          profile,
+          { generateSVRL: true }
+        );
+        
+        // Get SVRL from result or from the generator
+        svrl = svrlResult.svrl || schematronValidator.getLastSVRLReport();
+      } catch (error) {
+        console.warn('SVRL generation failed:', error.message);
+        // Continue without SVRL
+      }
+    }
+
     return res.json({
       valid: validationResult.valid,
       errors: validationResult.errors,
+      warnings: validationResult.warnings || [],
+      svrl: svrl,  // Include SVRL if generated
       metadata: {
         processingTime,
         schemaVersion: `ERN ${version}`,
         profile: profile,
-        validatedAt: new Date().toISOString()
+        validatedAt: new Date().toISOString(),
+        errorCount: validationResult.errors ? validationResult.errors.length : 0,
+        warningCount: validationResult.warnings ? validationResult.warnings.length : 0
       }
     });
 
