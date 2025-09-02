@@ -192,6 +192,17 @@ ddex-workbench/
 │   ├── middleware/            # Express middleware
 │   │   ├── apiKeyAuth.js      # API key authentication
 │   │   └── rateLimiter.js     # Rate limiting with trust proxy fix
+│   ├── schemas/               # DDEX schemas (.gitignored)
+│   │   └── ern/               # Downloaded XSDs
+│   │       ├── 3.8.2/         # ERN 3.8.2 schemas
+│   │       │   ├── avs_20161006.xsd  # ERN 3.8.2 Allowed Value Sets
+│   │       │   └── release-notification.xsd  # ERN 3.8.2 Schema Definition file
+│   │       ├── 4.2/           # ERN 4.2 schemas
+│   │       │   ├── avs20200518.xsd  # ERN 4.2 Allowed Value Sets
+│   │       │   └── release-notification.xsd  # ERN 4.2 Schema Definition file
+│   │       └── 4.3/           # ERN 4.3 schemas
+│   │           ├── allowed-value-sets.xsd  # ERN 4.3 Allowed Value Sets
+│   │           └── release-notification.xsd  # ERN 4.3 Schema Definition file
 │   ├── utils/                 # Util functions
 │   │   └── svrlGenerator.js   # SVRL generator
 │   ├── validators/            # Validation modules
@@ -199,16 +210,6 @@ ddex-workbench/
 │   │   ├── schematronValidator.js  # Profile-specific validation
 │   │   ├── validationOrchestrator.js  # Combines all validators
 │   │   └── xsdValidator.js    # XSD schema validation (libxmljs2)
-│   ├── schemas/               # Schema management
-│   │   ├── manager/           
-│   │   │   └── schemaManager.js  # Schema download/cache management
-│   │   ├── ern/               # Downloaded XSD schemas
-│   │   │   ├── 4.3/           # ERN 4.3 schemas
-│   │   │   ├── 4.2/           # ERN 4.2 schemas
-│   │   │   └── 3.8.2/         # ERN 3.8.2 schemas
-│   │   └── schematron/        # Empty - Schematron validation uses built-in rules
-│   ├── scripts/               # Utility scripts
-│   │   └── downloadSchemas.js # Pre-download XSD schemas
 │   ├── index.js               # Functions entry with trust proxy
 │   ├── package.json           # Functions dependencies
 │   └── package-lock.json      # Locked dependencies

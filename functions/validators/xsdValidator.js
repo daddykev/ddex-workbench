@@ -15,19 +15,35 @@ class XSDValidator {
       return this.schemaCache.get(cacheKey);
     }
 
-    // Load main schema and dependencies
-    const schemaPath = path.join(__dirname, `../schemas/ern/${version}/release-notification.xsd`);
-    const avsPath = path.join(__dirname, `../schemas/ern/${version}/avs${version.replace('.', '')}.xsd`);
-    
-    const [mainSchema, avsSchema] = await Promise.all([
-      fs.readFile(schemaPath, 'utf8'),
-      fs.readFile(avsPath, 'utf8')
-    ]);
+    // Map versions to their actual AVS filenames
+    const avsFilenames = {
+      '3.8.2': 'avs_20161006.xsd',
+      '4.2': 'avs20200518.xsd',
+      '4.3': 'allowed-value-sets.xsd'
+    };
 
-    // Parse schemas with imports resolved
+    const schemaDir = path.join(__dirname, '..', 'schemas', 'ern', version);
+    const schemaPath = path.join(schemaDir, 'release-notification.xsd');
+    const avsFilename = avsFilenames[version];
+    
+    if (!avsFilename) {
+      throw new Error(`Unknown ERN version: ${version}`);
+    }
+
+    // Read the main schema
+    let mainSchema = await fs.readFile(schemaPath, 'utf8');
+    
+    // Fix the AVS import reference to match your actual filename
+    // The schema might reference "avs.xsd" or "avs43.xsd" but we need the actual filename
+    mainSchema = mainSchema.replace(
+      /schemaLocation="[^"]*avs[^"]*\.xsd"/gi,
+      `schemaLocation="${avsFilename}"`
+    );
+
+    // Parse schema with proper base URL so imports can be resolved
     const schemaDoc = libxmljs.parseXml(mainSchema, {
-      baseUrl: `file://${path.dirname(schemaPath)}/`,
-      nonet: false // Allow loading imported schemas
+      baseUrl: `file://${schemaDir}/`,  // This allows libxmljs to find the AVS file
+      nonet: true  // Set to true for security (prevents external network requests)
     });
 
     this.schemaCache.set(cacheKey, schemaDoc);
@@ -64,6 +80,7 @@ class XSDValidator {
         });
       }
     } catch (error) {
+      console.error('XSD validation error:', error);
       errors.push({
         line: 0,
         column: 0,
@@ -74,6 +91,23 @@ class XSDValidator {
     }
 
     return { errors, valid: errors.length === 0 };
+  }
+
+  // Optional: Add a method to verify schemas are loadable
+  async verifySchemas() {
+    const versions = ['3.8.2', '4.2', '4.3'];
+    const results = {};
+    
+    for (const version of versions) {
+      try {
+        await this.loadSchema(version);
+        results[version] = 'OK';
+      } catch (error) {
+        results[version] = `Failed: ${error.message}`;
+      }
+    }
+    
+    return results;
   }
 }
 
