@@ -8,12 +8,13 @@ class SchematronValidator {
   constructor() {
     this.rulesCache = new Map();
     this.svrlGenerator = new SVRLGenerator();
-    this.lastValidationMetadata = null; // Store metadata for SVRL generation
+    this.lastValidationMetadata = null;
+    this.lastValidationResult = null;
   }
 
   async validate(xmlContent, version, profile, options = {}) {
     const errors = [];
-    const passedRules = []; // Track successfully passed rules
+    const passedRules = [];
     
     // Store metadata for potential SVRL generation
     this.lastValidationMetadata = {
@@ -23,23 +24,38 @@ class SchematronValidator {
     };
     
     try {
-      // Parse the XML
+      // Parse the XML - Remove namespaces for easier access
       const parser = new XMLParser({
-        ignoreAttributes: false,
-        parseAttributeValue: true,
+        ignoreAttributes: false,  // Keep attributes
+        attributeNamePrefix: "@_", // Prefix for attributes
+        parseAttributeValue: false,  // Keep as strings
         trimValues: true,
-        parseTagValue: true
+        parseTagValue: true,
+        ignoreNameSpace: true,  // IGNORE namespaces completely
+        removeNSPrefix: true,    // REMOVE all prefixes
+        allowBooleanAttributes: true
       });
       
       const parsedDoc = parser.parse(xmlContent);
       
-      // Extract message ID if available
-      const rootKeys = Object.keys(parsedDoc);
-      const rootElement = rootKeys.find(key => 
-        key.includes('NewReleaseMessage') || key === 'NewReleaseMessage'
-      );
+      // Find the root element (should be NewReleaseMessage without namespace now)
+      let doc = null;
+      let rootElement = null;
       
-      if (!rootElement) {
+      // Should be just NewReleaseMessage now
+      if (parsedDoc['NewReleaseMessage']) {
+        doc = parsedDoc['NewReleaseMessage'];
+        rootElement = 'NewReleaseMessage';
+      } else {
+        // Fallback - look for any key containing NewReleaseMessage
+        const key = Object.keys(parsedDoc).find(k => k.includes('NewReleaseMessage'));
+        if (key) {
+          doc = parsedDoc[key];
+          rootElement = key;
+        }
+      }
+      
+      if (!doc) {
         errors.push({
           line: 0,
           column: 0,
@@ -47,20 +63,35 @@ class SchematronValidator {
           severity: 'error',
           rule: 'Schematron-Parse'
         });
-        return this.formatResult(errors, [], false, options);
+        return this.formatResult(errors, passedRules, options);
       }
-      
-      const doc = parsedDoc[rootElement];
       
       // Store message ID in metadata
       if (doc.MessageHeader?.MessageId) {
-        this.lastValidationMetadata.messageId = doc.MessageHeader.MessageId;
+        this.lastValidationMetadata.messageId = this.getValue(doc.MessageHeader.MessageId);
       }
       
       // Check if profile matches message
       if (profile && doc['@_ReleaseProfileVersionId']) {
         const messageProfile = doc['@_ReleaseProfileVersionId'];
-        if (!messageProfile.includes(profile)) {
+        
+        // Map requested profiles to acceptable DDEX profile names
+        const profileMap = {
+          'AudioAlbum': ['Audio', 'AudioAlbum'],
+          'AudioSingle': ['AudioSingle', 'SimpleAudioSingle'],
+          'Video': ['Video', 'SimpleVideo'],
+          'Classical': ['Classical', 'SimpleClassical'],
+          'Ringtone': ['Ringtone', 'SimpleRingtone'],
+          'Mixed': ['Mixed', 'MixedMedia'],
+          'DJ': ['DJ', 'DJMix', 'DjMix']
+        };
+        
+        const acceptableProfiles = profileMap[profile] || [profile];
+        const profileMatches = acceptableProfiles.some(p => 
+          messageProfile === p || messageProfile.includes(p)
+        );
+        
+        if (!profileMatches) {
           errors.push({
             line: 0,
             column: 0,
@@ -79,6 +110,7 @@ class SchematronValidator {
       rules.forEach(rule => {
         try {
           const passed = rule.test.call(this, doc);
+          
           if (!passed) {
             errors.push({
               line: 0,
@@ -90,7 +122,6 @@ class SchematronValidator {
               suggestion: rule.suggestion
             });
           } else {
-            // Track passed rules for complete SVRL output
             passedRules.push({
               name: rule.name,
               description: rule.message,
@@ -99,11 +130,12 @@ class SchematronValidator {
             });
           }
         } catch (error) {
-          console.warn(`Rule ${rule.name} evaluation failed: ${error.message}`);
+          console.warn(`Rule ${rule.name} evaluation failed:`, error.message);
         }
       });
       
     } catch (error) {
+      console.error('Schematron validation error:', error);
       errors.push({
         line: 0,
         column: 0,
@@ -132,9 +164,17 @@ class SchematronValidator {
       valid: errorList.length === 0
     };
     
+    // Store the result for SVRL generation
+    this.lastValidationResult = result;
+    
     // Generate SVRL if requested
     if (options.generateSVRL || options.format === 'svrl') {
-      result.svrl = this.generateSVRL(result);
+      try {
+        result.svrl = this.svrlGenerator.generateSVRL(result, this.lastValidationMetadata);
+      } catch (error) {
+        console.error('SVRL generation failed:', error);
+        result.svrlError = error.message;
+      }
     }
     
     // Include passed rules if verbose mode
@@ -163,7 +203,7 @@ class SchematronValidator {
    * Get SVRL report as a separate call (for API endpoints)
    */
   getLastSVRLReport() {
-    if (!this.lastValidationMetadata) {
+    if (!this.lastValidationMetadata || !this.lastValidationResult) {
       throw new Error('No validation has been performed yet');
     }
     
@@ -232,10 +272,8 @@ class SchematronValidator {
         name: 'ReleaseList-NotEmpty',
         test: (doc) => {
           if (!doc.ReleaseList) return false;
-          const releases = Array.isArray(doc.ReleaseList.Release) 
-            ? doc.ReleaseList.Release 
-            : [doc.ReleaseList.Release];
-          return releases.length > 0 && releases[0];
+          const releases = this.getReleases(doc);
+          return releases.length > 0;
         },
         message: 'ReleaseList must contain at least one Release',
         severity: 'error'
@@ -260,19 +298,45 @@ class SchematronValidator {
         name: 'Release-MainRelease',
         test: (doc) => {
           const releases = this.getReleases(doc);
-          const mainReleases = releases.filter(r => r['@_IsMainRelease'] === 'true');
-          return mainReleases.length === 1;
+          
+          // Filter out TrackReleases - they're never main releases
+          const mainCandidates = releases.filter(r => !r._isTrackRelease);
+          
+          // If only one non-track release, it's implicitly main
+          if (mainCandidates.length === 1) return true;
+          
+          // Check for Album or Single type releases (these are implicitly main)
+          const albumOrSingle = mainCandidates.filter(r => {
+            const releaseType = this.getValue(r.ReleaseType);
+            return releaseType === 'Album' || 
+                   releaseType === 'Single' ||
+                   releaseType === 'EP' ||
+                   releaseType === 'SingleResourceRelease';
+          });
+          
+          if (albumOrSingle.length === 1) return true;
+          
+          // Otherwise check for explicit IsMainRelease
+          const explicitMain = mainCandidates.filter(r => 
+            r['@_IsMainRelease'] === 'true' || r['@_IsMainRelease'] === true
+          );
+          
+          return explicitMain.length === 1;
         },
-        message: 'There must be exactly one MainRelease',
+        message: 'There must be exactly one identifiable main release',
         severity: 'error'
       },
       {
         name: 'Release-ReleaseId',
         test: (doc) => {
           const releases = this.getReleases(doc);
-          return releases.every(release => release.ReleaseId?.GRid || release.ReleaseId?.ICPN);
+          // Filter out TrackReleases as they might have different ID requirements
+          const mainReleases = releases.filter(r => !r._isTrackRelease);
+          return mainReleases.every(release => 
+            release.ReleaseId?.GRid || release.ReleaseId?.ICPN || release.ReleaseId?.ProprietaryId
+          );
         },
-        message: 'Each Release must have a ReleaseId (GRid or ICPN)',
+        message: 'Each main Release must have a ReleaseId (GRid, ICPN, or ProprietaryId)',
         severity: 'error'
       },
       {
@@ -317,7 +381,7 @@ class SchematronValidator {
             const resources = this.getResources(doc);
             const images = resources.filter(r => r.Image);
             return images.some(img => {
-              const type = this.getValue(img.Image.ImageType);
+              const type = this.getValue(img.Image.Type);
               return type === 'FrontCoverImage';
             });
           },
@@ -349,17 +413,35 @@ class SchematronValidator {
         {
           name: 'AudioSingle-MainTrack',
           test: (doc) => {
+            const resources = this.getResources(doc);
+            const soundRecordings = resources.filter(r => r.SoundRecording);
+            
+            // If only one sound recording, it's implicitly the main resource - PASS
+            if (soundRecordings.length === 1) return true;
+            
+            // If multiple, check for explicit main resource marking
+            const hasMainResource = soundRecordings.some(r => 
+              r['@_IsMainResource'] === 'true' || r['@_IsMainResource'] === true
+            );
+            
+            if (hasMainResource) return true;
+            
+            // Alternative: Check in ReleaseResourceReferenceList
             const releases = this.getReleases(doc);
-            const mainRelease = releases.find(r => r['@_IsMainRelease'] === 'true');
+            const mainRelease = releases.find(r => !r._isTrackRelease);
+            
             if (!mainRelease) return false;
             
             const resourceRefs = mainRelease.ReleaseResourceReferenceList?.ReleaseResourceReference;
             if (!resourceRefs) return false;
             
             const refArray = Array.isArray(resourceRefs) ? resourceRefs : [resourceRefs];
-            return refArray.some(ref => ref['@_ReleaseResourceType'] === 'PrimaryResource');
+            return refArray.some(ref => 
+              ref['@_ReleaseResourceType'] === 'PrimaryResource' ||
+              ref.ReleaseResourceType === 'PrimaryResource'
+            );
           },
-          message: 'AudioSingle must identify a primary resource',
+          message: 'Multiple sound recordings require one to be identified as primary',
           severity: 'error'
         }
       ],
@@ -526,12 +608,13 @@ class SchematronValidator {
         severity: 'info'
       });
       
-      // ERN 3.8.2 uses different structure
+      // ERN 3.8.2 requires ReleaseDetailsByTerritory
       baseRules.push({
         name: 'ReleaseDetailsByTerritory',
         test: (doc) => {
           const releases = this.getReleases(doc);
-          return releases.every(release => 
+          const mainReleases = releases.filter(r => !r._isTrackRelease);
+          return mainReleases.every(release => 
             release.ReleaseDetailsByTerritory && release.ReleaseDetailsByTerritory.length > 0
           );
         },
@@ -552,25 +635,35 @@ class SchematronValidator {
         name: 'Deal-ValidityPeriod',
         test: (doc) => {
           const deals = this.getDeals(doc);
-          return deals.every(deal => deal.ValidityPeriod?.StartDate);
+          
+          return deals.every((releaseDeal) => {
+            // Handle nested Deal structure in ERN 4.3
+            if (releaseDeal.Deal) {
+              const nestedDeals = Array.isArray(releaseDeal.Deal) ? releaseDeal.Deal : [releaseDeal.Deal];
+              return nestedDeals.every(deal => {
+                if (deal.DealTerms) {
+                  const dealTermsArray = Array.isArray(deal.DealTerms) ? deal.DealTerms : [deal.DealTerms];
+                  return dealTermsArray.some(dt => dt.ValidityPeriod?.StartDate);
+                }
+                return false;
+              });
+            }
+            
+            // Fallback for direct DealTerms
+            if (releaseDeal.DealTerms) {
+              const dealTermsArray = Array.isArray(releaseDeal.DealTerms) ? releaseDeal.DealTerms : [releaseDeal.DealTerms];
+              return dealTermsArray.some(dt => dt.ValidityPeriod?.StartDate);
+            }
+            
+            return false;
+          });
         },
         message: 'Each Deal must have a ValidityPeriod with StartDate',
         severity: 'error'
       });
       
-      // ERN 4.x specific
-      baseRules.push({
-        name: 'ReleaseDetailsByTerritory',
-        test: (doc) => {
-          const releases = this.getReleases(doc);
-          return releases.every(release => 
-            release.GlobalReleaseDetails || 
-            (release.ReleaseDetailsByTerritory && release.ReleaseDetailsByTerritory.length > 0)
-          );
-        },
-        message: 'ERN 4.x requires either GlobalReleaseDetails or ReleaseDetailsByTerritory',
-        severity: 'error'
-      });
+      // NOTE: ReleaseDetailsByTerritory is NOT required in ERN 4.3
+      // The official DDEX samples don't have it, so we skip this rule for 4.3
     }
 
     // Add profile-specific rules to base rules
@@ -581,14 +674,43 @@ class SchematronValidator {
   // Helper methods
   getValue(node) {
     if (!node) return null;
+    // Handle multiple ReleaseType elements (can be array)
+    if (Array.isArray(node)) {
+      // Return the first non-UserDefined type, or the first one
+      const nonUserDefined = node.find(n => n !== 'UserDefined' && n['#text'] !== 'UserDefined');
+      return nonUserDefined ? (nonUserDefined['#text'] || nonUserDefined) : (node[0]['#text'] || node[0]);
+    }
     return node['#text'] || node;
   }
 
   getReleases(doc) {
     if (!doc.ReleaseList) return [];
-    return Array.isArray(doc.ReleaseList.Release) 
-      ? doc.ReleaseList.Release 
-      : [doc.ReleaseList.Release].filter(Boolean);
+    
+    const releases = [];
+    
+    // Get regular Release elements
+    if (doc.ReleaseList.Release) {
+      const releaseArray = Array.isArray(doc.ReleaseList.Release) 
+        ? doc.ReleaseList.Release 
+        : [doc.ReleaseList.Release];
+      releases.push(...releaseArray.filter(Boolean));
+    }
+    
+    // Get TrackRelease elements if present
+    if (doc.ReleaseList.TrackRelease) {
+      const trackReleaseArray = Array.isArray(doc.ReleaseList.TrackRelease) 
+        ? doc.ReleaseList.TrackRelease 
+        : [doc.ReleaseList.TrackRelease];
+      // Mark them as track releases for filtering
+      trackReleaseArray.forEach(tr => {
+        if (tr) {
+          tr._isTrackRelease = true;
+          releases.push(tr);
+        }
+      });
+    }
+    
+    return releases;
   }
 
   getResources(doc) {
@@ -596,14 +718,27 @@ class SchematronValidator {
     
     const resources = [];
     
-    // Collect all resource types
+    // Collect all resource types and preserve their attributes
     ['SoundRecording', 'Video', 'Image', 'Text'].forEach(type => {
       if (doc.ResourceList[type]) {
         const items = Array.isArray(doc.ResourceList[type]) 
           ? doc.ResourceList[type] 
           : [doc.ResourceList[type]];
         items.forEach(item => {
-          resources.push({ [type]: item, ResourceReference: item.ResourceReference });
+          // Create resource object preserving all attributes
+          const resource = { 
+            [type]: item, 
+            ResourceReference: item.ResourceReference
+          };
+          
+          // Copy all attributes from the item to the resource wrapper
+          for (const key of Object.keys(item)) {
+            if (key.startsWith('@')) {
+              resource[key] = item[key];
+            }
+          }
+          
+          resources.push(resource);
         });
       }
     });

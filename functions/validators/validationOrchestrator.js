@@ -5,20 +5,11 @@ const SchematronValidator = require('./schematronValidator');
 
 class ValidationOrchestrator {
   constructor() {
-    this.ernValidator = null; // Initialize lazily
+    this.ernValidator = null;
     this.xsdValidator = new XSDValidator();
     this.schematronValidator = new SchematronValidator();
   }
 
-  // Initialize ERNValidator lazily with the correct version
-  getERNValidator(version) {
-    if (!this.ernValidator || this.ernValidator.version !== version) {
-      this.ernValidator = new ERNValidator(version);
-    }
-    return this.ernValidator;
-  }
-
-  // New method to validate with SVRL generation
   async validateWithSVRL(xmlContent, type, version, profile) {
     // Run normal validation
     const results = await this.validate(xmlContent, type, version, profile);
@@ -26,30 +17,21 @@ class ValidationOrchestrator {
     // Add SVRL if Schematron was used
     if (profile && this.schematronValidator) {
       try {
-        // The schematronValidator should have the SVRL from the last validation
-        // Or we can regenerate it with the generateSVRL option
+        // Re-run Schematron validation with SVRL generation option
         const schematronResult = await this.schematronValidator.validate(
           xmlContent,
           version,
           profile,
-          { generateSVRL: true }  // Force SVRL generation
+          { generateSVRL: true }  // ✅ This triggers SVRL generation
         );
         
-        // Get the SVRL report
-        if (schematronResult && schematronResult.svrl) {
+        // Add SVRL to results if it was generated
+        if (schematronResult.svrl) {
           results.svrl = schematronResult.svrl;
-        } else {
-          // Try to get it from the last validation
-          try {
-            results.svrl = this.schematronValidator.getLastSVRLReport();
-          } catch (e) {
-            console.warn('Could not get SVRL from last validation:', e.message);
-            results.svrl = null;
-          }
         }
       } catch (error) {
         console.warn('Could not generate SVRL:', error.message);
-        results.svrl = null;
+        results.svrlError = error.message;
       }
     }
     

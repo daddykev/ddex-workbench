@@ -192,6 +192,8 @@ ddex-workbench/
 │   ├── middleware/            # Express middleware
 │   │   ├── apiKeyAuth.js      # API key authentication
 │   │   └── rateLimiter.js     # Rate limiting with trust proxy fix
+│   ├── utils/                 # Util functions
+│   │   └── svrlGenerator.js   # SVRL generator
 │   ├── validators/            # Validation modules
 │   │   ├── ernValidator.js    # Multi-version ERN validator
 │   │   ├── schematronValidator.js  # Profile-specific validation
