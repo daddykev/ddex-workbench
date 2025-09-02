@@ -10,13 +10,34 @@ export type {
   DDEXType,
   ValidationOptions,
   ValidationErrorDetail,
+  ValidationWarning,
+  PassedRule,
   ValidationStep,
   ValidationMetadata,
   ValidationResult,
+  ValidationSummary,
   SupportedFormats,
   HealthStatus,
   ApiKey,
+  CustomValidationRule,
+  BatchValidationOptions,
+  BatchValidationResult,
+  SVRLStatistics,
+  FileValidationOptions,
+  URLValidationOptions,
 } from "./types";
 
-// Export only the essential error classes that exist
-export { DDEXError, RateLimitError } from "./errors";
+// Export all error classes
+export {
+  DDEXError,
+  RateLimitError,
+  AuthenticationError,
+  ValidationError,
+  NetworkError,
+  NotFoundError,
+  ConfigurationError,
+  TimeoutError,
+  FileError,
+  ParseError,
+  APIError,
+} from "./errors";

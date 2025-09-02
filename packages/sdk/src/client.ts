@@ -7,8 +7,18 @@ import {
   ApiKey,
   SupportedFormats,
   HealthStatus,
+  BatchValidationOptions,
+  BatchValidationResult,
+  FileValidationOptions,
+  URLValidationOptions,
 } from "./types";
-import { DDEXError, RateLimitError } from "./errors";
+import {
+  DDEXError,
+  RateLimitError,
+  AuthenticationError,
+  ValidationError,
+  NetworkError,
+} from "./errors";
 import { DDEXValidator } from "./validator";
 
 /**
@@ -51,7 +61,8 @@ export class DDEXClient {
       timeout: this.config.timeout,
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": `ddex-workbench-sdk/1.0.1 (${this.getEnvironment()})`,
+        "User-Agent": `ddex-workbench-sdk/1.1.0 (${this.getEnvironment()})`,
+        ...this.config.headers,
       },
     });
 
@@ -78,12 +89,9 @@ export class DDEXClient {
    * ```typescript
    * const result = await client.validate(xmlContent, {
    *   version: '4.3',
-   *   profile: 'AudioAlbum'
+   *   profile: 'AudioAlbum',
+   *   generateSVRL: true
    * });
-   *
-   * if (!result.valid) {
-   *   console.log('Validation errors:', result.errors);
-   * }
    * ```
    */
   async validate(
@@ -91,12 +99,17 @@ export class DDEXClient {
     options: ValidationOptions,
   ): Promise<ValidationResult> {
     try {
-      const response = await this.client.post<ValidationResult>("/validate", {
-        content,
-        type: options.type || "ERN",
-        version: options.version,
-        profile: options.profile,
-      });
+      const response = await this.retryableRequest(() =>
+        this.client.post<ValidationResult>("/validate", {
+          content,
+          type: "ERN",
+          version: options.version,
+          profile: options.profile,
+          generateSVRL: options.generateSVRL,
+          verbose: options.verbose,
+          customRules: options.customRules,
+        }),
+      );
 
       return response.data;
     } catch (error) {
@@ -105,53 +118,195 @@ export class DDEXClient {
   }
 
   /**
-   * Validate XML from URL
+   * Validate with SVRL report generation
    *
-   * @param url - URL to XML file
+   * @param content - XML content as string
    * @param options - Validation options
-   * @returns Validation result
+   * @returns Validation result with SVRL report
    *
    * @example
    * ```typescript
-   * const result = await client.validateURL(
-   *   'https://example.com/release.xml',
-   *   { version: '4.3', profile: 'AudioAlbum' }
-   * );
+   * const result = await client.validateWithSVRL(xmlContent, {
+   *   version: '4.3',
+   *   profile: 'AudioAlbum'
+   * });
+   * 
+   * if (result.svrl) {
+   *   console.log('SVRL report generated');
+   * }
    * ```
    */
-  async validateURL(
-    url: string,
+  async validateWithSVRL(
+    content: string,
     options: ValidationOptions,
   ): Promise<ValidationResult> {
-    try {
-      // Fetch XML content from URL
-      const xmlResponse = await axios.get(url, {
-        responseType: "text",
-        timeout: this.config.timeout,
-      });
+    return this.validate(content, {
+      ...options,
+      generateSVRL: true,
+    });
+  }
 
-      return this.validate(xmlResponse.data, options);
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        throw new DDEXError(
-          `XML file not found at URL: ${url}`,
-          "FILE_NOT_FOUND",
-        );
+  /**
+   * Validate a file
+   *
+   * @param filePath - Path to XML file
+   * @param options - Validation options
+   * @returns Validation result
+   */
+  async validateFile(
+    filePath: string,
+    options: FileValidationOptions,
+  ): Promise<ValidationResult> {
+    try {
+      // In browser environment, this would need to be handled differently
+      if (typeof window !== "undefined") {
+        throw new Error("File validation is not supported in browser environment");
       }
+
+      // Use dynamic imports for Node.js modules
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      
+      const content = await fs.readFile(filePath, options.encoding || "utf-8");
+      const stats = await fs.stat(filePath);
+      
+      const result = await this.validate(content.toString(), options);
+      
+      // Add file metadata
+      result.metadata.fileInfo = {
+        name: path.basename(filePath),
+        size: stats.size,
+      };
+      
+      if (options.includeHash) {
+        const crypto = await import("crypto");
+        const hash = crypto
+          .createHash("sha256")
+          .update(content)
+          .digest("hex");
+        result.metadata.fileInfo.hash = hash;
+      }
+      
+      return result;
+    } catch (error) {
       throw this.handleError(error);
     }
   }
 
   /**
-   * Get supported DDEX formats and versions
+   * Validate XML from URL
    *
-   * @returns Supported formats, versions, and profiles
+   * @param url - URL to fetch XML from
+   * @param options - Validation options
+   * @returns Validation result
+   */
+  async validateURL(
+    url: string,
+    options: URLValidationOptions,
+  ): Promise<ValidationResult> {
+    try {
+      const response = await axios.get(url, {
+        timeout: options.fetchTimeout || this.config.timeout,
+        headers: options.headers,
+        responseType: "text",
+      });
+
+      return this.validate(response.data, options);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Batch validate multiple XML contents
    *
-   * @example
-   * ```typescript
-   * const formats = await client.getSupportedFormats();
-   * console.log('Supported versions:', formats.versions);
-   * ```
+   * @param items - Array of XML contents with their options
+   * @param batchOptions - Batch processing options
+   * @returns Batch validation results
+   */
+  async validateBatch(
+    items: Array<{ content: string; options: ValidationOptions; filename?: string }>,
+    batchOptions: BatchValidationOptions = {},
+  ): Promise<BatchValidationResult> {
+    const startTime = Date.now();
+    const concurrency = batchOptions.concurrency || 3;
+    const results: Array<{ filename: string; result: ValidationResult }> = [];
+    
+    let validFiles = 0;
+    let completed = 0;
+
+    // Process in chunks for concurrency control
+    for (let i = 0; i < items.length; i += concurrency) {
+      const chunk = items.slice(i, i + concurrency);
+      
+      const chunkResults = await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            const result = await this.validate(item.content, item.options);
+            if (result.valid) validFiles++;
+            
+            completed++;
+            if (batchOptions.onProgress) {
+              batchOptions.onProgress(completed, items.length);
+            }
+            
+            return {
+              filename: item.filename || `file_${completed}`,
+              result,
+            };
+          } catch (error) {
+            completed++;
+            if (batchOptions.onProgress) {
+              batchOptions.onProgress(completed, items.length);
+            }
+            
+            if (batchOptions.stopOnError) {
+              throw error;
+            }
+            
+            // Create error result
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            return {
+              filename: item.filename || `file_${completed}`,
+              result: {
+                valid: false,
+                errors: [{
+                  line: 0,
+                  column: 0,
+                  message: errorMessage,
+                  severity: "fatal" as const,
+                }],
+                warnings: [],
+                metadata: {
+                  processingTime: 0,
+                  schemaVersion: item.options.version,
+                  validatedAt: new Date().toISOString(),
+                  errorCount: 1,
+                  warningCount: 0,
+                  validationSteps: [],
+                },
+              },
+            };
+          }
+        }),
+      );
+      
+      results.push(...chunkResults);
+    }
+
+    return {
+      totalFiles: items.length,
+      validFiles,
+      invalidFiles: items.length - validFiles,
+      results,
+      processingTime: Date.now() - startTime,
+    };
+  }
+
+  /**
+   * Get supported formats and versions
+   *
+   * @returns Supported formats information
    */
   async getSupportedFormats(): Promise<SupportedFormats> {
     try {
@@ -165,42 +320,30 @@ export class DDEXClient {
   /**
    * Check API health status
    *
-   * @returns Health status of the API
-   *
-   * @example
-   * ```typescript
-   * const health = await client.checkHealth();
-   * if (health.status === 'healthy') {
-   *   console.log('API is operational');
-   * }
-   * ```
+   * @returns Health status information
    */
   async checkHealth(): Promise<HealthStatus> {
     try {
+      const startTime = Date.now();
       const response = await this.client.get<HealthStatus>("/health");
-      return response.data;
+      
+      return {
+        ...response.data,
+        responseTime: Date.now() - startTime,
+      };
     } catch (error) {
       throw this.handleError(error);
     }
   }
 
   /**
-   * API Key Management (requires authentication)
-   */
-
-  /**
-   * List API keys for authenticated user
+   * List API keys (requires authentication)
    *
-   * @param authToken - Firebase auth token
    * @returns List of API keys
    */
-  async listApiKeys(authToken: string): Promise<ApiKey[]> {
+  async listApiKeys(): Promise<ApiKey[]> {
     try {
-      const response = await this.client.get<ApiKey[]>("/keys", {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      const response = await this.client.get<ApiKey[]>("/keys");
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -208,23 +351,14 @@ export class DDEXClient {
   }
 
   /**
-   * Create new API key
+   * Create a new API key (requires authentication)
    *
-   * @param name - Friendly name for the key
-   * @param authToken - Firebase auth token
-   * @returns New API key (only shown once)
+   * @param name - Name for the API key
+   * @returns Created API key
    */
-  async createApiKey(name: string, authToken: string): Promise<ApiKey> {
+  async createApiKey(name: string): Promise<ApiKey> {
     try {
-      const response = await this.client.post<ApiKey>(
-        "/keys",
-        { name },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
-      );
+      const response = await this.client.post<ApiKey>("/keys", { name });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -232,25 +366,123 @@ export class DDEXClient {
   }
 
   /**
-   * Revoke API key
+   * Revoke an API key (requires authentication)
    *
-   * @param keyId - API key ID to revoke
-   * @param authToken - Firebase auth token
+   * @param keyId - ID of the key to revoke
    */
-  async revokeApiKey(keyId: string, authToken: string): Promise<void> {
+  async revokeApiKey(keyId: string): Promise<void> {
     try {
-      await this.client.delete(`/keys/${keyId}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      await this.client.delete(`/keys/${keyId}`);
     } catch (error) {
       throw this.handleError(error);
     }
   }
 
   /**
-   * Update API key for this client instance
+   * Setup axios interceptors for retry logic
+   */
+  private setupInterceptors(): void {
+    // Response interceptor for retry logic is handled in retryableRequest
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => Promise.reject(error),
+    );
+  }
+
+  /**
+   * Execute request with retry logic
+   */
+  private async retryableRequest<T>(
+    request: () => Promise<T>,
+    retries = this.config.maxRetries || 3,
+  ): Promise<T> {
+    try {
+      return await request();
+    } catch (error) {
+      if (retries > 0 && this.shouldRetry(error)) {
+        await this.delay(this.config.retryDelay || 1000);
+        return this.retryableRequest(request, retries - 1);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Check if request should be retried
+   */
+  private shouldRetry(error: unknown): boolean {
+    if (!axios.isAxiosError(error)) return false;
+
+    const status = error.response?.status;
+    // Retry on network errors or 5xx status codes
+    return !status || status >= 500;
+  }
+
+  /**
+   * Delay helper for retry logic
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Handle and transform axios errors
+   */
+  private handleError(error: unknown): Error {
+    if (!axios.isAxiosError(error)) {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    const axiosError = error as AxiosError<{ error?: { message: string } }>;
+    const message =
+      axiosError.response?.data?.error?.message ||
+      axiosError.message ||
+      "An unknown error occurred";
+
+    const status = axiosError.response?.status;
+
+    switch (status) {
+      case 401:
+        return new AuthenticationError(message);
+      case 429:
+        const retryAfter = parseInt(
+          axiosError.response?.headers["retry-after"] || "60",
+        );
+        return new RateLimitError(message, retryAfter);
+      case 422:
+        return new ValidationError(message);
+      case 400:
+        return new ValidationError(message);
+      case 404:
+        return new DDEXError(`Resource not found: ${message}`);
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return new NetworkError(`Server error: ${message}`);
+      default:
+        if (!axiosError.response) {
+          return new NetworkError(`Network error: ${message}`);
+        }
+        return new DDEXError(message);
+    }
+  }
+
+  /**
+   * Get current environment
+   */
+  private getEnvironment(): string {
+    if (typeof window !== "undefined") {
+      return `browser/${this.config.environment}`;
+    }
+    if (typeof process !== "undefined" && process.versions?.node) {
+      return `node/${process.version}/${this.config.environment}`;
+    }
+    return this.config.environment || "unknown";
+  }
+
+  /**
+   * Update API key
    *
    * @param apiKey - New API key
    */
@@ -260,7 +492,7 @@ export class DDEXClient {
   }
 
   /**
-   * Remove API key from this client instance
+   * Remove API key
    */
   clearApiKey(): void {
     this.config.apiKey = undefined;
@@ -268,75 +500,9 @@ export class DDEXClient {
   }
 
   /**
-   * Private helper methods
+   * Get current configuration
    */
-
-  private setupInterceptors(): void {
-    // Response interceptor for retry logic
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const config = error.config;
-
-        // Check if we should retry
-        if (
-          !config ||
-          config.__retryCount >= this.config.maxRetries ||
-          !this.shouldRetry(error)
-        ) {
-          return Promise.reject(error);
-        }
-
-        // Increment retry count
-        config.__retryCount = config.__retryCount || 0;
-        config.__retryCount++;
-
-        // Calculate delay with exponential backoff
-        const delay =
-          this.config.retryDelay * Math.pow(2, config.__retryCount - 1);
-
-        // Wait before retrying
-        await new Promise((resolve) => setTimeout(resolve, delay));
-
-        return this.client(config);
-      },
-    );
-  }
-
-  private shouldRetry(error: AxiosError): boolean {
-    // Retry on network errors or 5xx status codes
-    return (
-      !error.response ||
-      (error.response.status >= 500 && error.response.status < 600)
-    );
-  }
-
-  private handleError(error: any): Error {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      const message = error.response?.data?.error?.message || error.message;
-
-      if (status === 429) {
-        const retryAfter = error.response?.headers["retry-after"];
-        return new RateLimitError(
-          message,
-          retryAfter ? parseInt(retryAfter) : undefined,
-        );
-      }
-
-      return new DDEXError(message, "API_ERROR", status, error.response?.data);
-    }
-
-    return error;
-  }
-
-  private getEnvironment(): string {
-    if (typeof window !== "undefined") {
-      return "browser";
-    }
-    if (typeof process !== "undefined" && process.versions?.node) {
-      return `node/${process.version}`;
-    }
-    return "unknown";
+  getConfig(): Readonly<DDEXClientConfig> {
+    return { ...this.config };
   }
 }
