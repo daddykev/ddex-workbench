@@ -175,32 +175,40 @@ class ERN43Rules {
         name: 'ERN43-Release-DisplayTitle',
         test: (doc) => {
           const releases = this.getReleases(doc);
-          return releases.every(release => {
-            // Must have both DisplayTitleText AND DisplayTitle
-            return (release.DisplayTitleText && release.DisplayTitle);
+          // Only check main Release elements, not TrackRelease
+          const mainReleases = releases.filter(r => !r._isTrackRelease);
+          
+          return mainReleases.every(release => {
+            // Must have EITHER DisplayTitleText OR DisplayTitle (or both)
+            return (release.DisplayTitleText || release.DisplayTitle);
           });
         },
-        message: 'Each Release must have both DisplayTitleText and DisplayTitle elements',
+        message: 'Each Release must have DisplayTitleText and/or DisplayTitle elements',
         severity: 'error',
-        suggestion: 'DisplayTitleText contains the full title string, DisplayTitle contains structured title parts'
+        suggestion: 'Add either DisplayTitleText (simple string) or DisplayTitle (structured) or both'
       },
       {
         name: 'ERN43-Release-DisplayArtist',
         test: (doc) => {
           const releases = this.getReleases(doc);
-          return releases.every(release => {
-            // Must have both DisplayArtistName AND DisplayArtist
-            return (release.DisplayArtistName && release.DisplayArtist);
+          // Only check main Release elements, not TrackRelease
+          const mainReleases = releases.filter(r => !r._isTrackRelease);
+          
+          return mainReleases.every(release => {
+            // Must have EITHER DisplayArtistName OR DisplayArtist (or both)
+            return (release.DisplayArtistName || release.DisplayArtist);
           });
         },
-        message: 'Each Release must have both DisplayArtistName and DisplayArtist elements',
+        message: 'Each Release must have DisplayArtistName and/or DisplayArtist elements',
         severity: 'error'
       },
       {
         name: 'ERN43-DisplayArtist-Structure',
         test: (doc) => {
           const releases = this.getReleases(doc);
+          // Check both Release and TrackRelease, but only IF they have DisplayArtist
           return releases.every(release => {
+            // Only validate structure IF DisplayArtist exists
             if (!release.DisplayArtist) return true;
             
             const artists = Array.isArray(release.DisplayArtist) ? 
@@ -391,8 +399,9 @@ class ERN43Rules {
             
             // Check if ResourceGroup has content items
             const rg = release.ResourceGroup;
-            const hasContentItems = rg.ResourceGroupContentItem && 
-                                  rg.ResourceGroupContentItem.length > 0;
+            
+            // FIX: Just check existence, not length (since it might not be an array)
+            const hasContentItems = !!rg.ResourceGroupContentItem;
             
             if (!hasContentItems) return false;
             
@@ -403,8 +412,12 @@ class ERN43Rules {
             return items.every(item => {
               // Must have ReleaseResourceReference
               if (!item.ReleaseResourceReference) return false;
+              
+              // Get the reference value (handle both simple string and object with #text)
+              const ref = this.getValue(item.ReleaseResourceReference);
+              
               // Reference must match pattern
-              return /^A[\d\-_a-zA-Z]+$/.test(item.ReleaseResourceReference);
+              return /^A[\d\-_a-zA-Z]+$/.test(ref);
             });
           });
         },
@@ -493,15 +506,21 @@ class ERN43Rules {
             const resources = this.getResources(doc);
             const images = resources.filter(r => r.Image);
             
+            // If no images, pass silently
+            if (images.length === 0) return true;
+            
             return images.every(img => {
               const technicalDetails = img.Image?.TechnicalDetails;
-              if (!technicalDetails) return true;
+              if (!technicalDetails) return true;  // No technical details is OK
               
               const tdArray = Array.isArray(technicalDetails) ? 
                             technicalDetails : [technicalDetails];
               
               return tdArray.some(td => {
                 const codec = this.getValue(td.ImageCodecType);
+                // If no codec specified, that's OK
+                if (!codec) return true;
+                // Check if it's a standard codec
                 return ['JPEG', 'PNG', 'GIF', 'TIFF'].includes(codec);
               });
             });
