@@ -1,3 +1,4 @@
+// functions/validators/ernValidator.js
 const { XMLParser, XMLValidator } = require('fast-xml-parser');
 
 // ERN version-specific configurations
@@ -225,23 +226,26 @@ class ERNValidator {
         rule: 'ERN382-UpdateIndicator'
       });
     }
+    
+    // Check for ReleaseList
+    if (!root.ReleaseList) {
+      errors.push({
+        line: 0,
+        column: 0,
+        message: 'ReleaseList is required in ERN 3.8.2',
+        severity: 'error',
+        rule: 'ERN382-ReleaseList'
+      });
+    }
 
-    // Check for ReleaseDetailsByTerritory (ERN 3 structure)
-    if (root.ReleaseList && root.ReleaseList.Release) {
-      const releases = Array.isArray(root.ReleaseList.Release) 
-        ? root.ReleaseList.Release 
-        : [root.ReleaseList.Release];
-      
-      releases.forEach((release, index) => {
-        if (release.ReleaseDetailsByTerritory) {
-          errors.push({
-            line: 0,
-            column: 0,
-            message: `Release ${index + 1}: Consider migrating to ERN 4.3 for improved territorial handling`,
-            severity: 'info',
-            rule: 'ERN382-Migration-Suggestion'
-          });
-        }
+    // Check for ResourceList
+    if (!root.ResourceList) {
+      errors.push({
+        line: 0,
+        column: 0,
+        message: 'ResourceList is required in ERN 3.8.2',
+        severity: 'error',
+        rule: 'ERN382-ResourceList'
       });
     }
   }
