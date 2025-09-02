@@ -433,12 +433,64 @@ class ERN382Rules {
         test: (doc) => {
           if (!doc.DealList) return true;
           
+          // Complete list of valid UseTypes from ERN 3.8.2 XSD
           const validUseTypes = [
-            'PermanentDownload', 'ConditionalDownload', 'TetheredDownload',
-            'OnDemandStream', 'NonInteractiveStream', 'ContentInfluencedStream',
-            'TimeInfluencedStream', 'UseAsRingtone', 'UseAsRingbackTone',
-            'UseAsAlertTone', 'PurchaseAsPhysicalProduct', 'UserDefined',
-            'AsPerContract', 'Unknown'
+            'AsPerContract',
+            'Broadcast', // deprecated
+            'Cable',
+            'ConditionalDownload',
+            'ContentInfluencedStream',
+            'Display', // deprecated
+            'Download', // deprecated
+            'Dub',
+            'DubForAdvertisement',
+            'DubForLivePerformance',
+            'DubForMovies',
+            'DubForMusicOnHold',
+            'DubForOnDemandStreaming',
+            'DubForPublicPerformance',
+            'DubForRadio',
+            'DubForTV',
+            'ExtractForInternet',
+            'KioskDownload', // deprecated
+            'Narrowcast', // deprecated
+            'NonInteractiveStream',
+            'OnDemandStream',
+            'Perform',
+            'PerformAsMusicOnHold',
+            'PerformInLivePerformance',
+            'PerformInPublic', // deprecated
+            'PermanentDownload',
+            'Playback',
+            'PlayInPublic',
+            'Podcast',
+            'Print', // deprecated
+            'PrivateCopy',
+            'PurchaseAsPhysicalProduct',
+            'Rent',
+            'Simulcast', // deprecated
+            'Stream',
+            'TetheredDownload',
+            'TimeInfluencedStream',
+            'Unknown',
+            'Use',
+            'UseAsAlertTone',
+            'UseAsDevice',
+            'UseAsKaraoke',
+            'UseAsRingbackTone',
+            'UseAsRingbackTune',
+            'UseAsRingtone',
+            'UseAsRingtune', // deprecated
+            'UseAsScreensaver',
+            'UseAsVoiceMail',
+            'UseAsWallpaper',
+            'UseForIdentification',
+            'UseInMobilePhoneMessaging',
+            'UseInPhoneListening',
+            'UserDefined',
+            'UserMakeAvailableLabelProvided',
+            'UserMakeAvailableUserProvided',
+            'Webcast' // deprecated
           ];
           
           const deals = this.getDeals(doc);
@@ -455,12 +507,14 @@ class ERN382Rules {
               // Check Usage/UseType structure
               if (deal.DealTerms.Usage) {
                 const usage = deal.DealTerms.Usage;
+                if (!usage.UseType) return true; // UseType is optional within Usage
+                
                 const useTypes = Array.isArray(usage.UseType) ? 
                                 usage.UseType : [usage.UseType];
                 
                 return useTypes.every(type => {
                   const typeValue = this.getValue(type);
-                  return validUseTypes.includes(typeValue) || typeValue === 'UserDefined';
+                  return validUseTypes.includes(typeValue);
                 });
               }
               
@@ -469,16 +523,26 @@ class ERN382Rules {
           });
         },
         message: 'UseType must be a valid ERN 3.8.2 use type',
-        severity: 'error'
+        severity: 'error',
+        suggestion: 'Common values: PermanentDownload, OnDemandStream, NonInteractiveStream, ConditionalDownload, etc. See DDEX documentation for full list.'
       },
       {
         name: 'ERN382-CommercialModelType',
         test: (doc) => {
           if (!doc.DealList) return true;
           
+          // Updated to match actual ERN 3.8.2 XSD allowed values
           const validModels = [
-            'AdvertisementSupportedModel', 'SubscriptionModel', 'PayAsYouGoModel',
-            'PermanentDownloadModel', 'RentalModel', 'UserDefined', 'AsPerContract'
+            'AdvertisementSupportedModel',
+            'AsPerContract',
+            'DeviceFeeModel',
+            'FreeOfChargeModel',
+            'PayAsYouGoModel',
+            'PerformanceRoyaltiesModel',
+            'RightsClaimModel',
+            'SubscriptionModel',
+            'Unknown',  // Deprecated but still valid
+            'UserDefined'
           ];
           
           const deals = this.getDeals(doc);
@@ -493,18 +557,19 @@ class ERN382Rules {
               if (!deal.DealTerms || !deal.DealTerms.CommercialModelType) return true;
               
               const models = Array.isArray(deal.DealTerms.CommercialModelType) ?
-                           deal.DealTerms.CommercialModelType : 
-                           [deal.DealTerms.CommercialModelType];
+                          deal.DealTerms.CommercialModelType : 
+                          [deal.DealTerms.CommercialModelType];
               
               return models.every(model => {
                 const modelValue = this.getValue(model);
-                return validModels.includes(modelValue) || modelValue === 'UserDefined';
+                return validModels.includes(modelValue);
               });
             });
           });
         },
-        message: 'CommercialModelType must be a valid ERN 3.8.2 commercial model',
-        severity: 'warning'
+        message: 'CommercialModelType must be a valid ERN 3.8.2 commercial model type',
+        severity: 'warning',
+        suggestion: 'Valid values: AdvertisementSupportedModel, SubscriptionModel, PayAsYouGoModel, FreeOfChargeModel, DeviceFeeModel, PerformanceRoyaltiesModel, RightsClaimModel, AsPerContract, UserDefined'
       }
     ];
   }
