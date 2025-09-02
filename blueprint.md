@@ -181,8 +181,6 @@ ddex-workbench/
 ├── .vscode/                   # VS Code settings (git ignored)
 ├── docs/                      # Documentation
 │   ├── API.md                 # API documentation
-│   ├── SDK_JS.md              # JavaScript SDK guide
-│   ├── SDK_PYTHON.md          # Python SDK guide
 │   └── SETUP.md               # Setup instructions
 ├── functions/                 # Firebase Cloud Functions
 │   ├── api/                   # API endpoints
@@ -206,6 +204,10 @@ ddex-workbench/
 │   ├── utils/                 # Util functions
 │   │   └── svrlGenerator.js   # SVRL generator
 │   ├── validators/            # Validation modules
+│   │   ├── rules/             # Version-specific rules
+│   │   │   ├── schematron-42.js  # ERN 4.3 schematron rules
+│   │   │   ├── schematron-43.js  # ERN 4.2 schematron rules
+│   │   │   └── schematron-382.js  # ERN 3.8.2 schematron rules
 │   │   ├── ernValidator.js    # Multi-version ERN validator
 │   │   ├── schematronValidator.js  # Profile-specific validation
 │   │   ├── validationOrchestrator.js  # Combines all validators
