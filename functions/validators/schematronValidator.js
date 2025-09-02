@@ -224,449 +224,561 @@ class SchematronValidator {
   }
 
   getBuiltInRules(version, profile) {
-    // Base rules common to all profiles
-    const baseRules = [
-      {
-        name: 'MessageHeader-Required',
-        test: (doc) => !!doc.MessageHeader,
-        message: 'MessageHeader is required',
-        severity: 'error'
-      },
-      {
-        name: 'MessageHeader-MessageId',
-        test: (doc) => doc.MessageHeader?.MessageId,
-        message: 'MessageHeader must contain MessageId',
-        severity: 'error'
-      },
-      {
-        name: 'MessageHeader-MessageSender',
-        test: (doc) => {
-          const sender = doc.MessageHeader?.MessageSender;
-          return sender?.PartyId && sender?.PartyName?.FullName;
-        },
-        message: 'MessageHeader must contain complete MessageSender information (PartyId and PartyName)',
-        severity: 'error'
-      },
-      {
-        name: 'MessageHeader-MessageRecipient',
-        test: (doc) => {
-          const recipient = doc.MessageHeader?.MessageRecipient;
-          return recipient?.PartyId && recipient?.PartyName?.FullName;
-        },
-        message: 'MessageHeader must contain complete MessageRecipient information (PartyId and PartyName)',
-        severity: 'error'
-      },
-      {
-        name: 'MessageHeader-MessageCreatedDateTime',
-        test: (doc) => doc.MessageHeader?.MessageCreatedDateTime,
-        message: 'MessageHeader must contain MessageCreatedDateTime',
-        severity: 'error'
-      },
-      {
-        name: 'ReleaseList-Required',
-        test: (doc) => !!doc.ReleaseList,
-        message: 'ReleaseList is required',
-        severity: 'error'
-      },
-      {
-        name: 'ReleaseList-NotEmpty',
-        test: (doc) => {
-          if (!doc.ReleaseList) return false;
-          const releases = this.getReleases(doc);
-          return releases.length > 0;
-        },
-        message: 'ReleaseList must contain at least one Release',
-        severity: 'error'
-      },
-      {
-        name: 'ResourceList-Required',
-        test: (doc) => !!doc.ResourceList,
-        message: 'ResourceList is required',
-        severity: 'error'
-      },
-      {
-        name: 'ResourceList-NotEmpty',
-        test: (doc) => {
-          if (!doc.ResourceList) return false;
-          const resources = this.getResources(doc);
-          return resources.length > 0;
-        },
-        message: 'ResourceList must contain at least one Resource',
-        severity: 'error'
-      },
-      {
-        name: 'Release-MainRelease',
-        test: (doc) => {
-          const releases = this.getReleases(doc);
-          
-          // Filter out TrackReleases - they're never main releases
-          const mainCandidates = releases.filter(r => !r._isTrackRelease);
-          
-          // If only one non-track release, it's implicitly main
-          if (mainCandidates.length === 1) return true;
-          
-          // Check for Album or Single type releases (these are implicitly main)
-          const albumOrSingle = mainCandidates.filter(r => {
-            const releaseType = this.getValue(r.ReleaseType);
-            return releaseType === 'Album' || 
-                   releaseType === 'Single' ||
-                   releaseType === 'EP' ||
-                   releaseType === 'SingleResourceRelease';
-          });
-          
-          if (albumOrSingle.length === 1) return true;
-          
-          // Otherwise check for explicit IsMainRelease
-          const explicitMain = mainCandidates.filter(r => 
-            r['@_IsMainRelease'] === 'true' || r['@_IsMainRelease'] === true
-          );
-          
-          return explicitMain.length === 1;
-        },
-        message: 'There must be exactly one identifiable main release',
-        severity: 'error'
-      },
-      {
-        name: 'Release-ReleaseId',
-        test: (doc) => {
-          const releases = this.getReleases(doc);
-          // Filter out TrackReleases as they might have different ID requirements
-          const mainReleases = releases.filter(r => !r._isTrackRelease);
-          return mainReleases.every(release => 
-            release.ReleaseId?.GRid || release.ReleaseId?.ICPN || release.ReleaseId?.ProprietaryId
-          );
-        },
-        message: 'Each main Release must have a ReleaseId (GRid, ICPN, or ProprietaryId)',
-        severity: 'error'
-      },
-      {
-        name: 'Resource-ResourceReference',
-        test: (doc) => {
-          const resources = this.getResources(doc);
-          const refs = resources.map(r => r.ResourceReference);
-          return refs.every(ref => ref) && refs.length === new Set(refs).size;
-        },
-        message: 'Each Resource must have a unique ResourceReference',
-        severity: 'error'
-      },
-      {
-        name: 'Resource-Type',
-        test: (doc) => {
-          const resources = this.getResources(doc);
-          return resources.every(resource => 
-            resource.SoundRecording || resource.Video || resource.Image || resource.Text
-          );
-        },
-        message: 'Each Resource must have a type (SoundRecording, Video, Image, or Text)',
-        severity: 'error'
-      }
-    ];
-
-    // Profile-specific rules
-    const profileRules = {
-      'AudioAlbum': [
+    // Start with base rules
+    const baseRules = [];
+    
+    // ERN 4.3 specific structural rules based on XSD
+    if (version === '4.3') {
+      baseRules.push(
+        // Required top-level elements for ERN 4.3
         {
-          name: 'AudioAlbum-MinimumTracks',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.length >= 2;
-          },
-          message: 'AudioAlbum profile requires at least 2 SoundRecording resources',
+          name: 'ERN43-MessageHeader-Required',
+          test: (doc) => !!doc.MessageHeader,
+          message: 'MessageHeader is required in ERN 4.3',
           severity: 'error'
         },
         {
-          name: 'AudioAlbum-CoverArt',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const images = resources.filter(r => r.Image);
-            return images.some(img => {
-              const type = this.getValue(img.Image.Type);
-              return type === 'FrontCoverImage';
-            });
-          },
-          message: 'AudioAlbum profile requires at least one FrontCoverImage',
-          severity: 'warning'
+          name: 'ERN43-PartyList-Required',
+          test: (doc) => !!doc.PartyList,
+          message: 'PartyList is required in ERN 4.3 (contains all party information)',
+          severity: 'error',
+          suggestion: 'Add PartyList element after MessageHeader/ReleaseAdmin elements'
         },
         {
-          name: 'AudioAlbum-Duration',
+          name: 'ERN43-ResourceList-Required',
+          test: (doc) => !!doc.ResourceList,
+          message: 'ResourceList is required in ERN 4.3',
+          severity: 'error'
+        },
+        {
+          name: 'ERN43-ReleaseList-Required',
+          test: (doc) => !!doc.ReleaseList,
+          message: 'ReleaseList is required in ERN 4.3',
+          severity: 'error'
+        },
+        
+        // DealList is OPTIONAL in ERN 4.3 (not required as we thought!)
+        {
+          name: 'ERN43-DealList-Recommended',
+          test: (doc) => !!doc.DealList,
+          message: 'DealList is recommended but not required in ERN 4.3',
+          severity: 'warning',
+          suggestion: 'Consider adding DealList with commercial terms'
+        },
+
+        // Required attributes on NewReleaseMessage
+        {
+          name: 'ERN43-Required-Attributes',
+          test: (doc) => {
+            return doc['@_AvsVersionId'] && doc['@_LanguageAndScriptCode'];
+          },
+          message: 'NewReleaseMessage must have AvsVersionId and LanguageAndScriptCode attributes',
+          severity: 'error',
+          suggestion: 'Add AvsVersionId="2024" LanguageAndScriptCode="en" to NewReleaseMessage'
+        },
+
+        // Reference pattern validation
+        {
+          name: 'ERN43-ReleaseReference-Pattern',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.every(release => {
+              const ref = release.ReleaseReference;
+              return ref && /^R[\d\-_a-zA-Z]+$/.test(ref);
+            });
+          },
+          message: 'ReleaseReference must start with "R" and contain only alphanumeric, dash, underscore',
+          severity: 'error',
+          suggestion: 'Use format like "R0", "R1", "R-main", etc.'
+        },
+        {
+          name: 'ERN43-ResourceReference-Pattern',
+          test: (doc) => {
+            const resources = this.getResources(doc);
+            return resources.every(resource => {
+              const ref = resource.ResourceReference || 
+                        resource.SoundRecording?.ResourceReference ||
+                        resource.Video?.ResourceReference ||
+                        resource.Image?.ResourceReference ||
+                        resource.Text?.ResourceReference;
+              return ref && /^A[\d\-_a-zA-Z]+$/.test(ref);
+            });
+          },
+          message: 'ResourceReference must start with "A" and contain only alphanumeric, dash, underscore',
+          severity: 'error',
+          suggestion: 'Use format like "A1", "A2", "A-cover", etc.'
+        },
+        {
+          name: 'ERN43-PartyReference-Pattern',
+          test: (doc) => {
+            // Check all party references in the document
+            const partyRefs = [];
+            
+            // Collect from MessageHeader
+            if (doc.MessageHeader?.MessageSender?.PartyId) {
+              partyRefs.push(doc.MessageHeader.MessageSender.PartyId);
+            }
+            if (doc.MessageHeader?.MessageRecipient?.PartyId) {
+              partyRefs.push(doc.MessageHeader.MessageRecipient.PartyId);
+            }
+            
+            // Collect from DisplayArtists
+            const releases = this.getReleases(doc);
+            releases.forEach(release => {
+              if (release.DisplayArtist) {
+                const artists = Array.isArray(release.DisplayArtist) ? 
+                              release.DisplayArtist : [release.DisplayArtist];
+                artists.forEach(artist => {
+                  if (artist.ArtistPartyReference) {
+                    partyRefs.push(artist.ArtistPartyReference);
+                  }
+                });
+              }
+            });
+            
+            // Check PartyList exists and has matching parties
+            if (partyRefs.length > 0 && !doc.PartyList) {
+              return false; // PartyList required when party references exist
+            }
+            
+            // Validate pattern for local party references
+            const localRefs = partyRefs.filter(ref => ref.startsWith('P'));
+            return localRefs.every(ref => /^P[\d\-_a-zA-Z]+$/.test(ref));
+          },
+          message: 'Party references must start with "P" and all referenced parties must exist in PartyList',
+          severity: 'error'
+        },
+
+        // ISRC validation
+        {
+          name: 'ERN43-ISRC-Format',
           test: (doc) => {
             const resources = this.getResources(doc);
             const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.every(sr => sr.SoundRecording?.Duration);
+            
+            return soundRecordings.every(sr => {
+              const isrc = sr.SoundRecording?.SoundRecordingId?.ISRC;
+              if (!isrc) return true; // ISRC is optional
+              
+              // ISRC format: 2 letters, 3 alphanumeric, 7 digits
+              return /^[a-zA-Z]{2}[a-zA-Z0-9]{3}[0-9]{7}$/.test(isrc);
+            });
           },
-          message: 'All SoundRecordings should have Duration specified',
+          message: 'ISRC must match format: 2 letters, 3 alphanumeric, 7 digits (e.g., USRC17607839)',
+          severity: 'error'
+        },
+
+        // DisplayTitle and DisplayTitleText validation
+        {
+          name: 'ERN43-Release-DisplayTitle',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.every(release => {
+              // Must have both DisplayTitleText AND DisplayTitle
+              return (release.DisplayTitleText && release.DisplayTitle);
+            });
+          },
+          message: 'Each Release must have both DisplayTitleText and DisplayTitle elements',
+          severity: 'error',
+          suggestion: 'DisplayTitleText contains the full title string, DisplayTitle contains structured title parts'
+        },
+
+        // DisplayArtist validation
+        {
+          name: 'ERN43-Release-DisplayArtist',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.every(release => {
+              // Must have both DisplayArtistName AND DisplayArtist
+              return (release.DisplayArtistName && release.DisplayArtist);
+            });
+          },
+          message: 'Each Release must have both DisplayArtistName and DisplayArtist elements',
+          severity: 'error'
+        },
+        {
+          name: 'ERN43-DisplayArtist-Structure',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.every(release => {
+              if (!release.DisplayArtist) return true;
+              
+              const artists = Array.isArray(release.DisplayArtist) ? 
+                            release.DisplayArtist : [release.DisplayArtist];
+              
+              return artists.every(artist => {
+                // Must have ArtistPartyReference and DisplayArtistRole
+                return artist.ArtistPartyReference && artist.DisplayArtistRole;
+              });
+            });
+          },
+          message: 'Each DisplayArtist must have ArtistPartyReference and DisplayArtistRole',
+          severity: 'error'
+        },
+
+        // DealTerms validation
+        {
+          name: 'ERN43-DealTerms-Territory',
+          test: (doc) => {
+            const deals = this.getDeals(doc);
+            
+            return deals.every(releaseDeal => {
+              if (releaseDeal.Deal) {
+                const nestedDeals = Array.isArray(releaseDeal.Deal) ? 
+                                  releaseDeal.Deal : [releaseDeal.Deal];
+                
+                return nestedDeals.every(deal => {
+                  if (!deal.DealTerms) return false;
+                  
+                  const dealTermsArray = Array.isArray(deal.DealTerms) ? 
+                                        deal.DealTerms : [deal.DealTerms];
+                  
+                  return dealTermsArray.every(dt => {
+                    // Must have either TerritoryCode OR ExcludedTerritoryCode, not both
+                    const hasTerritory = !!dt.TerritoryCode;
+                    const hasExcluded = !!dt.ExcludedTerritoryCode;
+                    return (hasTerritory && !hasExcluded) || (!hasTerritory && hasExcluded);
+                  });
+                });
+              }
+              return true;
+            });
+          },
+          message: 'DealTerms must have either TerritoryCode OR ExcludedTerritoryCode (not both)',
+          severity: 'error'
+        },
+        {
+          name: 'ERN43-DealTerms-ValidityPeriod',
+          test: (doc) => {
+            const deals = this.getDeals(doc);
+            
+            return deals.every(releaseDeal => {
+              if (releaseDeal.Deal) {
+                const nestedDeals = Array.isArray(releaseDeal.Deal) ? 
+                                  releaseDeal.Deal : [releaseDeal.Deal];
+                
+                return nestedDeals.every(deal => {
+                  if (!deal.DealTerms) return false;
+                  
+                  const dealTermsArray = Array.isArray(deal.DealTerms) ? 
+                                        deal.DealTerms : [deal.DealTerms];
+                  
+                  return dealTermsArray.every(dt => {
+                    // ValidityPeriod is required
+                    const vp = dt.ValidityPeriod;
+                    if (!vp) return false;
+                    
+                    const vpArray = Array.isArray(vp) ? vp : [vp];
+                    // Must have at least StartDate or StartDateTime
+                    return vpArray.every(period => 
+                      period.StartDate || period.StartDateTime
+                    );
+                  });
+                });
+              }
+              return true;
+            });
+          },
+          message: 'Each DealTerms must have ValidityPeriod with StartDate or StartDateTime',
+          severity: 'error',
+          suggestion: 'Use StartDateTime for precise timing, StartDate is deprecated'
+        },
+
+        // Territory code validation
+        {
+          name: 'ERN43-TerritoryCode-Valid',
+          test: (doc) => {
+            // Valid territory codes from XSD
+            const validCodes = ['Worldwide', 'AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 
+              'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX', 'AZ', 'BA', 'BB', 'BD', 
+              'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BN', 'BO', 'BQ', 'BR', 
+              'BS', 'BT', 'BV', 'BW', 'BY', 'BZ', 'CA', 'CC', 'CD', 'CF', 'CG', 'CH', 
+              'CI', 'CK', 'CL', 'CM', 'CN', 'CO', 'CR', 'CU', 'CV', 'CW', 'CX', 'CY', 
+              'CZ', 'DE', 'DJ', 'DK', 'DM', 'DO', 'DZ', 'EC', 'EE', 'EG', 'EH', 'ER', 
+              'ES', 'ES-CE', 'ES-CN', 'ES-ML', 'ET', 'FI', 'FJ', 'FK', 'FM', 'FO', 'FR', 
+              'GA', 'GB', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GL', 'GM', 'GN', 'GP', 
+              'GQ', 'GR', 'GS', 'GT', 'GU', 'GW', 'GY', 'HK', 'HM', 'HN', 'HR', 'HT', 
+              'HU', 'ID', 'IE', 'IL', 'IM', 'IN', 'IO', 'IQ', 'IR', 'IS', 'IT', 'JE', 
+              'JM', 'JO', 'JP', 'KE', 'KG', 'KH', 'KI', 'KM', 'KN', 'KP', 'KR', 'KW', 
+              'KY', 'KZ', 'LA', 'LB', 'LC', 'LI', 'LK', 'LR', 'LS', 'LT', 'LU', 'LV', 
+              'LY', 'MA', 'MC', 'MD', 'ME', 'MF', 'MG', 'MH', 'MK', 'ML', 'MM', 'MN', 
+              'MO', 'MP', 'MQ', 'MR', 'MS', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ', 
+              'NA', 'NC', 'NE', 'NF', 'NG', 'NI', 'NL', 'NO', 'NP', 'NR', 'NU', 'NZ', 
+              'OM', 'PA', 'PE', 'PF', 'PG', 'PH', 'PK', 'PL', 'PM', 'PN', 'PR', 'PS', 
+              'PT', 'PW', 'PY', 'QA', 'RE', 'RO', 'RS', 'RU', 'RW', 'SA', 'SB', 'SC', 
+              'SD', 'SE', 'SG', 'SH', 'SI', 'SJ', 'SK', 'SL', 'SM', 'SN', 'SO', 'SR', 
+              'SS', 'ST', 'SV', 'SX', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TH', 'TJ', 
+              'TK', 'TL', 'TM', 'TN', 'TO', 'TR', 'TT', 'TV', 'TW', 'TZ', 'UA', 'UG', 
+              'UM', 'US', 'UY', 'UZ', 'VA', 'VC', 'VE', 'VG', 'VI', 'VN', 'VU', 'WF', 
+              'WS', 'YE', 'YT', 'ZA', 'ZM', 'ZW'];
+            
+            // Check all territory codes in the document
+            const territoryCodes = [];
+            
+            // Collect from DealTerms
+            const deals = this.getDeals(doc);
+            deals.forEach(releaseDeal => {
+              if (releaseDeal.Deal) {
+                const nestedDeals = Array.isArray(releaseDeal.Deal) ? 
+                                  releaseDeal.Deal : [releaseDeal.Deal];
+                
+                nestedDeals.forEach(deal => {
+                  if (deal.DealTerms) {
+                    const dealTermsArray = Array.isArray(deal.DealTerms) ? 
+                                          deal.DealTerms : [deal.DealTerms];
+                    
+                    dealTermsArray.forEach(dt => {
+                      if (dt.TerritoryCode) {
+                        const codes = Array.isArray(dt.TerritoryCode) ? 
+                                    dt.TerritoryCode : [dt.TerritoryCode];
+                        territoryCodes.push(...codes);
+                      }
+                      if (dt.ExcludedTerritoryCode) {
+                        const codes = Array.isArray(dt.ExcludedTerritoryCode) ? 
+                                    dt.ExcludedTerritoryCode : [dt.ExcludedTerritoryCode];
+                        territoryCodes.push(...codes);
+                      }
+                    });
+                  }
+                });
+              }
+            });
+            
+            // Validate all codes
+            return territoryCodes.every(code => validCodes.includes(code));
+          },
+          message: 'Invalid territory code. Must be ISO 3166-1 code or "Worldwide"',
+          severity: 'error'
+        },
+
+        // ResourceGroup validation for proper sequencing
+        {
+          name: 'ERN43-ResourceGroup-Required',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            // Main releases should have ResourceGroup for sequencing
+            const mainReleases = releases.filter(r => !r._isTrackRelease);
+            return mainReleases.every(release => !!release.ResourceGroup);
+          },
+          message: 'Main Release should have ResourceGroup to define resource sequencing',
+          severity: 'warning',
+          suggestion: 'Add ResourceGroup with ResourceGroupContentItem elements to define track order'
+        },
+        {
+          name: 'ERN43-ResourceGroup-ContentItems',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.every(release => {
+              if (!release.ResourceGroup) return true;
+              
+              // Check if ResourceGroup has content items
+              const rg = release.ResourceGroup;
+              const hasContentItems = rg.ResourceGroupContentItem && 
+                                    rg.ResourceGroupContentItem.length > 0;
+              
+              if (!hasContentItems) return false;
+              
+              // Validate each content item
+              const items = Array.isArray(rg.ResourceGroupContentItem) ? 
+                          rg.ResourceGroupContentItem : [rg.ResourceGroupContentItem];
+              
+              return items.every(item => {
+                // Must have ReleaseResourceReference
+                if (!item.ReleaseResourceReference) return false;
+                // Reference must match pattern
+                return /^A[\d\-_a-zA-Z]+$/.test(item.ReleaseResourceReference);
+              });
+            });
+          },
+          message: 'ResourceGroup must contain ResourceGroupContentItem elements with valid references',
+          severity: 'error'
+        }
+      );
+    }
+
+    // Enhanced profile-specific rules based on XSD insights
+    const profileRules = {
+      'AudioAlbum': [
+        {
+          name: 'AudioAlbum-ReleaseType',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.some(release => {
+              const releaseTypes = Array.isArray(release.ReleaseType) ? 
+                                release.ReleaseType : [release.ReleaseType];
+              
+              return releaseTypes.some(rt => {
+                const type = this.getValue(rt);
+                return ['Album', 'ClassicalAlbum', 'DigitalBoxSetRelease', 
+                        'MultimediaAlbum'].includes(type);
+              });
+            });
+          },
+          message: 'AudioAlbum profile expects ReleaseType of Album or similar',
           severity: 'warning'
+        },
+        {
+          name: 'AudioAlbum-MinimumSoundRecordings',
+          test: (doc) => {
+            const resources = this.getResources(doc);
+            const soundRecordings = resources.filter(r => r.SoundRecording);
+            
+            // Check that they're MusicalWorkSoundRecording type
+            const musicalRecordings = soundRecordings.filter(sr => {
+              const type = sr.SoundRecording?.Type || 
+                          sr.SoundRecording?.SoundRecordingType;
+              const typeValue = this.getValue(type);
+              return !typeValue || typeValue === 'MusicalWorkSoundRecording' || 
+                    typeValue === 'Unknown';
+            });
+            
+            return musicalRecordings.length >= 2;
+          },
+          message: 'AudioAlbum requires at least 2 MusicalWorkSoundRecording resources',
+          severity: 'error'
+        },
+        {
+          name: 'AudioAlbum-FrontCoverImage',
+          test: (doc) => {
+            const resources = this.getResources(doc);
+            const images = resources.filter(r => r.Image);
+            
+            return images.some(img => {
+              const type = this.getValue(img.Image?.Type);
+              return type === 'FrontCoverImage';
+            });
+          },
+          message: 'AudioAlbum should have at least one FrontCoverImage',
+          severity: 'warning'
+        },
+        {
+          name: 'AudioAlbum-ImageCodec',
+          test: (doc) => {
+            const resources = this.getResources(doc);
+            const images = resources.filter(r => r.Image);
+            
+            return images.every(img => {
+              const technicalDetails = img.Image?.TechnicalDetails;
+              if (!technicalDetails) return true;
+              
+              const tdArray = Array.isArray(technicalDetails) ? 
+                            technicalDetails : [technicalDetails];
+              
+              return tdArray.some(td => {
+                const codec = this.getValue(td.ImageCodecType);
+                return ['JPEG', 'PNG', 'GIF', 'TIFF'].includes(codec);
+              });
+            });
+          },
+          message: 'Images should use standard codecs: JPEG, PNG, GIF, or TIFF',
+          severity: 'info'
         }
       ],
+      
       'AudioSingle': [
         {
-          name: 'AudioSingle-MaximumTracks',
+          name: 'AudioSingle-ReleaseType',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.some(release => {
+              const releaseTypes = Array.isArray(release.ReleaseType) ? 
+                                release.ReleaseType : [release.ReleaseType];
+              
+              return releaseTypes.some(rt => {
+                const type = this.getValue(rt);
+                return ['Single', 'EP', 'SingleResourceRelease'].includes(type);
+              });
+            });
+          },
+          message: 'AudioSingle profile expects ReleaseType of Single or EP',
+          severity: 'warning'
+        },
+        {
+          name: 'AudioSingle-MaximumSoundRecordings',
           test: (doc) => {
             const resources = this.getResources(doc);
             const soundRecordings = resources.filter(r => r.SoundRecording);
             return soundRecordings.length <= 4;
           },
-          message: 'AudioSingle profile should have no more than 4 SoundRecording resources',
+          message: 'AudioSingle should have no more than 4 SoundRecording resources',
+          severity: 'warning'
+        }
+      ],
+
+      'Video': [
+        {
+          name: 'Video-ReleaseType',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.some(release => {
+              const releaseTypes = Array.isArray(release.ReleaseType) ? 
+                                release.ReleaseType : [release.ReleaseType];
+              
+              return releaseTypes.some(rt => {
+                const type = this.getValue(rt);
+                return ['VideoAlbum', 'VideoSingle', 'ConcertVideo', 
+                        'FeatureFilm', 'Documentary', 'Episode'].includes(type);
+              });
+            });
+          },
+          message: 'Video profile expects video-related ReleaseType',
           severity: 'warning'
         },
         {
-          name: 'AudioSingle-MainTrack',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            
-            // If only one sound recording, it's implicitly the main resource - PASS
-            if (soundRecordings.length === 1) return true;
-            
-            // If multiple, check for explicit main resource marking
-            const hasMainResource = soundRecordings.some(r => 
-              r['@_IsMainResource'] === 'true' || r['@_IsMainResource'] === true
-            );
-            
-            if (hasMainResource) return true;
-            
-            // Alternative: Check in ReleaseResourceReferenceList
-            const releases = this.getReleases(doc);
-            const mainRelease = releases.find(r => !r._isTrackRelease);
-            
-            if (!mainRelease) return false;
-            
-            const resourceRefs = mainRelease.ReleaseResourceReferenceList?.ReleaseResourceReference;
-            if (!resourceRefs) return false;
-            
-            const refArray = Array.isArray(resourceRefs) ? resourceRefs : [resourceRefs];
-            return refArray.some(ref => 
-              ref['@_ReleaseResourceType'] === 'PrimaryResource' ||
-              ref.ReleaseResourceType === 'PrimaryResource'
-            );
-          },
-          message: 'Multiple sound recordings require one to be identified as primary',
-          severity: 'error'
-        }
-      ],
-      'Video': [
-        {
-          name: 'Video-RequiredVideo',
+          name: 'Video-RequiredVideoResource',
           test: (doc) => {
             const resources = this.getResources(doc);
             return resources.some(r => r.Video);
           },
           message: 'Video profile requires at least one Video resource',
           severity: 'error'
-        },
-        {
-          name: 'Video-VideoDetails',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const videos = resources.filter(r => r.Video);
-            return videos.every(v => v.Video?.VideoCodec);
-          },
-          message: 'Video resources should specify VideoCodec',
-          severity: 'warning'
         }
       ],
+
       'Classical': [
         {
-          name: 'Classical-Composer',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.every(sr => {
-              const details = sr.SoundRecording?.SoundRecordingDetailsByTerritory;
-              if (!details) return false;
-              const detailArray = Array.isArray(details) ? details : [details];
-              return detailArray.some(detail => {
-                const contributors = Array.isArray(detail.IndirectResourceContributor) 
-                  ? detail.IndirectResourceContributor 
-                  : [detail.IndirectResourceContributor].filter(Boolean);
-                return contributors.some(c => 
-                  this.getValue(c.IndirectResourceContributorRole) === 'Composer'
-                );
-              });
-            });
-          },
-          message: 'Classical profile requires Composer information for all recordings',
-          severity: 'error'
-        },
-        {
-          name: 'Classical-WorkTitle',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.every(sr => {
-              const titles = sr.SoundRecording?.Title;
-              if (!titles) return false;
-              const titleArray = Array.isArray(titles) ? titles : [titles];
-              return titleArray.some(t => t['@_TitleType'] === 'FormalTitle');
-            });
-          },
-          message: 'Classical recordings should have FormalTitle',
-          severity: 'warning'
-        }
-      ],
-      'Ringtone': [
-        {
-          name: 'Ringtone-Duration',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.every(sr => {
-              const duration = sr.SoundRecording?.Duration;
-              if (!duration) return false;
-              // Parse duration (PT format)
-              const match = duration.match(/PT(\d+)S/);
-              if (!match) return false;
-              const seconds = parseInt(match[1]);
-              return seconds <= 40; // Ringtones typically under 40 seconds
-            });
-          },
-          message: 'Ringtone duration should be 40 seconds or less',
-          severity: 'warning'
-        },
-        {
-          name: 'Ringtone-Format',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.every(sr => {
-              const details = sr.SoundRecording?.SoundRecordingDetailsByTerritory;
-              if (!details) return false;
-              const detailArray = Array.isArray(details) ? details : [details];
-              return detailArray.some(detail => {
-                const technicalDetails = detail.TechnicalSoundRecordingDetails;
-                if (!technicalDetails) return false;
-                const techArray = Array.isArray(technicalDetails) ? technicalDetails : [technicalDetails];
-                return techArray.some(tech => {
-                  const codec = this.getValue(tech.AudioCodec);
-                  return ['MP3', 'AAC', 'M4R'].includes(codec);
-                });
-              });
-            });
-          },
-          message: 'Ringtone should use appropriate audio codec (MP3, AAC, or M4R)',
-          severity: 'info'
-        }
-      ],
-      'Mixed': [
-        {
-          name: 'Mixed-MultipleResourceTypes',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const hasAudio = resources.some(r => r.SoundRecording);
-            const hasVideo = resources.some(r => r.Video);
-            return hasAudio && hasVideo;
-          },
-          message: 'Mixed profile should contain both audio and video resources',
-          severity: 'warning'
-        }
-      ],
-      'DJ': [
-        {
-          name: 'DJ-MixType',
+          name: 'Classical-ReleaseType',
           test: (doc) => {
             const releases = this.getReleases(doc);
             return releases.some(release => {
-              const releaseType = this.getValue(release.ReleaseType);
-              return releaseType === 'DjMix' || releaseType === 'MixTape';
-            });
-          },
-          message: 'DJ profile should specify ReleaseType as DjMix or MixTape',
-          severity: 'warning'
-        },
-        {
-          name: 'DJ-Compiler',
-          test: (doc) => {
-            const resources = this.getResources(doc);
-            const soundRecordings = resources.filter(r => r.SoundRecording);
-            return soundRecordings.some(sr => {
-              const details = sr.SoundRecording?.SoundRecordingDetailsByTerritory;
-              if (!details) return false;
-              const detailArray = Array.isArray(details) ? details : [details];
-              return detailArray.some(detail => {
-                const contributors = Array.isArray(detail.ResourceContributor) 
-                  ? detail.ResourceContributor 
-                  : [detail.ResourceContributor].filter(Boolean);
-                return contributors.some(c => 
-                  ['Compiler', 'DJ', 'Mixer'].includes(this.getValue(c.ArtistRole))
-                );
+              const releaseTypes = Array.isArray(release.ReleaseType) ? 
+                                release.ReleaseType : [release.ReleaseType];
+              
+              return releaseTypes.some(rt => {
+                const type = this.getValue(rt);
+                return ['ClassicalAlbum', 'ClassicalDigitalBoxedSet', 
+                        'ClassicalMultimediaAlbum'].includes(type);
               });
             });
           },
-          message: 'DJ Mix should credit the DJ/Compiler',
-          severity: 'error'
+          message: 'Classical profile expects ClassicalAlbum or similar ReleaseType',
+          severity: 'warning'
+        }
+      ],
+
+      'Ringtone': [
+        {
+          name: 'Ringtone-ReleaseType',
+          test: (doc) => {
+            const releases = this.getReleases(doc);
+            return releases.some(release => {
+              const releaseTypes = Array.isArray(release.ReleaseType) ? 
+                                release.ReleaseType : [release.ReleaseType];
+              
+              return releaseTypes.some(rt => {
+                const type = this.getValue(rt);
+                return ['RingtoneRelease', 'RingbackToneRelease', 
+                        'AlertToneRelease'].includes(type);
+              });
+            });
+          },
+          message: 'Ringtone profile expects RingtoneRelease or similar ReleaseType',
+          severity: 'warning'
         }
       ]
     };
 
-    // Version-specific rules
-    if (version === '3.8.2') {
-      baseRules.push({
-        name: 'UpdateIndicator-Recommended',
-        test: (doc) => !!doc.UpdateIndicator,
-        message: 'UpdateIndicator is recommended in ERN 3.8.2',
-        severity: 'info'
-      });
-      
-      // ERN 3.8.2 requires ReleaseDetailsByTerritory
-      baseRules.push({
-        name: 'ReleaseDetailsByTerritory',
-        test: (doc) => {
-          const releases = this.getReleases(doc);
-          const mainReleases = releases.filter(r => !r._isTrackRelease);
-          return mainReleases.every(release => 
-            release.ReleaseDetailsByTerritory && release.ReleaseDetailsByTerritory.length > 0
-          );
-        },
-        message: 'ERN 3.8.2 requires ReleaseDetailsByTerritory',
-        severity: 'error'
-      });
-    }
-
-    if (version === '4.3' || version === '4.2') {
-      baseRules.push({
-        name: 'DealList-Required',
-        test: (doc) => !!doc.DealList,
-        message: `DealList is required in ERN ${version}`,
-        severity: 'error'
-      });
-      
-      baseRules.push({
-        name: 'Deal-ValidityPeriod',
-        test: (doc) => {
-          const deals = this.getDeals(doc);
-          
-          return deals.every((releaseDeal) => {
-            // Handle nested Deal structure in ERN 4.3
-            if (releaseDeal.Deal) {
-              const nestedDeals = Array.isArray(releaseDeal.Deal) ? releaseDeal.Deal : [releaseDeal.Deal];
-              return nestedDeals.every(deal => {
-                if (deal.DealTerms) {
-                  const dealTermsArray = Array.isArray(deal.DealTerms) ? deal.DealTerms : [deal.DealTerms];
-                  return dealTermsArray.some(dt => dt.ValidityPeriod?.StartDate);
-                }
-                return false;
-              });
-            }
-            
-            // Fallback for direct DealTerms
-            if (releaseDeal.DealTerms) {
-              const dealTermsArray = Array.isArray(releaseDeal.DealTerms) ? releaseDeal.DealTerms : [releaseDeal.DealTerms];
-              return dealTermsArray.some(dt => dt.ValidityPeriod?.StartDate);
-            }
-            
-            return false;
-          });
-        },
-        message: 'Each Deal must have a ValidityPeriod with StartDate',
-        severity: 'error'
-      });
-      
-      // NOTE: ReleaseDetailsByTerritory is NOT required in ERN 4.3
-      // The official DDEX samples don't have it, so we skip this rule for 4.3
-    }
-
-    // Add profile-specific rules to base rules
+    // Combine base and profile rules
     const specificRules = profileRules[profile] || [];
     return [...baseRules, ...specificRules];
   }
