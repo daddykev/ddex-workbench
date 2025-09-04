@@ -36,3 +36,4 @@ coverage
 .env.local
 
 functions/schemas/ern/
+functions/validators/rules/

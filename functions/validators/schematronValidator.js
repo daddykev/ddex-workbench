@@ -126,7 +126,8 @@ class SchematronValidator {
             getValue: ruleEngine.getValue.bind(ruleEngine),
             getReleases: ruleEngine.getReleases.bind(ruleEngine),
             getResources: ruleEngine.getResources.bind(ruleEngine),
-            getDeals: ruleEngine.getDeals.bind(ruleEngine)
+            getDeals: ruleEngine.getDeals.bind(ruleEngine),
+            findElements: ruleEngine.findElements.bind(ruleEngine)  // ADD THIS LINE
           });
           
           const passed = boundTest(doc);
