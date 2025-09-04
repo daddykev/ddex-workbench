@@ -12,11 +12,26 @@ from .errors import (
     RateLimitError,
     ValidationError,
     AuthenticationError,
-    NotFoundError
+    NotFoundError,
+    NetworkError,
+    TimeoutError,
+    ServerError,
+    ParseError,
+    FileError,
+    ConfigurationError,
+    APIError,
+    UnsupportedVersionError,
+    ProfileError
 )
 from .types import (
     ValidationResult,
     ValidationError as ValidationErrorDetail,
+    ValidationWarning,
+    ValidationOptions,
+    ValidationSummary,
+    PassedRule,
+    BatchValidationResult,
+    SVRLStatistics,
     ERNVersion,
     ERNProfile,
     SupportedFormats,
@@ -24,17 +39,37 @@ from .types import (
     ApiKey
 )
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __all__ = [
+    # Client and Validator
     "DDEXClient",
     "DDEXValidator",
+    
+    # Error classes
     "DDEXError",
     "RateLimitError",
     "ValidationError",
     "AuthenticationError",
     "NotFoundError",
+    "NetworkError",
+    "TimeoutError",
+    "ServerError",
+    "ParseError",
+    "FileError",
+    "ConfigurationError",
+    "APIError",
+    "UnsupportedVersionError",
+    "ProfileError",
+    
+    # Types
     "ValidationResult",
     "ValidationErrorDetail",
+    "ValidationWarning",
+    "ValidationOptions",
+    "ValidationSummary",
+    "PassedRule",
+    "BatchValidationResult",
+    "SVRLStatistics",
     "ERNVersion",
     "ERNProfile",
     "SupportedFormats",

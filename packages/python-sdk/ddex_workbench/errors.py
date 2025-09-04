@@ -1,8 +1,11 @@
 # packages/python-sdk/ddex_workbench/errors.py
-"""Exception classes for DDEX Workbench SDK"""
+"""
+Error classes for DDEX Workbench SDK
 
-from typing import Optional, Any, List
-import requests
+Provides specialized exception classes for different error scenarios.
+"""
+
+from typing import Optional, List, Dict, Any
 
 
 class DDEXError(Exception):
@@ -11,23 +14,23 @@ class DDEXError(Exception):
     def __init__(
         self,
         message: str,
-        code: str = "DDEX_ERROR",
+        code: Optional[str] = None,
         status_code: Optional[int] = None,
-        details: Optional[Any] = None
+        details: Optional[dict] = None
     ):
         super().__init__(message)
         self.message = message
-        self.code = code
+        self.code = code or "DDEX_ERROR"
         self.status_code = status_code
-        self.details = details
+        self.details = details or {}
     
     def __str__(self):
-        if self.status_code:
-            return f"[{self.status_code}] {self.message}"
+        if self.code:
+            return f"[{self.code}] {self.message}"
         return self.message
     
     def __repr__(self):
-        return f"{self.__class__.__name__}(message='{self.message}', code='{self.code}', status_code={self.status_code})"
+        return f"{self.__class__.__name__}(message='{self.message}', code='{self.code}')"
 
 
 class RateLimitError(DDEXError):
@@ -38,14 +41,12 @@ class RateLimitError(DDEXError):
         message: str = "Rate limit exceeded",
         retry_after: Optional[int] = None,
         limit: Optional[int] = None,
-        remaining: Optional[int] = None,
-        reset: Optional[str] = None
+        remaining: Optional[int] = None
     ):
         super().__init__(message, "RATE_LIMIT_EXCEEDED", 429)
         self.retry_after = retry_after
         self.limit = limit
         self.remaining = remaining
-        self.reset = reset
     
     def get_retry_message(self) -> str:
         """Get human-readable retry message"""
@@ -55,23 +56,33 @@ class RateLimitError(DDEXError):
 
 
 class ValidationError(DDEXError):
-    """Validation failed error"""
+    """Validation failed error with error details"""
     
     def __init__(
         self,
         message: str = "Validation failed",
-        errors: Optional[List] = None,
-        warnings: Optional[List] = None
+        errors: Optional[List[Any]] = None,  # Using Any to avoid circular import
+        warnings: Optional[List[Any]] = None,
+        validation_type: Optional[str] = None
     ):
-        super().__init__(message, "VALIDATION_FAILED", 400)
+        super().__init__(message, "VALIDATION_FAILED", 422)
         self.errors = errors or []
         self.warnings = warnings or []
+        self.validation_type = validation_type
     
     def get_summary(self) -> str:
         """Get summary of validation errors"""
         error_count = len(self.errors)
         warning_count = len(self.warnings)
         return f"{error_count} error{'s' if error_count != 1 else ''}, {warning_count} warning{'s' if warning_count != 1 else ''}"
+    
+    def get_critical_count(self) -> int:
+        """Get count of critical errors"""
+        return sum(1 for e in self.errors if hasattr(e, 'severity') and e.severity == 'error')
+    
+    def get_first_error(self) -> Optional[Any]:
+        """Get the first error if any"""
+        return self.errors[0] if self.errors else None
 
 
 class AuthenticationError(DDEXError):
@@ -112,10 +123,18 @@ class NetworkError(DDEXError):
     def __init__(
         self,
         message: str = "Network error occurred",
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
+        can_retry: bool = True
     ):
         super().__init__(message, "NETWORK_ERROR")
         self.original_error = original_error
+        self.can_retry = can_retry
+    
+    def get_retry_message(self) -> str:
+        """Get retry recommendation"""
+        if self.can_retry:
+            return "This is a temporary error. Please try again."
+        return "This error requires investigation."
 
 
 class TimeoutError(DDEXError):
@@ -126,7 +145,7 @@ class TimeoutError(DDEXError):
         message: str = "Request timed out",
         timeout: Optional[float] = None
     ):
-        super().__init__(message, "TIMEOUT")
+        super().__init__(message, "TIMEOUT", 408)
         self.timeout = timeout
 
 
@@ -141,79 +160,42 @@ class ServerError(DDEXError):
         super().__init__(message, "SERVER_ERROR", status_code)
 
 
-class InvalidRequestError(DDEXError):
-    """Invalid request/parameters"""
+class ParseError(DDEXError):
+    """XML parsing error with location info"""
     
     def __init__(
         self,
         message: str,
-        field: Optional[str] = None
+        line: Optional[int] = None,
+        column: Optional[int] = None,
+        snippet: Optional[str] = None
     ):
-        super().__init__(message, "INVALID_REQUEST", 400)
-        self.field = field
+        super().__init__(message, "PARSE_ERROR", 400)
+        self.line = line
+        self.column = column
+        self.snippet = snippet
+    
+    def get_location(self) -> str:
+        """Get error location as string"""
+        if self.line and self.column:
+            return f"Line {self.line}, Column {self.column}"
+        elif self.line:
+            return f"Line {self.line}"
+        return "Unknown location"
 
 
 class FileError(DDEXError):
-    """File-related errors"""
+    """File operation error"""
     
     def __init__(
         self,
         message: str,
-        file_name: Optional[str] = None,
-        file_size: Optional[int] = None,
-        file_type: Optional[str] = None
+        filepath: Optional[str] = None,
+        operation: Optional[str] = None
     ):
-        super().__init__(message, "FILE_ERROR", 400)
-        self.file_name = file_name
-        self.file_size = file_size
-        self.file_type = file_type
-
-
-class FileTooLargeError(FileError):
-    """File too large error"""
-    
-    def __init__(
-        self,
-        file_size: int,
-        max_size: int = 10485760,  # 10MB default
-        file_name: Optional[str] = None
-    ):
-        message = f"File size ({self._format_bytes(file_size)}) exceeds maximum allowed size ({self._format_bytes(max_size)})"
-        super().__init__(message, file_name, file_size)
-        self.code = "FILE_TOO_LARGE"
-        self.max_size = max_size
-    
-    @staticmethod
-    def _format_bytes(bytes_size: int) -> str:
-        """Format bytes to human readable string"""
-        if bytes_size == 0:
-            return "0 Bytes"
-        
-        k = 1024
-        sizes = ["Bytes", "KB", "MB", "GB"]
-        i = 0
-        
-        while bytes_size >= k and i < len(sizes) - 1:
-            bytes_size /= k
-            i += 1
-        
-        return f"{bytes_size:.2f} {sizes[i]}"
-
-
-class UnsupportedFileTypeError(FileError):
-    """Unsupported file type error"""
-    
-    def __init__(
-        self,
-        file_type: str,
-        supported_types: Optional[List[str]] = None,
-        file_name: Optional[str] = None
-    ):
-        supported_types = supported_types or [".xml"]
-        message = f"File type '{file_type}' is not supported. Supported types: {', '.join(supported_types)}"
-        super().__init__(message, file_name, file_type=file_type)
-        self.code = "UNSUPPORTED_FILE_TYPE"
-        self.supported_types = supported_types
+        super().__init__(message, "FILE_ERROR")
+        self.filepath = filepath
+        self.operation = operation
 
 
 class ConfigurationError(DDEXError):
@@ -222,115 +204,70 @@ class ConfigurationError(DDEXError):
     def __init__(
         self,
         message: str,
-        config_key: Optional[str] = None
+        config_key: Optional[str] = None,
+        expected_value: Optional[str] = None
     ):
         super().__init__(message, "CONFIGURATION_ERROR")
         self.config_key = config_key
+        self.expected_value = expected_value
 
 
-# Utility functions
-
-def is_ddex_error(error: Any) -> bool:
-    """Check if error is a DDEX SDK error"""
-    return isinstance(error, DDEXError)
-
-
-def is_retryable_error(error: Any) -> bool:
-    """Check if error is retryable"""
-    if isinstance(error, (NetworkError, TimeoutError)):
-        return True
+class APIError(DDEXError):
+    """API-specific error with status code"""
     
-    if isinstance(error, ServerError) and error.status_code:
-        # Retry on 502, 503, 504
-        return error.status_code in [502, 503, 504]
+    def __init__(
+        self,
+        message: str,
+        status_code: int,
+        endpoint: Optional[str] = None,
+        method: Optional[str] = None,
+        response_body: Optional[str] = None
+    ):
+        super().__init__(message, "API_ERROR", status_code)
+        self.endpoint = endpoint
+        self.method = method
+        self.response_body = response_body
     
-    if isinstance(error, RateLimitError):
-        # Rate limit errors are retryable after delay
-        return True
-    
-    return False
-
-
-def get_retry_delay(error: Any, attempt_number: int = 1) -> float:
-    """Get retry delay for error in seconds"""
-    if isinstance(error, RateLimitError) and error.retry_after:
-        return float(error.retry_after)
-    
-    # Exponential backoff: 1s, 2s, 4s, 8s...
-    base_delay = 1.0
-    max_delay = 30.0  # 30 seconds max
-    delay = min(base_delay * (2 ** (attempt_number - 1)), max_delay)
-    
-    # Add jitter to prevent thundering herd (0-1 second random)
-    import random
-    jitter = random.random()
-    
-    return delay + jitter
+    def get_summary(self) -> str:
+        """Get error summary"""
+        parts = [f"API Error {self.status_code}"]
+        if self.method and self.endpoint:
+            parts.append(f"{self.method} {self.endpoint}")
+        parts.append(self.message)
+        return " - ".join(parts)
 
 
-def create_error_from_response(error: Any) -> DDEXError:
-    """Create appropriate DDEXError from requests exception"""
-    if isinstance(error, requests.exceptions.Timeout):
-        return TimeoutError("Request timed out", timeout=error.request.timeout if hasattr(error, 'request') else None)
+class UnsupportedVersionError(DDEXError):
+    """Unsupported DDEX version"""
     
-    if isinstance(error, requests.exceptions.ConnectionError):
-        return NetworkError("Connection error occurred", original_error=error)
-    
-    if isinstance(error, requests.exceptions.HTTPError):
-        response = error.response
-        status = response.status_code if response else None
-        
-        try:
-            data = response.json() if response else {}
-            message = data.get("error", {}).get("message", str(error))
-        except:
-            message = str(error)
-        
-        if status == 429:
-            retry_after = response.headers.get("Retry-After") if response else None
-            return RateLimitError(
-                message,
-                retry_after=int(retry_after) if retry_after and retry_after.isdigit() else None
-            )
-        
-        if status == 401:
-            return AuthenticationError(message)
-        
-        if status == 404:
-            return NotFoundError(message)
-        
-        if status == 400:
-            return InvalidRequestError(message)
-        
-        if status and 500 <= status < 600:
-            return ServerError(message, status)
-        
-        return DDEXError(message, status_code=status)
-    
-    # Generic error
-    return DDEXError(str(error))
+    def __init__(
+        self,
+        version: str,
+        supported_versions: Optional[List[str]] = None
+    ):
+        message = f"Unsupported DDEX version: {version}"
+        if supported_versions:
+            message += f". Supported versions: {', '.join(supported_versions)}"
+        super().__init__(message, "UNSUPPORTED_VERSION", 400)
+        self.version = version
+        self.supported_versions = supported_versions or []
 
 
-def aggregate_errors(errors: List[Exception]) -> DDEXError:
-    """Aggregate multiple errors into one"""
-    if not errors:
-        return DDEXError("No errors provided", "NO_ERRORS")
+class ProfileError(DDEXError):
+    """Invalid or unsupported profile"""
     
-    if len(errors) == 1:
-        return errors[0] if isinstance(errors[0], DDEXError) else DDEXError(str(errors[0]), "WRAPPED_ERROR")
-    
-    messages = [str(e) for e in errors]
-    details = [
-        {
-            "type": type(e).__name__,
-            "message": str(e),
-            "code": e.code if isinstance(e, DDEXError) else None
-        }
-        for e in errors
-    ]
-    
-    return DDEXError(
-        f"Multiple errors occurred: {'; '.join(messages[:3])}{'...' if len(messages) > 3 else ''}",
-        "MULTIPLE_ERRORS",
-        details=details
-    )
+    def __init__(
+        self,
+        profile: str,
+        version: Optional[str] = None,
+        supported_profiles: Optional[List[str]] = None
+    ):
+        message = f"Invalid profile: {profile}"
+        if version:
+            message += f" for version {version}"
+        if supported_profiles:
+            message += f". Supported profiles: {', '.join(supported_profiles)}"
+        super().__init__(message, "INVALID_PROFILE", 400)
+        self.profile = profile
+        self.version = version
+        self.supported_profiles = supported_profiles or []

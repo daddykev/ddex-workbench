@@ -14,7 +14,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 # Get version from __init__.py
 version_file = here / "ddex_workbench" / "__init__.py"
-version = "1.0.1"
+version = "1.0.2"
 for line in version_file.read_text().splitlines():
     if line.startswith("__version__"):
         version = line.split('"')[1]

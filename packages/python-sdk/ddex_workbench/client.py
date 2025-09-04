@@ -1,40 +1,49 @@
 # packages/python-sdk/ddex_workbench/client.py
-"""DDEX Workbench API Client"""
+"""
+DDEX Workbench API Client
 
+Main client for interacting with the DDEX Workbench API.
+"""
+
+import json
+import platform
 import time
-from typing import Optional, Dict, Any, Union, List
-from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .errors import (
-    DDEXError, 
-    RateLimitError, 
+    APIError,
     AuthenticationError,
+    DDEXError,
+    NetworkError,
     NotFoundError,
-    ValidationError as ValidationErrorException,
-    create_error_from_response
+    RateLimitError,
+    ServerError,
+    TimeoutError,
+    ValidationError,
 )
 from .types import (
-    ValidationResult, 
-    ValidationOptions, 
-    SupportedFormats, 
+    ApiKey,
     HealthStatus,
-    ApiKey
+    PassedRule,
+    SupportedFormats,
+    ValidationError as ValidationErrorDetail,
+    ValidationOptions,
+    ValidationResult,
+    ValidationSummary,
+    ValidationWarning,
 )
-from .validator import DDEXValidator
 
 
 class DDEXClient:
     """
-    DDEX Workbench API Client
+    Client for DDEX Workbench API
     
-    Example:
-        >>> from ddex_workbench import DDEXClient
-        >>> client = DDEXClient(api_key="ddex_your-api-key")
-        >>> result = client.validate(xml_content, version="4.3", profile="AudioAlbum")
-        >>> print(f"Valid: {result.valid}")
+    Provides methods to validate DDEX documents and interact with the API.
     """
     
     DEFAULT_BASE_URL = "https://api.ddex-workbench.org/v1"
@@ -45,90 +54,218 @@ class DDEXClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        base_url: str = DEFAULT_BASE_URL,
+        base_url: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         retry_delay: float = DEFAULT_RETRY_DELAY,
         verify_ssl: bool = True
     ):
         """
-        Initialize DDEX Client
+        Initialize DDEX client
         
         Args:
-            api_key: Optional API key for higher rate limits
-            base_url: API base URL
+            api_key: Optional API key for authentication
+            base_url: Base URL for API (defaults to production)
             timeout: Request timeout in seconds
-            max_retries: Maximum number of retry attempts
+            max_retries: Maximum number of retries for failed requests
             retry_delay: Initial delay between retries (exponential backoff)
-            verify_ssl: Verify SSL certificates
+            verify_ssl: Whether to verify SSL certificates
         """
         self.api_key = api_key
-        self.base_url = base_url.rstrip('/')
+        self.base_url = (base_url or self.DEFAULT_BASE_URL).rstrip('/')
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.verify_ssl = verify_ssl
         
-        # Create session with retry strategy
-        self.session = self._create_session()
+        # Setup session with retry strategy
+        self.session = requests.Session()
+        self._setup_session()
         
-        # Create validator instance
+        # Create validator helper - import here to avoid circular import
+        from .validator import DDEXValidator
         self.validator = DDEXValidator(self)
     
-    def _create_session(self) -> requests.Session:
-        """Create and configure requests session with retry strategy"""
-        session = requests.Session()
-        
-        # Configure retries
+    def _setup_session(self):
+        """Setup session with retry strategy and headers"""
+        # Configure retry strategy
         retry_strategy = Retry(
             total=self.max_retries,
             backoff_factor=self.retry_delay,
-            status_forcelist=[500, 502, 503, 504],
-            allowed_methods=["GET", "POST", "DELETE"]
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE"]
         )
+        
         adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         
         # Set default headers
-        session.headers.update({
+        self.session.headers.update({
             "Content-Type": "application/json",
-            "User-Agent": f"ddex-workbench-python-sdk/{self._get_version()}"
+            "Accept": "application/json",
+            "User-Agent": self._get_user_agent()
         })
         
+        # Add API key if provided
         if self.api_key:
-            session.headers["X-API-Key"] = self.api_key
+            self.session.headers["X-API-Key"] = self.api_key
+    
+    def _get_user_agent(self) -> str:
+        """Generate User-Agent string"""
+        from . import __version__
+        python_version = platform.python_version()
+        system = platform.system()
+        return f"ddex-workbench-python/{__version__} (Python/{python_version}; {system})"
+    
+    def set_api_key(self, api_key: Optional[str]) -> None:
+        """
+        Dynamically set or update API key
         
-        session.verify = self.verify_ssl
+        Args:
+            api_key: New API key or None to clear
+        """
+        self.api_key = api_key
+        if api_key:
+            self.session.headers["X-API-Key"] = api_key
+        else:
+            self.session.headers.pop("X-API-Key", None)
+    
+    def clear_api_key(self) -> None:
+        """Clear API key from client"""
+        self.set_api_key(None)
+    
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get current client configuration
         
-        return session
+        Returns:
+            Dictionary with current configuration
+        """
+        return {
+            "base_url": self.base_url,
+            "api_key": "***" + self.api_key[-4:] if self.api_key else None,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+            "retry_delay": self.retry_delay,
+            "verify_ssl": self.verify_ssl,
+            "user_agent": self._get_user_agent()
+        }
+    
+    def _request(
+        self,
+        method: str,
+        endpoint: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Make HTTP request to API
+        
+        Args:
+            method: HTTP method
+            endpoint: API endpoint
+            **kwargs: Additional request arguments
+            
+        Returns:
+            Response JSON data
+            
+        Raises:
+            Various DDEXError subclasses based on response
+        """
+        url = urljoin(self.base_url, endpoint.lstrip('/'))
+        
+        # Set timeout if not provided
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = self.timeout
+        
+        # Set SSL verification
+        kwargs['verify'] = self.verify_ssl
+        
+        try:
+            response = self.session.request(method, url, **kwargs)
+            
+            # Handle rate limiting
+            if response.status_code == 429:
+                retry_after = response.headers.get('Retry-After', 60)
+                limit = response.headers.get('X-RateLimit-Limit')
+                remaining = response.headers.get('X-RateLimit-Remaining', 0)
+                
+                raise RateLimitError(
+                    message="Rate limit exceeded",
+                    retry_after=int(retry_after),
+                    limit=int(limit) if limit else None,
+                    remaining=int(remaining)
+                )
+            
+            # Handle authentication errors
+            if response.status_code == 401:
+                raise AuthenticationError("Invalid or missing API key")
+            
+            # Handle not found
+            if response.status_code == 404:
+                raise NotFoundError(f"Resource not found: {endpoint}")
+            
+            # Handle server errors
+            if response.status_code >= 500:
+                raise ServerError(
+                    f"Server error: {response.status_code}",
+                    status_code=response.status_code
+                )
+            
+            # Handle other client errors
+            if response.status_code >= 400:
+                try:
+                    error_data = response.json()
+                    message = error_data.get('error', f"API error: {response.status_code}")
+                except:
+                    message = f"API error: {response.status_code}"
+                
+                raise APIError(
+                    message,
+                    status_code=response.status_code,
+                    endpoint=endpoint,
+                    method=method,
+                    response_body=response.text
+                )
+            
+            # Parse successful response
+            try:
+                return response.json()
+            except json.JSONDecodeError as e:
+                raise DDEXError(f"Invalid JSON response: {e}")
+            
+        except requests.exceptions.Timeout:
+            raise TimeoutError(f"Request timed out after {kwargs.get('timeout', self.timeout)} seconds")
+        except requests.exceptions.ConnectionError as e:
+            raise NetworkError(f"Connection error: {e}", original_error=e)
+        except requests.exceptions.RequestException as e:
+            if isinstance(e, requests.exceptions.HTTPError):
+                raise APIError(str(e), status_code=e.response.status_code if e.response else 0)
+            raise NetworkError(f"Request failed: {e}", original_error=e)
     
     def validate(
         self,
         content: str,
         version: str,
         profile: Optional[str] = None,
-        mode: Optional[str] = None,
-        strict: bool = False
+        options: Optional[ValidationOptions] = None
     ) -> ValidationResult:
         """
-        Validate DDEX XML content
+        Validate DDEX content
         
         Args:
-            content: XML content as string
+            content: XML content to validate
             version: ERN version (e.g., "4.3", "4.2", "3.8.2")
-            profile: Optional profile (e.g., "AudioAlbum", "AudioSingle")
-            mode: Validation mode ("full", "quick", "xsd", "business")
-            strict: Treat warnings as errors
+            profile: Optional profile (e.g., "AudioAlbum")
+            options: Optional validation options
             
         Returns:
-            ValidationResult object with errors and metadata
+            ValidationResult with errors, warnings, and metadata
             
-        Example:
-            >>> result = client.validate(xml_content, version="4.3")
-            >>> if not result.valid:
-            ...     for error in result.errors:
-            ...         print(f"Line {error.line}: {error.message}")
+        Raises:
+            ValidationError: If validation request fails
+            RateLimitError: If rate limit exceeded
+            AuthenticationError: If authentication fails
         """
         payload = {
             "content": content,
@@ -138,205 +275,208 @@ class DDEXClient:
         
         if profile:
             payload["profile"] = profile
-        if mode:
-            payload["mode"] = mode
-        if strict:
-            payload["strict"] = strict
         
-        response = self._post("/validate", json=payload)
-        return ValidationResult.from_dict(response)
+        # Add options if provided
+        if options:
+            if options.generate_svrl:
+                payload["generateSVRL"] = True
+            if options.verbose:
+                payload["verbose"] = True
+            if options.include_passed_rules:
+                payload["includePassedRules"] = True
+            if options.custom_rules:
+                payload["customRules"] = options.custom_rules
+            if options.max_errors:
+                payload["maxErrors"] = options.max_errors
+        
+        response = self._request("POST", "/validate", json=payload)
+        
+        # Parse errors
+        errors = [
+            self._parse_error(e) for e in response.get("errors", [])
+        ]
+        
+        # Parse warnings (may be separate from errors)
+        warnings = [
+            self._parse_warning(w) for w in response.get("warnings", [])
+        ]
+        
+        # Parse passed rules if present
+        passed_rules = None
+        if "passedRules" in response:
+            passed_rules = [
+                PassedRule(**rule) for rule in response["passedRules"]
+            ]
+        
+        # Parse summary if present
+        summary = None
+        if "summary" in response:
+            summary = ValidationSummary(**response["summary"])
+        
+        return ValidationResult(
+            valid=response["valid"],
+            errors=errors,
+            warnings=warnings,
+            metadata=response.get("metadata", {}),
+            svrl=response.get("svrl"),
+            passed_rules=passed_rules,
+            summary=summary
+        )
     
-    def validate_url(
+    def validate_with_svrl(
         self,
-        url: str,
+        content: str,
         version: str,
         profile: Optional[str] = None
-    ) -> ValidationResult:
+    ) -> Tuple[ValidationResult, Optional[str]]:
         """
-        Validate XML from URL
+        Validate and automatically generate SVRL
         
         Args:
-            url: URL to XML file
+            content: XML content to validate
             version: ERN version
             profile: Optional profile
             
         Returns:
-            ValidationResult object
-            
-        Example:
-            >>> result = client.validate_url("https://example.com/release.xml", version="4.3")
+            Tuple of (ValidationResult, SVRL XML string)
         """
-        # Fetch XML content
-        try:
-            response = requests.get(url, timeout=self.timeout)
-            response.raise_for_status()
-        except requests.RequestException as e:
-            raise DDEXError(f"Failed to fetch XML from URL: {str(e)}")
-        
-        return self.validate(response.text, version, profile)
+        options = ValidationOptions(generate_svrl=True)
+        result = self.validate(content, version, profile, options)
+        return result, result.svrl
     
-    def get_supported_formats(self) -> SupportedFormats:
-        """
-        Get supported DDEX formats and versions
-        
-        Returns:
-            SupportedFormats object with version information
-        """
-        response = self._get("/formats")
-        return SupportedFormats.from_dict(response)
+    def _parse_error(self, error_data: Dict[str, Any]) -> ValidationErrorDetail:
+        """Parse error from API response"""
+        return ValidationErrorDetail(
+            line=error_data.get("line", 0),
+            column=error_data.get("column", 0),
+            message=error_data.get("message", "Unknown error"),
+            severity=error_data.get("severity", "error"),
+            rule=error_data.get("rule"),
+            context=error_data.get("context"),
+            suggestion=error_data.get("suggestion"),
+            xpath=error_data.get("xpath")
+        )
     
-    def check_health(self) -> HealthStatus:
+    def _parse_warning(self, warning_data: Dict[str, Any]) -> ValidationWarning:
+        """Parse warning from API response"""
+        return ValidationWarning(
+            line=warning_data.get("line", 0),
+            column=warning_data.get("column", 0),
+            message=warning_data.get("message", "Unknown warning"),
+            rule=warning_data.get("rule"),
+            context=warning_data.get("context")
+        )
+    
+    def health(self) -> HealthStatus:
         """
         Check API health status
         
         Returns:
             HealthStatus object
         """
-        response = self._get("/health")
-        return HealthStatus.from_dict(response)
+        response = self._request("GET", "/health")
+        
+        # Handle flexible response format
+        return HealthStatus(
+            status=response.get('status', 'unknown'),
+            version=response.get('version', ''),
+            timestamp=response.get('timestamp', ''),
+            service=response.get('service'),  # Single service field
+            services=response.get('services')  # Multiple services dict
+        )
     
-    def list_api_keys(self, auth_token: str) -> List[ApiKey]:
+    def formats(self) -> SupportedFormats:
         """
-        List API keys for authenticated user
+        Get supported formats and versions
+        
+        Returns:
+            SupportedFormats object
+        """
+        response = self._request("GET", "/formats")
+        
+        # Create result with flexible handling
+        result = SupportedFormats()
+        
+        # Handle different possible response structures
+        if 'formats' in response:
+            result.formats = response['formats']
+        if 'types' in response:
+            result.types = response['types']
+        if 'versions' in response:
+            result.versions = response['versions']
+        if 'profiles' in response:
+            result.profiles = response['profiles']
+        
+        # If we got a types field but no formats, process it
+        if not result.formats and result.types:
+            if isinstance(result.types, list):
+                result.formats = result.types
+            elif isinstance(result.types, dict):
+                result.formats = list(result.types.keys())
+                for fmt, info in result.types.items():
+                    if isinstance(info, dict):
+                        if 'versions' in info:
+                            result.versions[fmt] = info['versions']
+                        if 'profiles' in info:
+                            result.profiles[fmt] = info['profiles']
+        
+        return result
+    
+    def create_api_key(self, name: str) -> ApiKey:
+        """
+        Create new API key (requires authentication)
         
         Args:
-            auth_token: Firebase auth token
+            name: Name/description for the API key
             
         Returns:
-            List of ApiKey objects
-        """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        response = self._get("/keys", headers=headers)
-        return [ApiKey.from_dict(key) for key in response]
-    
-    def create_api_key(self, name: str, auth_token: str) -> ApiKey:
-        """
-        Create new API key
-        
-        Args:
-            name: Friendly name for the key
-            auth_token: Firebase auth token
-            
-        Returns:
-            ApiKey object (includes the key value only on creation)
-        """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        response = self._post("/keys", json={"name": name}, headers=headers)
-        return ApiKey.from_dict(response)
-    
-    def revoke_api_key(self, key_id: str, auth_token: str) -> None:
-        """
-        Revoke API key
-        
-        Args:
-            key_id: API key ID to revoke
-            auth_token: Firebase auth token
-        """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        self._delete(f"/keys/{key_id}", headers=headers)
-    
-    def set_api_key(self, api_key: str) -> None:
-        """Update API key for this client instance"""
-        self.api_key = api_key
-        self.session.headers["X-API-Key"] = api_key
-    
-    def clear_api_key(self) -> None:
-        """Remove API key from this client instance"""
-        self.api_key = None
-        self.session.headers.pop("X-API-Key", None)
-    
-    # Private methods
-    def _get(self, path: str, headers: Optional[Dict] = None, **kwargs) -> Any:
-        """Internal GET request"""
-        return self._request("GET", path, headers=headers, **kwargs)
-    
-    def _post(self, path: str, headers: Optional[Dict] = None, **kwargs) -> Any:
-        """Internal POST request"""
-        return self._request("POST", path, headers=headers, **kwargs)
-    
-    def _delete(self, path: str, headers: Optional[Dict] = None, **kwargs) -> None:
-        """Internal DELETE request"""
-        self._request("DELETE", path, headers=headers, **kwargs)
-    
-    def _request(
-        self,
-        method: str,
-        path: str,
-        headers: Optional[Dict] = None,
-        **kwargs
-    ) -> Optional[Any]:
-        """
-        Make HTTP request with error handling
-        
-        Args:
-            method: HTTP method
-            path: API path
-            headers: Optional additional headers
-            **kwargs: Additional request parameters
-            
-        Returns:
-            Response data or None
+            ApiKey object with new key
             
         Raises:
-            DDEXError: On API errors
-            RateLimitError: On rate limiting
+            AuthenticationError: If not authenticated
         """
-        url = f"{self.base_url}{path}"
-        
-        # Merge headers
-        if headers:
-            request_headers = dict(self.session.headers)
-            request_headers.update(headers)
-            kwargs["headers"] = request_headers
-        
-        # Set timeout
-        kwargs.setdefault("timeout", self.timeout)
-        
-        try:
-            response = self.session.request(method, url, **kwargs)
-            
-            # Handle rate limiting
-            if response.status_code == 429:
-                retry_after = response.headers.get("Retry-After", "60")
-                raise RateLimitError(
-                    f"Rate limit exceeded. Retry after {retry_after} seconds",
-                    retry_after=int(retry_after) if retry_after.isdigit() else 60
-                )
-            
-            # Handle authentication errors
-            if response.status_code == 401:
-                raise AuthenticationError("Authentication required or invalid API key")
-            
-            # Handle not found
-            if response.status_code == 404:
-                raise NotFoundError(f"Resource not found: {path}")
-            
-            # Raise for other HTTP errors
-            response.raise_for_status()
-            
-            # Return JSON response if available
-            if response.text and response.status_code != 204:
-                return response.json()
-            return None
-            
-        except requests.exceptions.RequestException as e:
-            # Convert requests exceptions to our custom exceptions
-            if not isinstance(e, (DDEXError, RateLimitError, AuthenticationError, NotFoundError)):
-                raise create_error_from_response(e)
-            raise
+        response = self._request("POST", "/api-keys", json={"name": name})
+        return ApiKey(**response)
     
-    def _get_version(self) -> str:
-        """Get SDK version"""
-        try:
-            from . import __version__
-            return __version__
-        except ImportError:
-            return "1.0.1"
+    def list_api_keys(self) -> List[ApiKey]:
+        """
+        List all API keys (requires authentication)
+        
+        Returns:
+            List of ApiKey objects
+            
+        Raises:
+            AuthenticationError: If not authenticated
+        """
+        response = self._request("GET", "/api-keys")
+        return [ApiKey(**key) for key in response.get("keys", [])]
+    
+    def delete_api_key(self, key_id: str) -> bool:
+        """
+        Delete an API key (requires authentication)
+        
+        Args:
+            key_id: ID of the key to delete
+            
+        Returns:
+            True if deleted successfully
+            
+        Raises:
+            AuthenticationError: If not authenticated
+            NotFoundError: If key not found
+        """
+        self._request("DELETE", f"/api-keys/{key_id}")
+        return True
     
     def __enter__(self):
-        """Context manager support"""
+        """Context manager entry"""
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up session on exit"""
-        self.session.close()
+        """Context manager exit - close session"""
+        self.close()
+    
+    def close(self):
+        """Close the session"""
+        if hasattr(self, 'session'):
+            self.session.close()

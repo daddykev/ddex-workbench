@@ -74,3 +74,40 @@ temp/
 *.tmp
 *.bak
 *.backup
+
+# packages/python-sdk/.gitignore
+
+# ... existing content ...
+
+# Local test files (not part of official test suite)
+test_integration.py
+test_integration_robust.py
+test_v102_features.py
+test_all.py
+test_*.py  # This will ignore all test_*.py files in root
+!tests/test_*.py  # But NOT ignore files in tests/ directory
+
+# Test outputs
+*.log
+validation-report.svrl
+test-results.xml
+htmlcov/
+.coverage*
+pytest_cache/
+
+# Test environments
+test_env/
+test_install/
+venv*/
+.env
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# PyPI config (NEVER commit these!)
+.pypirc
+.pypi-token
