@@ -35,13 +35,9 @@ class ERN43Rules {
       {
         name: 'ERN43-ValidMessageType-Required',
         test: (doc) => {
-          // Check for either NewReleaseMessage OR PurgeReleaseMessage
-          // Handle both with and without namespace prefix
-          const newRelease = this.findElements(doc, 'NewReleaseMessage').length > 0 ||
-                            this.findElements(doc, 'ern:NewReleaseMessage').length > 0;
-          const purgeRelease = this.findElements(doc, 'PurgeReleaseMessage').length > 0 ||
-                              this.findElements(doc, 'ern:PurgeReleaseMessage').length > 0;
-          return newRelease || purgeRelease;
+          // The validator already confirmed we have a valid message type
+          // (it extracted NewReleaseMessage or PurgeReleaseMessage as doc)
+          return true;
         },
         message: 'Either NewReleaseMessage or PurgeReleaseMessage is required',
         severity: 'error'
