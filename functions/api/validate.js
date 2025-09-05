@@ -1,11 +1,10 @@
 // functions/api/validate.js
 const express = require('express');
 const router = express.Router();
-const { ERNValidator } = require('../validators/ernValidator');
-const SchematronValidator = require('../validators/schematronValidator');
+const ValidationOrchestrator = require('../validators/validationOrchestrator');
 
-// Create a schematron validator instance for SVRL generation
-const schematronValidator = new SchematronValidator();
+// Create a validation orchestrator instance
+const validationOrchestrator = new ValidationOrchestrator();
 
 // Validation endpoint - NO AUTHENTICATION REQUIRED
 router.post('/', async (req, res) => {
@@ -15,8 +14,14 @@ router.post('/', async (req, res) => {
       type, 
       version, 
       profile,
-      generateSVRL  // Add this
+      generateSVRL,
+      options = {}
     } = req.body;
+
+    // Extract from options if not at root level
+    const finalGenerateSVRL = generateSVRL || options.generateSVRL;
+    const verbose = options.verbose;
+    const includeMetadata = options.includeMetadata;
     
     // Log request for debugging
     console.log('Validation request:', { 
@@ -24,7 +29,8 @@ router.post('/', async (req, res) => {
       version, 
       profile, 
       contentLength: content?.length,
-      generateSVRL 
+      generateSVRL: finalGenerateSVRL,
+      options: options
     });
     
     if (!content) {
@@ -48,53 +54,54 @@ router.post('/', async (req, res) => {
     // Start timing
     const startTime = Date.now();
 
-    // Create validator for the specified version
-    let validator;
-    try {
-      validator = new ERNValidator(version);
-    } catch (error) {
-      return res.status(400).json({
-        error: { message: error.message }
-      });
+    // Use ValidationOrchestrator for unified validation
+    let validationResult;
+    
+    if (finalGenerateSVRL && profile) {
+      // Use orchestrator with SVRL generation
+      validationResult = await validationOrchestrator.validateWithSVRL(
+        content, 
+        type, 
+        version, 
+        profile
+      );
+    } else {
+      // Use orchestrator for standard validation
+      validationResult = await validationOrchestrator.validate(
+        content, 
+        type, 
+        version, 
+        profile
+      );
     }
 
-    // Perform validation
-    const validationResult = await validator.validate(content, profile);
     const processingTime = Date.now() - startTime;
 
-    // Generate SVRL if requested and profile is specified
-    let svrl = null;
-    if (generateSVRL && profile) {
-      try {
-        const svrlResult = await schematronValidator.validate(
-          content,
-          version,
-          profile,
-          { generateSVRL: true }
-        );
-        
-        // Get SVRL from result or from the generator
-        svrl = svrlResult.svrl || schematronValidator.getLastSVRLReport();
-      } catch (error) {
-        console.warn('SVRL generation failed:', error.message);
-        // Continue without SVRL
-      }
-    }
-
-    return res.json({
+    // Build response with properly synchronized metadata
+    const response = {
       valid: validationResult.valid,
-      errors: validationResult.errors,
+      errors: validationResult.errors || [],
       warnings: validationResult.warnings || [],
-      svrl: svrl,  // Include SVRL if generated
+      svrl: validationResult.svrl || null,
       metadata: {
         processingTime,
         schemaVersion: `ERN ${version}`,
         profile: profile,
         validatedAt: new Date().toISOString(),
         errorCount: validationResult.errors ? validationResult.errors.length : 0,
-        warningCount: validationResult.warnings ? validationResult.warnings.length : 0
+        warningCount: validationResult.warnings ? validationResult.warnings.length : 0,
+        validationSteps: validationResult.metadata?.validationSteps || []
       }
-    });
+    };
+
+    // If SVRL was generated, ensure error counts match
+    if (validationResult.svrl) {
+      // Count errors in SVRL to ensure consistency
+      const svrlErrorCount = (validationResult.svrl.match(/<svrl:failed-assert/g) || []).length;
+      console.log(`SVRL error count: ${svrlErrorCount}, Total errors: ${response.errors.length}`);
+    }
+
+    return res.json(response);
 
   } catch (error) {
     console.error('Validation error:', error);

@@ -9,9 +9,11 @@ class XSDValidator {
   }
 
   async loadSchema(version) {
+    console.log(`Loading XSD schema for version: ${version}`);
     const cacheKey = `ern-${version}`;
     
     if (this.schemaCache.has(cacheKey)) {
+      console.log(`Schema ${version} found in cache`);
       return this.schemaCache.get(cacheKey);
     }
 
@@ -26,70 +28,120 @@ class XSDValidator {
     const schemaPath = path.join(schemaDir, 'release-notification.xsd');
     const avsFilename = avsFilenames[version];
     
+    console.log(`Schema directory: ${schemaDir}`);
+    console.log(`Schema path: ${schemaPath}`);
+    console.log(`AVS filename: ${avsFilename}`);
+    
     if (!avsFilename) {
       throw new Error(`Unknown ERN version: ${version}`);
     }
 
-    // Read the main schema
-    let mainSchema = await fs.readFile(schemaPath, 'utf8');
-    
-    // Fix the AVS import reference to match your actual filename
-    // The schema might reference "avs.xsd" or "avs43.xsd" but we need the actual filename
-    mainSchema = mainSchema.replace(
-      /schemaLocation="[^"]*avs[^"]*\.xsd"/gi,
-      `schemaLocation="${avsFilename}"`
-    );
+    try {
+      // Check if files exist using sync methods
+      const fsSync = require('fs');
+      if (!fsSync.existsSync(schemaPath)) {
+        throw new Error(`Schema file not found: ${schemaPath}`);
+      }
+      if (!fsSync.existsSync(path.join(schemaDir, avsFilename))) {
+        throw new Error(`AVS file not found: ${path.join(schemaDir, avsFilename)}`);
+      }
+      console.log('Both schema files exist');
 
-    // Parse schema with proper base URL so imports can be resolved
-    const schemaDoc = libxmljs.parseXml(mainSchema, {
-      baseUrl: `file://${schemaDir}/`,  // This allows libxmljs to find the AVS file
-      nonet: true  // Set to true for security (prevents external network requests)
-    });
+      // Read the main schema
+      let mainSchema = await fs.readFile(schemaPath, 'utf8');
+      console.log(`Main schema loaded, length: ${mainSchema.length}`);
+      
+      // Fix the AVS import reference to match actual filename
+      mainSchema = mainSchema.replace(
+        /schemaLocation="[^"]*avs[^"]*\.xsd"/gi,
+        `schemaLocation="${avsFilename}"`
+      );
+      
+      console.log(`Attempting to parse schema with baseUrl: file://${schemaDir}/`);
+      
+      // Parse schema with proper base URL for imports
+      const schemaDoc = libxmljs.parseXml(mainSchema, {
+        baseUrl: `file://${schemaDir}/`,
+        nonet: true
+      });
 
-    this.schemaCache.set(cacheKey, schemaDoc);
-    return schemaDoc;
+      console.log('Schema parsed successfully');
+      this.schemaCache.set(cacheKey, schemaDoc);
+      return schemaDoc;
+      
+    } catch (error) {
+      console.error(`Schema loading failed for ${version}:`, error.message);
+      console.error('Full error:', error);
+      throw error;
+    }
   }
 
   async validate(xmlContent, version) {
+    console.log(`XSD validation starting for version: ${version}`);
     const errors = [];
     
     try {
       // Parse the XML document
+      console.log('Parsing XML document...');
       const xmlDoc = libxmljs.parseXml(xmlContent);
+      console.log('XML document parsed successfully');
       
       // Load the appropriate schema
+      console.log('Loading schema...');
       const schema = await this.loadSchema(version);
+      console.log('Schema loaded successfully, attempting validation...');
       
       // Perform validation
-      const isValid = xmlDoc.validate(schema);
+      console.log('Calling xmlDoc.validate()...');
+      let isValid;
+      try {
+        isValid = xmlDoc.validate(schema);
+        console.log(`Validation completed. Result: ${isValid}`);
+      } catch (validateError) {
+        console.error('Validation threw an error:', validateError.message);
+        // Schema is invalid for validation - this is a setup issue
+        throw new Error(`Schema validation setup error: ${validateError.message}`);
+      }
       
       if (!isValid) {
         // Extract detailed validation errors
         const validationErrors = xmlDoc.validationErrors;
+        console.log(`Found ${validationErrors.length} validation errors`);
         
-        validationErrors.forEach(error => {
+        validationErrors.forEach((error, index) => {
+          console.log(`Error ${index + 1}:`, {
+            line: error.line,
+            column: error.column,
+            message: error.message,
+            level: error.level
+          });
+          
           errors.push({
             line: error.line || 0,
             column: error.column || 0,
             message: error.message,
             severity: error.level === 2 ? 'error' : 'warning',
             rule: 'XSD-Schema',
-            domain: error.domain, // Schema, namespace, etc.
+            domain: error.domain,
             code: error.code
           });
         });
+      } else {
+        console.log('XSD validation passed!');
       }
     } catch (error) {
-      console.error('XSD validation error:', error);
+      console.error('XSD validation error:', error.message);
+      console.error('Error stack:', error.stack);
       errors.push({
         line: 0,
         column: 0,
-        message: `Schema validation error: ${error.message}`,
+        message: `XML parsing or schema error: ${error.message}`,
         severity: 'error',
         rule: 'XSD-Schema-Loading'
       });
     }
 
+    console.log(`XSD validation completed with ${errors.length} errors`);
     return { errors, valid: errors.length === 0 };
   }
 
