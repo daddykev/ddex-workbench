@@ -58,7 +58,11 @@ import {
   faKey,
   faCog,
   faUser,
-  faHome
+  faHome,
+  faChartBar,
+  faBolt,
+  faBox,
+  faBook  
 } from '@fortawesome/free-solid-svg-icons'
 
 // Import brand icons
@@ -123,6 +127,10 @@ library.add(
   faCog,
   faUser,
   faHome,
+  faChartBar,
+  faBolt,
+  faBox,
+  faBook,
   // Brand icons
   faJs,
   faPython,

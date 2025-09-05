@@ -65,7 +65,7 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'DDEX Workbench API',
-    version: '1.0.0'
+    version: '1.0.2'
   });
 });
 
@@ -74,7 +74,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'DDEX Workbench API',
-    version: '1.0.0'
+    version: '1.0.2'
   });
 });
 
