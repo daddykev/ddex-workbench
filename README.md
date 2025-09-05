@@ -18,6 +18,25 @@ Major enhancements now available in both SDKs:
 - **🆕 Concurrent Processing** - Parallel batch validation with configurable workers
 - **🆕 Profile Compliance** - Detailed compliance statistics and reporting
 - **🆕 Advanced Error Filtering** - Type-based error categorization and analysis
+- **🎯 648 Validation Rules** - Comprehensive rule coverage across all ERN versions
+
+## 📊 Validation Engine Statistics
+
+Our proprietary rule generation technology provides industry-leading validation coverage:
+
+### 🚀 By The Numbers
+- **648** Total validation rules generated
+- **2,231** XML elements analyzed across all ERN versions
+- **606** Complex type definitions processed
+- **8.4MB** Official DDEX XSD schemas comprehensively analyzed
+- **8** Distinct validation categories per version
+
+### 📈 Version-Specific Coverage
+| ERN Version | Rules | Elements | Complex Types |
+|-------------|-------|----------|---------------|
+| **3.8.2** | 236 | 850 | 212 |
+| **4.2** | 191 | 662 | 190 |
+| **4.3** | 221 | 719 | 204 |
 
 ## 🎯 Vision
 
@@ -38,14 +57,37 @@ A production-ready web-based ERN validator supporting multiple versions with com
 - **ERN 4.3** - Latest standard (recommended)
 - **ERN 4.2** - Previous ERN 4.x version
 - **ERN 3.8.2** - Legacy support with migration hints
-- **Profile validation** - AudioAlbum, AudioSingle, Video, Mixed, Classical, and more
+- **Profile validation** - AudioAlbum, AudioSingle, Video, Mixed, Classical, Ringtone, DJ
 
 #### ✅ Enhanced Three-Stage Validation Pipeline (v1.0.2)
-- **XSD Schema Validation** - Structure and data type validation
+- **XSD Schema Validation** - Structure and data type validation using libxmljs2
 - **Business Rules** - ERN-specific requirement checking
-- **Enhanced Schematron** - Comprehensive profile-specific validation with SVRL reporting
+- **Enhanced Schematron** - 648 comprehensive profile-specific validation rules
+  - **SVRL reporting** - Generate detailed compliance reports
+  - **Version-aware** - Rules adapt automatically to ERN version differences
 - **Profile Compliance** - Detailed compliance statistics (pass rate, rule counts)
 - **Auto-Detection** - Automatically detect ERN version and profile from content
+
+#### ✅ Advanced Validation Features
+
+**Cross-Reference Validation**
+- ResourceReference → Resource mappings
+- ReleaseResourceReference → Release connections
+- PartyReference → Party relationships
+- DealReleaseReference → Deal integrity
+
+**Business Logic Validation**
+- Deal date chronology (StartDate < EndDate)
+- Territory code validation (ISO 3166-1)
+- Commercial model compatibility
+- Rights delegation chain verification
+- Release date consistency across territories
+
+**Format-Specific Validators**
+- ISRC: Country code, registrant, year, and designation code
+- Duration: ISO 8601 format (PT3M45S pattern)
+- Date/DateTime: Full ISO 8601 compliance
+- Language codes: ISO 639-2/B validation
 
 #### ✅ Modern Web Interface
 - **Three input methods**: File upload, paste XML, or load from URL
@@ -67,6 +109,16 @@ A production-ready web-based ERN validator supporting multiple versions with com
   - Share results functionality
 - **Theme system** with light/dark/auto modes
 - **Fully responsive** for all devices
+
+#### ✅ BETA: ERN Sandbox with Deezer Integration
+- **Interactive form-based ERN creation** - Visual message builder
+- **Deezer metadata import** - Import real album data by UPC/EAN
+  - Automatic track listing with durations
+  - ISRC batch retrieval with rate limiting
+  - Instant population of all required fields
+- **Real-time XML generation** - See ERN XML as you type
+- **Templates** - Pre-filled for Audio Single, Audio Album, Music Video
+- **Integrated validation** - One-click validation of generated messages
 
 ## 📦 JavaScript/TypeScript SDK
 
@@ -261,6 +313,7 @@ print(f"Validated {batch_result.total_files} files in {batch_result.processing_t
 
 ## ✅ Production-Ready Features
 - Multi-version ERN validation (3.8.2, 4.2, 4.3)
+- **648 comprehensive validation rules** via proprietary generation
 - Enhanced three-stage validation pipeline with SVRL
 - Auto-detection of ERN version and profile
 - Concurrent batch processing
@@ -273,6 +326,7 @@ print(f"Validated {batch_result.total_files} files in {batch_result.processing_t
 - **Official Python SDK v1.0.2+** - [ddex-workbench](https://pypi.org/project/ddex-workbench/)
 - Comprehensive API documentation
 - Theme system (light/dark/auto)
+- **BETA: ERN Sandbox** with Deezer integration
 
 ## 🛠️ Tech Stack
 
@@ -292,7 +346,7 @@ print(f"Validated {batch_result.total_files} files in {batch_result.processing_t
 ### Validation Engine
 - **Multi-version support** (ERN 3.8.2, 4.2, 4.3)
 - **XSD schema validation** with pre-downloaded schemas
-- **Enhanced Schematron validation** (v1.0.2) with built-in rules
+- **648 Schematron rules** (v1.0.2) via proprietary generation
 - **SVRL report generation** (v1.0.2)
 - **Auto-detection capabilities** (v1.0.2)
 - **Comprehensive error reporting** with context
@@ -382,6 +436,7 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 - [x] API key management
 - [x] Comprehensive API documentation
 - [x] Three-stage validation pipeline
+- [x] 648 Schematron rules via proprietary generation
 - [x] Enhanced error display with grouping/filtering
 - [x] Community snippet library
 - [x] JSON and text report generation
@@ -395,6 +450,8 @@ curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
 ### Phase 2: ERN Sandbox (In Progress)
 - [x] Interactive form-based ERN creation
 - [x] Deezer API integration for metadata import
+- [x] UPC/EAN lookup with automatic data population
+- [x] Batch ISRC retrieval with rate limiting
 - [x] Real-time XML generation
 - [ ] Template library expansion
 - [ ] Export to production systems
@@ -428,10 +485,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - **Batch processing**: Up to 8x faster with v1.0.2 parallel processing
 - **API response time**: <200ms average
 - **Uptime**: 99.95% target
-
-### SDK Downloads
-- **JavaScript SDK**: 50+ weekly downloads
-- **Python SDK**: 50+ weekly downloads
+- **Rule execution**: Native JavaScript (no XSLT overhead)
 
 ## 🔄 Upgrading to v1.0.2
 
@@ -446,8 +500,9 @@ pip install --upgrade ddex-workbench
 ```
 
 ### What's New
-- **SVRL Report Generation**: Generate detailed validation reports in Schematron Validation Report Language format
-- **Auto-Detection**: Automatically detect ERN version and profile from XML content
+- **648 Validation Rules**: Comprehensive coverage via proprietary generation
+- **SVRL Report Generation**: Detailed validation reports in Schematron format
+- **Auto-Detection**: Automatically detect ERN version and profile from XML
 - **Concurrent Processing**: Process multiple files in parallel with configurable workers
 - **Profile Compliance**: Get detailed compliance statistics including pass rates
 - **Enhanced Error Filtering**: Advanced categorization and filtering of validation errors
