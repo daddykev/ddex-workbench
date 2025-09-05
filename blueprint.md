@@ -407,8 +407,6 @@ The enhanced validator implements a comprehensive three-stage pipeline:
      - ERN 4.3: 221 rules (from 719 elements, 204 complex types)
    - Validates all profile-specific requirements with version awareness
 
-Based on my review of the actual schematron files, here's an updated, more accurate and impressive version of the Schematron Rules Implementation section for blueprint.md:
-
 ### Schematron Rules Implementation (v1.0.2)
 
 Comprehensive business rule validation powered by proprietary rule generation technology:
@@ -421,6 +419,7 @@ Comprehensive business rule validation powered by proprietary rule generation te
 - **Rule Categories**: 8 distinct validation categories per version
 
 #### ERN 3.8.2 Schematron Rules (236 rules)
+
 **Structural Validation (89 rules)**
 - Required element presence checks (MessageHeader, PartyList, ReleaseList)
 - Parent-child relationship validation
@@ -452,6 +451,7 @@ Comprehensive business rule validation powered by proprietary rule generation te
 - Language code validation (ISO 639-2)
 
 #### ERN 4.2 Schematron Rules (191 rules)
+
 **Enhanced Profile Support (45 rules)**
 - AudioAlbum with stricter metadata requirements
 - AudioSingle with simplified structure validation
@@ -489,7 +489,6 @@ Comprehensive business rule validation powered by proprietary rule generation te
 - Genre categorization rules
 
 #### ERN 4.3 Schematron Rules (221 rules)
-**Most Comprehensive Validation Suite**
 
 **Structural Integrity (72 rules)**
 - Complete resource type validation (Audio, Video, Image, Text, Software, SheetMusic)

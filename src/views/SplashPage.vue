@@ -55,18 +55,18 @@
           
           <div class="hero-stats">
             <div class="stat">
-              <div class="stat-value">ERN 4.3</div>
-              <div class="stat-label">Latest Standard</div>
+              <div class="stat-value">648</div>
+              <div class="stat-label">Validation Rules</div>
             </div>
             <div class="stat-divider"></div>
             <div class="stat">
-              <div class="stat-value">100%</div>
-              <div class="stat-label">Open Source</div>
+              <div class="stat-value">2,231</div>
+              <div class="stat-label">XML Elements</div>
             </div>
             <div class="stat-divider"></div>
             <div class="stat">
-              <div class="stat-value">Free</div>
-              <div class="stat-label">Forever</div>
+              <div class="stat-value">606</div>
+              <div class="stat-label">Complex Types</div>
             </div>
           </div>
         </div>

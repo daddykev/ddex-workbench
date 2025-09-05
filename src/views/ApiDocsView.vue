@@ -523,7 +523,7 @@ onUnmounted(() => {
             RESTful API for validating DDEX Electronic Release Notification (ERN) files. No authentication required.
           </p>
           <div class="hero-badges mt-lg">
-            <span class="badge">Version 1.0</span>
+            <span class="badge">Version 1.0.2</span>
             <span class="badge">REST API</span>
             <span class="badge">Free & Open</span>
           </div>
