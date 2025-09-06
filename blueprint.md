@@ -38,6 +38,20 @@ Major enhancements to validation capabilities now available in both SDKs:
 - **Validation**: Server-side Cloud Functions (requires XML processing)
 - **API Keys**: Server-side Cloud Functions (requires secure key generation)
 
+### Validation Technology Stack
+
+- **XML Schema (XSD) Validation**: 
+  - `xmllint-wasm` v5.x - WebAssembly-based validation (no native dependencies)
+  - Memory optimized for large DDEX schemas
+  
+- **Business Rules Validation**:
+  - Custom JavaScript implementation for ERN-specific rules
+  - Version-aware validation logic
+  
+- **Schematron Validation**:
+  - 648 rules implemented directly in JavaScript
+  - Profile-specific validation for all standard profiles
+
 ## Available SDKs
 
 ### JavaScript/TypeScript SDK ✅
@@ -260,7 +274,7 @@ ddex-workbench/
 │   │   ├── ernValidator.js    # Multi-version ERN validator
 │   │   ├── schematronValidator.js  # Profile-specific validation
 │   │   ├── validationOrchestrator.js  # Combines all validators
-│   │   └── xsdValidator.js    # XSD schema validation (libxmljs2)
+│   │   └── xsdValidator.js    # XSD schema validation (xmllint-wasm v5)
 │   ├── index.js               # Functions entry with trust proxy
 │   ├── package.json           # Functions dependencies
 │   └── package-lock.json      # Locked dependencies
@@ -383,10 +397,11 @@ ddex-workbench/
 The enhanced validator implements a comprehensive three-stage pipeline:
 
 1. **XSD Schema Validation** (`xsdValidator.js`)
-   - Uses `libxmljs2` for native XML schema validation
-   - Validates against official DDEX XSD schemas downloaded from ddex.net
+   - Uses `xmllint-wasm` v5.x for WebAssembly-based XML schema validation
+   - Validates against pre-downloaded DDEX XSD schemas 
+   - Supports ERN versions 3.8.2, 4.2, and 4.3
    - Provides detailed error messages with line/column numbers
-   - Checks XML structure and data types
+   - Checks XML structure, namespaces, and data types
 
 2. **Business Rules Validation** (`ernValidator.js`)
    - Custom validation logic for ERN-specific rules
@@ -1320,12 +1335,12 @@ Semantic utility classes for:
 - BETA: Real-time ERN XML generation ✓
 
 ### Validation Engine Statistics
+- **XSD Validation**: Full schema validation using xmllint-wasm v5
 - **Rule Coverage**: 648 total validation rules across all ERN versions
-- **ERN 3.8.2**: 236 rules covering 850 elements
-- **ERN 4.2**: 191 rules covering 662 elements  
-- **ERN 4.3**: 221 rules covering 719 elements
-- **Schema Analysis**: 8.4MB of XSD schemas comprehensively processed
-- **Rule Derivation**: Automated via proprietary schema analysis algorithms
+- **ERN 3.8.2**: 236 Schematron rules + full XSD validation
+- **ERN 4.2**: 191 Schematron rules + full XSD validation
+- **ERN 4.3**: 221 Schematron rules + full XSD validation
+- **Validation Performance**: 2-100ms typical for complete validation
 
 ### SDK Availability:
 ```bash
