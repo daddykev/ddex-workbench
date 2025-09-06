@@ -60,13 +60,18 @@ A production-ready web-based ERN validator supporting multiple versions with com
 - **Profile validation** - AudioAlbum, AudioSingle, Video, Mixed, Classical, Ringtone, DJ
 
 #### ✅ Enhanced Three-Stage Validation Pipeline (v1.0.2)
-- **XSD Schema Validation** - Structure and data type validation using libxmljs2
+- **XSD Schema Validation** - WebAssembly-based validation using xmllint-wasm v5.x
+  - No native dependencies, works everywhere
+  - Pre-downloaded schemas for offline validation
+  - Memory-optimized for large DDEX schemas
 - **Business Rules** - ERN-specific requirement checking
+  - Cross-reference validation (Resource, Release, Party, Deal)
+  - Date chronology and territory code validation
+  - ISRC, duration, and language code formats
 - **Enhanced Schematron** - 648 comprehensive profile-specific validation rules
-  - **SVRL reporting** - Generate detailed compliance reports
-  - **Version-aware** - Rules adapt automatically to ERN version differences
-- **Profile Compliance** - Detailed compliance statistics (pass rate, rule counts)
-- **Auto-Detection** - Automatically detect ERN version and profile from content
+  - SVRL report generation for compliance documentation
+  - Auto-detection of ERN version and profile
+  - Profile compliance statistics and scoring
 
 #### ✅ Advanced Validation Features
 
@@ -341,7 +346,7 @@ print(f"Validated {batch_result.total_files} files in {batch_result.processing_t
 - **Firestore** for data persistence
 - **Firebase Auth** for user management
 - **Express.js** for API routing
-- **libxmljs2** for XSD validation
+- **xmllint-wasm** v5.x for WebAssembly-based XSD validation
 
 ### Validation Engine
 - **Multi-version support** (ERN 3.8.2, 4.2, 4.3)
@@ -384,10 +389,12 @@ firebase login
 firebase use --add
 ```
 
-5. Download XSD schemas:
+5. Download XSD schemas (required for validation):
 ```bash
 cd functions
 node scripts/downloadSchemas.js
+# This downloads official DDEX XSD schemas locally
+# Schemas are stored in functions/schemas/ern/
 cd ..
 ```
 
@@ -486,6 +493,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - **API response time**: <200ms average
 - **Uptime**: 99.95% target
 - **Rule execution**: Native JavaScript (no XSLT overhead)
+- **XSD validation**: WebAssembly-powered for consistent cross-platform performance
+- **Schema loading**: Pre-cached schemas eliminate network latency
 
 ## 🔄 Upgrading to v1.0.2
 
