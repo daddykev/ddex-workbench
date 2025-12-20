@@ -19,6 +19,7 @@
           <router-link to="/validator" class="nav-link">Validator</router-link>
           <router-link to="/snippets" class="nav-link">Snippets</router-link>
           <router-link to="/api" class="nav-link">API Docs</router-link>
+          <router-link to="/sandbox" class="nav-link">ERN Sandbox</router-link>
         </div>
 
         <!-- Right side actions -->
