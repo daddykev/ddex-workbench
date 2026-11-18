@@ -18,319 +18,283 @@ const languages = [
   { id: 'php', name: 'PHP' }
 ]
 
-// Code examples
+// Minimal valid ERN 4.3 Audio Single, trimmed from the Sandbox's Audio Single template.
+// Passes XSD and business-rule validation; used by the quickstart samples.
+const QUICKSTART_XML_FORMATTED = `<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/43" AvsVersionId="9" LanguageAndScriptCode="en">
+  <MessageHeader>
+    <MessageId>MSG-0001</MessageId>
+    <MessageSender><PartyId>PADPIDA0000000000S</PartyId></MessageSender>
+    <MessageRecipient><PartyId>PADPIDA0000000000R</PartyId></MessageRecipient>
+    <MessageCreatedDateTime>2026-01-01T00:00:00Z</MessageCreatedDateTime>
+  </MessageHeader>
+  <PartyList>
+    <Party><PartyReference>P1</PartyReference><PartyName><FullName>Example Artist</FullName></PartyName></Party>
+    <Party><PartyReference>P2</PartyReference><PartyName><FullName>Example Label</FullName></PartyName></Party>
+  </PartyList>
+  <ResourceList>
+    <SoundRecording>
+      <ResourceReference>A1</ResourceReference>
+      <Type>MusicalWorkSoundRecording</Type>
+      <SoundRecordingEdition><ResourceId><ISRC>USRC17607839</ISRC></ResourceId></SoundRecordingEdition>
+      <DisplayTitleText>Example Track</DisplayTitleText>
+      <DisplayTitle><TitleText>Example Track</TitleText></DisplayTitle>
+      <DisplayArtistName>Example Artist</DisplayArtistName>
+      <DisplayArtist><ArtistPartyReference>P1</ArtistPartyReference><DisplayArtistRole>MainArtist</DisplayArtistRole></DisplayArtist>
+      <Duration>PT3M30S</Duration>
+      <ParentalWarningType>NotExplicit</ParentalWarningType>
+    </SoundRecording>
+  </ResourceList>
+  <ReleaseList>
+    <Release>
+      <ReleaseReference>R0</ReleaseReference>
+      <ReleaseType>Single</ReleaseType>
+      <ReleaseId><ICPN>00000000000000</ICPN></ReleaseId>
+      <DisplayTitleText>Example Single</DisplayTitleText>
+      <DisplayTitle><TitleText>Example Single</TitleText></DisplayTitle>
+      <DisplayArtistName>Example Artist</DisplayArtistName>
+      <DisplayArtist><ArtistPartyReference>P1</ArtistPartyReference><DisplayArtistRole>MainArtist</DisplayArtistRole></DisplayArtist>
+      <ReleaseLabelReference>P2</ReleaseLabelReference>
+      <Genre><GenreText>Pop</GenreText></Genre>
+      <ParentalWarningType>NotExplicit</ParentalWarningType>
+      <ResourceGroup><ResourceGroupContentItem><ReleaseResourceReference>A1</ReleaseResourceReference></ResourceGroupContentItem></ResourceGroup>
+    </Release>
+  </ReleaseList>
+  <DealList>
+    <ReleaseDeal>
+      <DealReleaseReference>R0</DealReleaseReference>
+      <Deal><DealTerms><TerritoryCode>Worldwide</TerritoryCode><ValidityPeriod><StartDate>2026-01-01</StartDate></ValidityPeriod><CommercialModelType>SubscriptionModel</CommercialModelType><UseType>OnDemandStream</UseType></DealTerms></Deal>
+    </ReleaseDeal>
+  </DealList>
+</ern:NewReleaseMessage>`
+const QUICKSTART_XML = QUICKSTART_XML_FORMATTED.replace(/>\s+</g, '><')
+
+// Code examples. Request and response shapes follow functions/api/validate.js;
+// example responses come from functions/test/fixtures/api-responses.md.
 const codeExamples = {
   quickstart: {
     curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
--H "Content-Type: application/json" \\
--d '{"content":"<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>","type":"ERN","version":"4.3"}'`,
+  -H "Content-Type: application/json" \\
+  -d '{"content":"${QUICKSTART_XML.replace(/"/g, '\\"')}","type":"ERN","version":"4.3"}'`,
     javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    content: '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
+    content: '${QUICKSTART_XML}',
     type: 'ERN',
     version: '4.3'
   })
 });
 
 const result = await response.json();
-console.log(result.valid ? '✓ Valid' : '✗ Invalid');`,
+console.log(result.valid ? 'Valid' : \`Invalid: \${result.errors.length} error(s)\`);`,
     python: `import requests
 
 response = requests.post(
     'https://api.ddex-workbench.org/v1/validate',
     json={
-        'content': '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
+        'content': '${QUICKSTART_XML}',
         'type': 'ERN',
         'version': '4.3'
-    }
+    },
+    timeout=60
 )
 
 result = response.json()
-print('✓ Valid' if result['valid'] else '✗ Invalid')`,
-    php: `$client = new \\GuzzleHttp\\Client();
+print('Valid' if result['valid'] else f"Invalid: {len(result['errors'])} error(s)")`,
+    php: `<?php
+require 'vendor/autoload.php';
+
+$client = new \\GuzzleHttp\\Client();
 $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
     'json' => [
-        'content' => '<NewReleaseMessage><MessageHeader><MessageId>TEST123</MessageId></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>',
+        'content' => '${QUICKSTART_XML}',
         'type' => 'ERN',
         'version' => '4.3'
     ]
 ]);
 
 $result = json_decode($response->getBody(), true);
-echo $result['valid'] ? '✓ Valid' : '✗ Invalid';`
+echo $result['valid'] ? "Valid\\n" : 'Invalid: ' . count($result['errors']) . " error(s)\\n";`
   },
   healthCheck: {
     curl: `curl https://api.ddex-workbench.org/v1/health`,
-    javascript: `fetch('https://api.ddex-workbench.org/v1/health')
-  .then(response => response.json())
-  .then(data => console.log('API Status:', data.status))
-  .catch(error => console.error('API is down:', error));`,
+    javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/health');
+const data = await response.json();
+console.log('API status:', data.status);`,
     python: `import requests
 
-response = requests.get('https://api.ddex-workbench.org/v1/health')
-data = response.json()
-print(f"API Status: {data['status']}")`,
-    php: `$response = file_get_contents('https://api.ddex-workbench.org/v1/health');
-$data = json_decode($response, true);
-echo "API Status: " . $data['status'];`
+response = requests.get('https://api.ddex-workbench.org/v1/health', timeout=10)
+print(f"API status: {response.json()['status']}")`,
+    php: `<?php
+$data = json_decode(file_get_contents('https://api.ddex-workbench.org/v1/health'), true);
+echo "API status: " . $data['status'] . "\\n";`
   },
   errorFormat: {
     json: `{
   "error": {
-    "message": "XML content is required"
+    "message": "Version is required"
   }
 }`
   },
   validateEndpoint: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
--H "Content-Type: application/json" \\
--d '{"content":"<NewReleaseMessage><MessageHeader><MessageId>MSG123</MessageId><MessageCreatedDateTime>2025-01-01T00:00:00</MessageCreatedDateTime></MessageHeader><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference><Type>MusicalWorkSoundRecording</Type></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference><ReleaseId><ICPN>123456789012</ICPN></ReleaseId></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference></ReleaseDeal></DealList></NewReleaseMessage>","type":"ERN","version":"4.3","profile":"AudioAlbum"}'`,
-    javascript: `// Basic validation request
-const validateERN = async (xmlContent, version = '4.3', profile = 'AudioAlbum') => {
-  const response = await fetch(
+    curl: `# Build the JSON body from a local file with jq, then send it
+jq -n --rawfile xml release.xml \\
+  '{content: $xml, type: "ERN", version: "4.3", profile: "AudioAlbum"}' |
+curl -X POST https://api.ddex-workbench.org/v1/validate \\
+  -H "Content-Type: application/json" \\
+  --data-binary @-`,
+    javascript: `// Node.js 18+ (built-in fetch), ES modules
+import { readFile } from 'node:fs/promises';
+
+const xml = await readFile('release.xml', 'utf8');
+
+const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    content: xml,
+    type: 'ERN',
+    version: '4.3',
+    profile: 'AudioAlbum'
+  })
+});
+
+if (!response.ok) {
+  const { error } = await response.json();
+  throw new Error(\`HTTP \${response.status}: \${error.message}\`);
+}
+
+const result = await response.json();
+console.log(result.valid ? 'Valid' : \`Invalid: \${result.errors.length} error(s)\`);
+
+for (const issue of [...result.errors, ...result.warnings]) {
+  console.log(\`[\${issue.severity}] \${issue.rule}: \${issue.message}\`);
+}`,
+    python: `from pathlib import Path
+import requests
+
+xml = Path('release.xml').read_text(encoding='utf-8')
+
+response = requests.post(
     'https://api.ddex-workbench.org/v1/validate',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        content: xmlContent,
-        type: 'ERN',
-        version: version,
-        profile: profile
-      })
-    }
-  );
+    json={
+        'content': xml,
+        'type': 'ERN',
+        'version': '4.3',
+        'profile': 'AudioAlbum'
+    },
+    timeout=60
+)
+response.raise_for_status()
+result = response.json()
 
-  const result = await response.json();
-  
-  if (result.valid) {
-    console.log('✓ Valid DDEX file');
-    console.log(\`Processed in \${result.metadata.processingTime}ms\`);
-  } else {
-    console.error(\`✗ Found \${result.errors.length} errors\`);
-    result.errors.forEach(error => {
-      console.error(\`  Line \${error.line}: \${error.message}\`);
-    });
-  }
-  
-  return result;
-};`,
-    python: `import requests
-import json
-
-def validate_ern(xml_content, version='4.3', profile='AudioAlbum'):
-    """
-    Validate DDEX ERN XML content
-    
-    Args:
-        xml_content: The XML content as a string
-        version: ERN version ('4.3', '4.2', or '3.8.2')
-        profile: Validation profile (e.g., 'AudioAlbum', 'AudioSingle', 'Video', 'Mixed')
-    
-    Returns:
-        dict: Validation result with 'valid', 'errors', and 'metadata'
-    """
-    
-    response = requests.post(
-        'https://api.ddex-workbench.org/v1/validate',
-        json={
-            'content': xml_content,
-            'type': 'ERN',
-            'version': version,
-            'profile': profile
-        }
-    )
-    
-    result = response.json()
-    
-    if result['valid']:
-        print(f"✓ Valid DDEX file")
-        print(f"Processed in {result['metadata']['processingTime']}ms")
-    else:
-        print(f"✗ Found {len(result['errors'])} errors")
-        for error in result['errors']:
-            print(f"  Line {error['line']}: {error['message']}")
-    
-    return result`,
+print('Valid' if result['valid'] else f"Invalid: {len(result['errors'])} error(s)")
+for issue in result['errors'] + result['warnings']:
+    print(f"[{issue['severity']}] {issue['rule']}: {issue['message']}")`,
     php: `<?php
-use GuzzleHttp\\Client;
+require 'vendor/autoload.php';
 
-function validateERN($xmlContent, $version = '4.3', $profile = 'AudioAlbum') {
-    $client = new Client();
-    
-    try {
-        $response = $client->post(
-            'https://api.ddex-workbench.org/v1/validate',
-            [
-                'json' => [
-                    'content' => $xmlContent,
-                    'type' => 'ERN',
-                    'version' => $version,
-                    'profile' => $profile
-                ]
-            ]
-        );
-        
-        $result = json_decode($response->getBody(), true);
-        
-        if ($result['valid']) {
-            echo "✓ Valid DDEX file\\n";
-            echo "Processed in {$result['metadata']['processingTime']}ms\\n";
-        } else {
-            $errorCount = count($result['errors']);
-            echo "✗ Found {$errorCount} errors\\n";
-            foreach ($result['errors'] as $error) {
-                echo "  Line {$error['line']}: {$error['message']}\\n";
-            }
-        }
-        
-        return $result;
-        
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "\\n";
-        return null;
-    }
+use GuzzleHttp\\Client;
+use GuzzleHttp\\Exception\\ClientException;
+
+$client = new Client(['base_uri' => 'https://api.ddex-workbench.org/v1/']);
+
+try {
+    $response = $client->post('validate', [
+        'json' => [
+            'content' => file_get_contents('release.xml'),
+            'type' => 'ERN',
+            'version' => '4.3',
+            'profile' => 'AudioAlbum'
+        ]
+    ]);
+} catch (ClientException $e) {
+    $body = json_decode($e->getResponse()->getBody(), true);
+    exit('HTTP ' . $e->getResponse()->getStatusCode() . ': ' . $body['error']['message'] . PHP_EOL);
+}
+
+$result = json_decode($response->getBody(), true);
+echo $result['valid'] ? "Valid\\n" : 'Invalid: ' . count($result['errors']) . " error(s)\\n";
+
+foreach (array_merge($result['errors'], $result['warnings']) as $issue) {
+    echo "[{$issue['severity']}] {$issue['rule']}: {$issue['message']}\\n";
 }`
   },
   svrlValidation: {
-    curl: `# Generate SVRL report with v1.0.2
-curl -X POST https://api.ddex-workbench.org/v1/validate \\
--H "Content-Type: application/json" \\
--d '{
-  "content": "<?xml version=\\"1.0\\"?>...",
-  "type": "ERN",
-  "version": "4.3",
-  "profile": "AudioAlbum",
-  "options": {
-    "generateSVRL": true,
-    "verbose": true,
-    "includeMetadata": true
-  }
-}'`,
-    javascript: `// v1.0.2: Validate with SVRL report generation
-const validateWithSVRL = async (xmlContent, version, profile) => {
-  const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      content: xmlContent,
-      type: 'ERN',
-      version: version,
-      profile: profile,
-      options: {
-        generateSVRL: true,     // Generate SVRL report
-        verbose: true,          // Include passed rules
-        includeMetadata: true   // Extract metadata
-      }
-    })
-  });
-  
-  const result = await response.json();
-  
-  if (result.svrl) {
-    console.log('SVRL report generated successfully');
-    // Save SVRL to file
-    const blob = new Blob([result.svrl], { type: 'text/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'validation-report.svrl';
-    a.click();
-  }
-  
-  if (result.profileCompliance) {
-    console.log(\`Compliance Rate: \${result.profileCompliance.complianceRate}%\`);
-    console.log(\`Passed Rules: \${result.profileCompliance.passedRules}/\${result.profileCompliance.totalRules}\`);
-  }
-  
-  return result;
-};`,
-    python: `# v1.0.2: Validate with SVRL report generation
-import requests
-import json
-from pathlib import Path
+    curl: `# SVRL needs a profile; the report is returned in the "svrl" field
+jq -n --rawfile xml release.xml \\
+  '{content: $xml, type: "ERN", version: "4.3", profile: "AudioAlbum", generateSVRL: true}' |
+curl -s -X POST https://api.ddex-workbench.org/v1/validate \\
+  -H "Content-Type: application/json" \\
+  --data-binary @- |
+jq -r '.svrl // empty' > validation-report.svrl`,
+    javascript: `// Node.js 18+, ES modules
+import { readFile, writeFile } from 'node:fs/promises';
 
-def validate_with_svrl(xml_content, version='4.3', profile='AudioAlbum'):
-    """
-    Validate ERN with SVRL report generation (v1.0.2)
-    """
-    
-    response = requests.post(
-        'https://api.ddex-workbench.org/v1/validate',
-        json={
-            'content': xml_content,
-            'type': 'ERN',
-            'version': version,
-            'profile': profile,
-            'options': {
-                'generateSVRL': True,     # Generate SVRL report
-                'verbose': True,          # Include passed rules
-                'includeMetadata': True   # Extract metadata
-            }
-        }
-    )
-    
-    result = response.json()
-    
-    # Save SVRL report if generated
-    if 'svrl' in result:
-        print('✓ SVRL report generated')
-        Path('validation-report.svrl').write_text(result['svrl'])
-    
-    # Display compliance statistics
-    if 'profileCompliance' in result:
-        compliance = result['profileCompliance']
-        print(f"Compliance Rate: {compliance['complianceRate']:.1f}%")
-        print(f"Passed Rules: {compliance['passedRules']}/{compliance['totalRules']}")
-        print(f"Failed Rules: {compliance['failedRules']}")
-    
-    return result`,
-    php: `// v1.0.2: Validate with SVRL report generation
-<?php
-function validateWithSVRL($xmlContent, $version = '4.3', $profile = 'AudioAlbum') {
-    $client = new \\GuzzleHttp\\Client();
-    
-    $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
-        'json' => [
-            'content' => $xmlContent,
-            'type' => 'ERN',
-            'version' => $version,
-            'profile' => $profile,
-            'options' => [
-                'generateSVRL' => true,     // Generate SVRL report
-                'verbose' => true,          // Include passed rules
-                'includeMetadata' => true   // Extract metadata
-            ]
-        ]
-    ]);
-    
-    $result = json_decode($response->getBody(), true);
-    
-    // Save SVRL report if generated
-    if (isset($result['svrl'])) {
-        echo "✓ SVRL report generated\\n";
-        file_put_contents('validation-report.svrl', $result['svrl']);
-    }
-    
-    // Display compliance statistics
-    if (isset($result['profileCompliance'])) {
-        $compliance = $result['profileCompliance'];
-        echo sprintf("Compliance Rate: %.1f%%\\n", $compliance['complianceRate']);
-        echo sprintf("Passed Rules: %d/%d\\n", 
-            $compliance['passedRules'], 
-            $compliance['totalRules']
-        );
-    }
-    
-    return $result;
+const xml = await readFile('release.xml', 'utf8');
+
+const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    content: xml,
+    type: 'ERN',
+    version: '4.3',
+    profile: 'AudioAlbum', // required for SVRL
+    generateSVRL: true
+  })
+});
+
+const result = await response.json();
+
+// "svrl" is only present when a report was generated
+if (result.svrl) {
+  await writeFile('validation-report.svrl', result.svrl);
+  console.log('SVRL report saved');
+}`,
+    python: `from pathlib import Path
+import requests
+
+xml = Path('release.xml').read_text(encoding='utf-8')
+
+response = requests.post(
+    'https://api.ddex-workbench.org/v1/validate',
+    json={
+        'content': xml,
+        'type': 'ERN',
+        'version': '4.3',
+        'profile': 'AudioAlbum',  # required for SVRL
+        'generateSVRL': True
+    },
+    timeout=60
+)
+response.raise_for_status()
+result = response.json()
+
+# "svrl" is only present when a report was generated
+if result.get('svrl'):
+    Path('validation-report.svrl').write_text(result['svrl'], encoding='utf-8')
+    print('SVRL report saved')`,
+    php: `<?php
+require 'vendor/autoload.php';
+
+$client = new \\GuzzleHttp\\Client();
+$response = $client->post('https://api.ddex-workbench.org/v1/validate', [
+    'json' => [
+        'content' => file_get_contents('release.xml'),
+        'type' => 'ERN',
+        'version' => '4.3',
+        'profile' => 'AudioAlbum', // required for SVRL
+        'generateSVRL' => true
+    ]
+]);
+
+$result = json_decode($response->getBody(), true);
+
+// "svrl" is only present when a report was generated
+if (!empty($result['svrl'])) {
+    file_put_contents('validation-report.svrl', $result['svrl']);
+    echo "SVRL report saved\\n";
 }`
   },
   validateResponse: {
@@ -338,107 +302,136 @@ function validateWithSVRL($xmlContent, $version = '4.3', $profile = 'AudioAlbum'
   "valid": false,
   "errors": [
     {
-      "line": 45,
-      "column": 12,
-      "message": "Element 'ReleaseDate' is missing required child element 'Date'",
+      "line": 0,
+      "column": 0,
+      "message": "Schemas validity error : Element 'MessageSender': This element is not expected. Expected is ( MessageId ).",
       "severity": "error",
-      "rule": "ERN-4.3-ReleaseDate"
+      "rule": "XSD-Schema"
     },
     {
-      "line": 78,
-      "column": 8,
-      "message": "Invalid ISRC format. Expected: XX-XXX-XX-XXXXX",
+      "line": 0,
+      "column": 0,
+      "message": "Schemas validity error : Element 'ReleaseType': [facet 'enumeration'] The value 'NotARealType' is not an element of the set {'Album', 'AlertToneRelease', …",
       "severity": "error",
-      "rule": "ERN-4.3-ISRC-Format"
+      "rule": "XSD-Schema"
+    },
+    {
+      "line": 0,
+      "column": 0,
+      "message": "MessageId is required in MessageHeader",
+      "severity": "error",
+      "rule": "Schematron-ERN43-MessageHeader-MessageId-Required",
+      "context": "Profile: AudioAlbum"
     }
   ],
   "warnings": [
     {
-      "line": 23,
-      "column": 4,
-      "message": "Consider migrating to ERN 4.3 for improved territorial handling",
+      "line": 0,
+      "column": 0,
+      "message": "AudioAlbum profile expects ReleaseType 'Album' or 'EP', found 'NotARealType'",
       "severity": "warning",
-      "rule": "ERN382-Migration-Suggestion"
+      "rule": "AudioAlbum-ReleaseType"
     }
   ],
   "metadata": {
-    "processingTime": 234,
+    "processingTime": 120,
     "schemaVersion": "ERN 4.3",
     "profile": "AudioAlbum",
-    "validatedAt": "2025-01-15T10:30:00Z",
-    "errorCount": 2,
+    "validatedAt": "2026-01-01T00:00:00.000Z",
+    "errorCount": 3,
     "warningCount": 1,
     "validationSteps": [
-      {
-        "type": "XSD",
-        "duration": 120,
-        "errorCount": 2
-      },
-      {
-        "type": "BusinessRules",
-        "duration": 80,
-        "errorCount": 0
-      },
-      {
-        "type": "Schematron",
-        "duration": 34,
-        "errorCount": 0
-      }
+      { "type": "XSD", "duration": 118, "errorCount": 2, "warningCount": 0 },
+      { "type": "BusinessRules", "duration": 1, "errorCount": 0, "warningCount": 1 },
+      { "type": "Schematron", "duration": 1, "errorCount": 1, "warningCount": 0 }
     ]
   }
 }`
   },
-  enhancedResponse: {
+  svrlResponse: {
     json: `{
   "valid": true,
   "errors": [],
-  "warnings": [],
+  "warnings": [
+    {
+      "line": 0,
+      "column": 0,
+      "message": "Message profile \\"Audio\\" does not match requested profile \\"AudioSingle\\"",
+      "severity": "warning",
+      "rule": "Schematron-ProfileMismatch",
+      "context": "Profile: AudioSingle"
+    }
+  ],
   "metadata": {
-    "processingTime": 156,
+    "processingTime": 123,
     "schemaVersion": "ERN 4.3",
-    "profile": "AudioAlbum",
-    "validatedAt": "2025-01-15T10:30:00Z",
+    "profile": "AudioSingle",
+    "validatedAt": "2026-01-01T00:00:00.000Z",
     "errorCount": 0,
-    "warningCount": 0,
+    "warningCount": 1,
     "validationSteps": [
-      {
-        "type": "XSD",
-        "duration": 65,
-        "errorCount": 0
-      },
-      {
-        "type": "BusinessRules",
-        "duration": 58,
-        "errorCount": 0
-      },
-      {
-        "type": "Schematron",
-        "duration": 33,
-        "errorCount": 0
-      }
+      { "type": "XSD", "duration": 119, "errorCount": 0, "warningCount": 0 },
+      { "type": "BusinessRules", "duration": 1, "errorCount": 0, "warningCount": 0 },
+      { "type": "Schematron", "duration": 3, "errorCount": 0, "warningCount": 1 }
     ]
   },
-  "svrl": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<svrl:schematron-output xmlns:svrl=\\"http://purl.oclc.org/dsdl/svrl\\" title=\\"DDEX ERN Validation Report\\" schemaVersion=\\"4.3\\">\\n  <svrl:active-pattern document=\\"AudioAlbum\\"/>\\n  <svrl:fired-rule context=\\"NewReleaseMessage\\"/>\\n  <svrl:successful-report test=\\"MessageHeader\\" location=\\"/NewReleaseMessage[1]/MessageHeader[1]\\">\\n    <svrl:text>MessageHeader is present and valid</svrl:text>\\n  </svrl:successful-report>\\n  \\n</svrl:schematron-output>",
-  "profileCompliance": {
-    "profile": "AudioAlbum",
-    "version": "4.3",
-    "totalRules": 221,
-    "passedRules": 221,
-    "failedRules": 0,
-    "complianceRate": 100.0,
-    "schematronErrors": 0,
-    "xsdErrors": 0,
-    "businessRuleErrors": 0
+  "svrl": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<svrl:schematron-output …>…</svrl:schematron-output>"
+}`
   },
-  "passedRules": [
-    "Schematron-MessageHeader",
-    "Schematron-ResourceList",
-    "Schematron-ReleaseList",
-    "Schematron-DealList",
-    "Schematron-AudioAlbum-TrackCount",
-    "Schematron-AudioAlbum-ReleaseType"
-    // ... truncated for brevity
-  ]
+  svrlReport: {
+    xml: `<?xml version="1.0" encoding="UTF-8"?>
+<svrl:schematron-output xmlns:svrl="http://purl.oclc.org/dsdl/svrl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" title="DDEX ERN Validation Report" phase="#ALL" schemaVersion="4.3">
+  <!-- Validation Metadata -->
+  <svrl:text>DDEX ERN Validation Report</svrl:text>
+  <svrl:text>Generated: 2026-01-01T00:00:00.000Z</svrl:text>
+  <svrl:text>ERN Version: 4.3</svrl:text>
+  <svrl:text>Profile: AudioSingle</svrl:text>
+  <svrl:text>Message ID: MSG-0001</svrl:text>
+  <svrl:active-pattern document="" id="AudioSingle-Profile" name="AudioSingle-Profile"/>
+  <svrl:failed-assert test="Schematron-ProfileMismatch" role="warning">
+    <svrl:diagnostic-reference diagnostic="diag-schematron-profilemismatch">
+      Profile: AudioSingle
+    </svrl:diagnostic-reference>
+    <svrl:text>Message profile &quot;Audio&quot; does not match requested profile &quot;AudioSingle&quot;</svrl:text>
+  </svrl:failed-assert>
+  <!-- Validation Summary -->
+  <svrl:text>====== VALIDATION SUMMARY ======</svrl:text>
+  <svrl:text>Status: VALID</svrl:text>
+  <svrl:text>Errors: 0</svrl:text>
+  <svrl:text>Warnings: 1</svrl:text>
+  <svrl:text>Total Issues: 1</svrl:text>
+</svrl:schematron-output>`
+  },
+  malformedResponse: {
+    json: `{
+  "valid": false,
+  "errors": [
+    {
+      "line": 0,
+      "column": 0,
+      "message": "parser error : Premature end of data in tag a line 1",
+      "severity": "error",
+      "rule": "XSD-Schema"
+    },
+    {
+      "line": 0,
+      "column": 0,
+      "message": "<a>",
+      "severity": "error",
+      "rule": "XSD-Schema"
+    }
+  ],
+  "warnings": [],
+  "metadata": {
+    "processingTime": 123,
+    "schemaVersion": "ERN 4.3",
+    "validatedAt": "2026-01-01T00:00:00.000Z",
+    "errorCount": 2,
+    "warningCount": 0,
+    "validationSteps": [
+      { "type": "XSD", "duration": 123, "errorCount": 2, "warningCount": 0 }
+    ]
+  }
 }`
   },
   formatsResponse: {
@@ -448,287 +441,202 @@ function validateWithSVRL($xmlContent, $version = '4.3', $profile = 'AudioAlbum'
     {
       "version": "4.3",
       "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
-      "status": "recommended",
-      "rules": 221
+      "status": "recommended"
     },
     {
       "version": "4.2",
       "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed"],
-      "status": "supported",
-      "rules": 191
+      "status": "supported"
     },
     {
       "version": "3.8.2",
       "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
-      "status": "supported",
-      "rules": 236
+      "status": "supported"
     }
-  ],
-  "totalRules": 648,
-  "apiVersion": "1.0.2"
+  ]
 }`
   },
   healthResponse: {
     json: `{
   "status": "ok",
-  "timestamp": "2025-01-15T10:30:00Z",
+  "timestamp": "2026-01-01T00:00:00.000Z",
   "service": "DDEX Workbench API",
-  "version": "1.0.2",
-  "features": {
-    "svrlGeneration": true,
-    "autoDetection": true,
-    "batchProcessing": true,
-    "profileCompliance": true
+  "version": "1.0.2"
+}`
+  },
+  rateLimitResponse: {
+    http: `HTTP/1.1 429 Too Many Requests
+RateLimit-Policy: 10;w=60
+RateLimit-Limit: 10
+RateLimit-Remaining: 0
+RateLimit-Reset: 60
+Retry-After: 60
+Content-Type: application/json; charset=utf-8
+
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded (10 requests per minute). Sign in or use an API key for up to 60 requests per minute.",
+    "retryAfter": 60
   }
 }`
   },
   fileExamples: {
-    javascript: `// Node.js example - validate file from disk with v1.0.2 features
-const fs = require('fs').promises;
-const fetch = require('node-fetch');
+    javascript: `// Node.js 18+, ES modules: wait and retry when rate limited
+import { readFile } from 'node:fs/promises';
 
-async function validateFile(filePath, version = '4.3', profile = 'AudioAlbum') {
-  try {
-    // Read the XML file
-    const xmlContent = await fs.readFile(filePath, 'utf8');
-    
-    // Send validation request with v1.0.2 options
-    const response = await fetch(
-      'https://api.ddex-workbench.org/v1/validate',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: xmlContent,
-          type: 'ERN',
-          version: version,
-          profile: profile,
-          options: {
-            generateSVRL: true,  // v1.0.2: Generate SVRL report
-            verbose: true        // v1.0.2: Include passed rules
-          }
-        })
-      }
-    );
-    
-    const result = await response.json();
-    
-    // Process results
-    if (result.valid) {
-      console.log('✅ Validation passed!');
-      if (result.profileCompliance) {
-        console.log(\`  Compliance: \${result.profileCompliance.complianceRate}%\`);
-      }
-    } else {
-      console.log('❌ Validation failed:');
-      result.errors.forEach(err => {
-        console.log(\`  Line \${err.line}: \${err.message}\`);
-      });
+const API_URL = 'https://api.ddex-workbench.org/v1/validate';
+
+async function validate(xml, { version = '4.3', profile, apiKey } = {}, attempts = 3) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ content: xml, type: 'ERN', version, profile })
+    });
+
+    if (response.status !== 429) {
+      const body = await response.json();
+      if (!response.ok) throw new Error(\`HTTP \${response.status}: \${body.error.message}\`);
+      return body;
     }
-    
-    // Save SVRL report if generated
-    if (result.svrl) {
-      await fs.writeFile('./validation-report.svrl', result.svrl);
-      console.log('📄 SVRL report saved to validation-report.svrl');
-    }
-    
-    return result;
-    
-  } catch (error) {
-    console.error('Validation error:', error);
-    throw error;
+
+    // Rate limited: wait for the window to reset, then try again
+    const { error } = await response.json();
+    const seconds = error.retryAfter || Number(response.headers.get('Retry-After')) || 60;
+    console.log(\`Rate limited, retrying in \${seconds}s\`);
+    await new Promise(resolve => setTimeout(resolve, seconds * 1000));
   }
+
+  throw new Error('Still rate limited after retrying');
 }
 
-// Usage
-validateFile('./releases/new_album.xml', '4.3', 'AudioAlbum')
-  .then(result => console.log('Done!'));`,
-    python: `# Python example - validate file from disk with v1.0.2 features
-import requests
-import json
+const xml = await readFile('release.xml', 'utf8');
+const result = await validate(xml, { profile: 'AudioAlbum', apiKey: process.env.DDEX_API_KEY });
+console.log(result.valid, result.metadata.validationSteps);`,
+    python: `import os
+import time
 from pathlib import Path
 
-def validate_file(file_path, version='4.3', profile='AudioAlbum'):
-    """Validate a DDEX XML file with v1.0.2 features"""
-    
-    # Read the XML file
-    with open(file_path, 'r', encoding='utf-8') as file:
-        xml_content = file.read()
-    
-    # Prepare the request with v1.0.2 options
-    url = 'https://api.ddex-workbench.org/v1/validate'
-    payload = {
-        'content': xml_content,
-        'type': 'ERN',
-        'version': version,
-        'profile': profile,
-        'options': {
-            'generateSVRL': True,  # v1.0.2: Generate SVRL report
-            'verbose': True        # v1.0.2: Include passed rules
-        }
-    }
-    
-    # Send validation request
-    response = requests.post(url, json=payload)
-    result = response.json()
-    
-    # Process results
-    if result['valid']:
-        print('✅ Validation passed!')
-        if 'profileCompliance' in result:
-            compliance = result['profileCompliance']
-            print(f"  Compliance: {compliance['complianceRate']:.1f}%")
-            print(f"  Passed Rules: {compliance['passedRules']}/{compliance['totalRules']}")
-    else:
-        print('❌ Validation failed:')
-        for error in result['errors']:
-            print(f"  Line {error['line']}: {error['message']}")
-        
-        if result.get('warnings'):
-            print('\\n⚠️  Warnings:')
-            for warning in result['warnings']:
-                print(f"  Line {warning['line']}: {warning['message']}")
-    
-    # Save SVRL report if generated
-    if 'svrl' in result:
-        Path('validation-report.svrl').write_text(result['svrl'])
-        print('📄 SVRL report saved to validation-report.svrl')
-    
-    return result
+import requests
 
-# Usage
-if __name__ == '__main__':
-    result = validate_file('./releases/new_album.xml', '4.3', 'AudioAlbum')
-    print(f"\\nTotal issues: {len(result['errors']) + len(result.get('warnings', []))}")`,
-    php: `// PHP example - validate file from disk with v1.0.2 features
-<?php
+API_URL = 'https://api.ddex-workbench.org/v1/validate'
+
+
+def validate(xml, version='4.3', profile=None, api_key=None, attempts=3):
+    """Validate an ERN message, waiting and retrying when rate limited."""
+    headers = {'X-API-Key': api_key} if api_key else {}
+    payload = {'content': xml, 'type': 'ERN', 'version': version}
+    if profile:
+        payload['profile'] = profile
+
+    for _ in range(attempts):
+        response = requests.post(API_URL, json=payload, headers=headers, timeout=60)
+
+        if response.status_code != 429:
+            response.raise_for_status()
+            return response.json()
+
+        # Rate limited: wait for the window to reset, then try again
+        error = response.json()['error']
+        seconds = error.get('retryAfter') or int(response.headers.get('Retry-After', 60))
+        print(f'Rate limited, retrying in {seconds}s')
+        time.sleep(seconds)
+
+    raise RuntimeError('Still rate limited after retrying')
+
+
+xml = Path('release.xml').read_text(encoding='utf-8')
+result = validate(xml, profile='AudioAlbum', api_key=os.environ.get('DDEX_API_KEY'))
+print(result['valid'], result['metadata']['validationSteps'])`,
+    php: `<?php
 require 'vendor/autoload.php';
+
 use GuzzleHttp\\Client;
 
-function validateFile($filePath, $version = '4.3', $profile = 'AudioAlbum') {
-    // Read the XML file
-    $xmlContent = file_get_contents($filePath);
-    if ($xmlContent === false) {
-        throw new Exception("Could not read file: $filePath");
+function validateErn(string $xml, string $version = '4.3', ?string $profile = null, ?string $apiKey = null, int $attempts = 3): array
+{
+    $client = new Client(['http_errors' => false]);
+    $headers = $apiKey ? ['X-API-Key' => $apiKey] : [];
+    $payload = ['content' => $xml, 'type' => 'ERN', 'version' => $version];
+    if ($profile) {
+        $payload['profile'] = $profile;
     }
-    
-    // Create HTTP client
-    $client = new Client();
-    
-    try {
-        // Send validation request with v1.0.2 options
-        $response = $client->post(
-            'https://api.ddex-workbench.org/v1/validate',
-            [
-                'json' => [
-                    'content' => $xmlContent,
-                    'type' => 'ERN',
-                    'version' => $version,
-                    'profile' => $profile,
-                    'options' => [
-                        'generateSVRL' => true,  // v1.0.2: Generate SVRL report
-                        'verbose' => true        // v1.0.2: Include passed rules
-                    ]
-                ]
-            ]
-        );
-        
-        $result = json_decode($response->getBody(), true);
-        
-        // Process results
-        if ($result['valid']) {
-            echo "✅ Validation passed!\\n";
-            if (isset($result['profileCompliance'])) {
-                $compliance = $result['profileCompliance'];
-                echo sprintf("  Compliance: %.1f%%\\n", $compliance['complianceRate']);
-                echo sprintf("  Passed Rules: %d/%d\\n", 
-                    $compliance['passedRules'], 
-                    $compliance['totalRules']);
+
+    for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+        $response = $client->post('https://api.ddex-workbench.org/v1/validate', [
+            'headers' => $headers,
+            'json' => $payload
+        ]);
+        $body = json_decode($response->getBody(), true);
+
+        if ($response->getStatusCode() !== 429) {
+            if ($response->getStatusCode() >= 400) {
+                throw new RuntimeException('HTTP ' . $response->getStatusCode() . ': ' . $body['error']['message']);
             }
-        } else {
-            echo "❌ Validation failed:\\n";
-            foreach ($result['errors'] as $error) {
-                echo "  Line {$error['line']}: {$error['message']}\\n";
-            }
-            
-            if (!empty($result['warnings'])) {
-                echo "\\n⚠️  Warnings:\\n";
-                foreach ($result['warnings'] as $warning) {
-                    echo "  Line {$warning['line']}: {$warning['message']}\\n";
-                }
-            }
+            return $body;
         }
-        
-        // Save SVRL report if generated
-        if (isset($result['svrl'])) {
-            file_put_contents('validation-report.svrl', $result['svrl']);
-            echo "📄 SVRL report saved to validation-report.svrl\\n";
-        }
-        
-        return $result;
-        
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "\\n";
-        return null;
+
+        // Rate limited: wait for the window to reset, then try again
+        $seconds = $body['error']['retryAfter'] ?? (int) ($response->getHeaderLine('Retry-After') ?: 60);
+        echo "Rate limited, retrying in {$seconds}s\\n";
+        sleep($seconds);
     }
+
+    throw new RuntimeException('Still rate limited after retrying');
 }
 
-// Usage
-$result = validateFile('./releases/new_album.xml', '4.3', 'AudioAlbum');
-if ($result) {
-    $totalIssues = count($result['errors']) + count($result['warnings'] ?? []);
-    echo "\\nTotal issues: $totalIssues\\n";
-}`
+$result = validateErn(file_get_contents('release.xml'), '4.3', 'AudioAlbum', getenv('DDEX_API_KEY') ?: null);
+echo $result['valid'] ? "Valid\\n" : "Invalid\\n";`
   },
-  // **FIX**: Moved hardcoded SDK examples from template into this object
-  sdkJS: `import { DDEXClient } from '@ddex-workbench/sdk';
+  sdkJS: `import { readFile, writeFile } from 'node:fs/promises';
+import { DDEXClient } from '@ddex-workbench/sdk';
 
 const client = new DDEXClient({
-  apiKey: 'ddex_your-api-key' // Optional
+  apiKey: process.env.DDEX_API_KEY // optional: 60 requests/min instead of 10
 });
 
-// Auto-detect version and profile (v1.0.2)
-const version = client.validator.detectVersion(xmlContent);
-const profile = client.validator.detectProfile(xmlContent);
+const xml = await readFile('release.xml', 'utf8');
 
-// Validate with SVRL report (v1.0.2)
-const result = await client.validateWithSVRL(xmlContent, {
-  version,
-  profile,
-  verbose: true
-});
+// Detects the ERN version from the XML namespace (locally), then validates
+const auto = await client.validator.validateAuto(xml, 'AudioAlbum');
+console.log(auto.valid, auto.errors.length, auto.warnings.length);
 
+// Same request with an SVRL report
+const result = await client.validateWithSVRL(xml, { version: '4.3', profile: 'AudioAlbum' });
 if (result.svrl) {
-  console.log('SVRL report generated');
-  // Save to file
-  fs.writeFileSync('report.svrl', result.svrl);
+  await writeFile('report.svrl', result.svrl);
 }
 
-console.log(\`Compliance: \${result.profileCompliance?.complianceRate}%\`);`,
-  sdkPython: `from ddex_workbench import DDEXClient
-from pathlib import Path
+// Several messages, 3 requests at a time (the default)
+const batch = await client.validateBatch(
+  [{ content: xml, options: { version: '4.3', profile: 'AudioAlbum' }, filename: 'release.xml' }],
+  { concurrency: 3 }
+);
+console.log(\`\${batch.validFiles}/\${batch.totalFiles} valid\`);`,
+  sdkPython: `from pathlib import Path
+from ddex_workbench import DDEXClient
 
-client = DDEXClient(api_key='ddex_your-api-key')  # Optional
+client = DDEXClient(api_key='ddex_your-api-key')  # optional: 60 requests/min instead of 10
 
-# Auto-detect version and profile (v1.0.2)
-version = client.validator.detect_version(xml_content)
-profile = client.validator.detect_profile(xml_content)
+xml = Path('release.xml').read_text(encoding='utf-8')
 
-# Validate with SVRL report (v1.0.2)
-result = client.validate_with_svrl(
-    xml_content,
-    version=version,
-    profile=profile,
-    verbose=True
-)
+# Detects the ERN version (and a declared profile) locally, then validates
+auto = client.validator.validate_auto(xml)
+print(auto.valid, len(auto.errors), len(auto.warnings))
 
-if result.svrl:
-    print('SVRL report generated')
-    Path('report.svrl').write_text(result.svrl)
+# validate_with_svrl returns a (result, svrl) tuple
+result, svrl = client.validate_with_svrl(xml, version='4.3', profile='AudioAlbum')
+if svrl:
+    Path('report.svrl').write_text(svrl, encoding='utf-8')
 
-print(f"Compliance: {result.profile_compliance.compliance_rate:.1f}%")`
+# Several files, 4 at a time (the default max_workers)
+files = sorted(Path('releases').glob('*.xml'))
+batch = client.validator.validate_batch(files, version='4.3', profile='AudioAlbum', max_workers=4)
+print(f'{batch.valid_files}/{batch.total_files} valid')`
 }
 
 // Methods
@@ -742,7 +650,7 @@ const copyToClipboard = async (code, identifier) => {
     await navigator.clipboard.writeText(code)
     // Set copied state for this specific code block
     copiedStates.value[identifier] = true
-    
+
     // Reset after 2 seconds
     setTimeout(() => {
       copiedStates.value[identifier] = false
@@ -784,7 +692,7 @@ const handleScroll = () => {
   sections.forEach(section => {
     const sectionTop = section.offsetTop
     const sectionHeight = section.offsetHeight
-    
+
     if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
       activeSection.value = section.id
     }
@@ -808,17 +716,13 @@ onUnmounted(() => {
         <div class="hero-content text-center">
           <h1 class="hero-title">DDEX Validation API</h1>
           <p class="hero-subtitle">
-            RESTful API for validating DDEX Electronic Release Notification (ERN) files. Now with SVRL reporting and compliance analytics.
+            REST API for validating DDEX Electronic Release Notification (ERN) messages: XSD schema, business rules,
+            version-specific rules and optional SVRL reports.
           </p>
           <div class="hero-badges mt-lg">
-            <span class="badge badge-new">v1.0.2</span>
             <span class="badge">REST API</span>
-            <span class="badge">Free & Open</span>
-            <span class="badge badge-new">SVRL</span>
-          </div>
-          <div class="feature-highlight mt-lg">
-            <span class="highlight-badge">NEW</span>
-            <span>648 validation rules • SVRL reports • Auto-detection • Compliance scoring</span>
+            <span class="badge">ERN 3.8.2 · 4.2 · 4.3</span>
+            <span class="badge">Free to use</span>
           </div>
         </div>
       </div>
@@ -832,9 +736,7 @@ onUnmounted(() => {
               <h3 class="nav-section-title">Getting Started</h3>
               <ul class="nav-list">
                 <li><a href="#introduction" @click.prevent="scrollToSection('introduction')" :class="{ active: activeSection === 'introduction' }">Introduction</a></li>
-                <li><a href="#whats-new" @click.prevent="scrollToSection('whats-new')" :class="{ active: activeSection === 'whats-new' }">
-                  What's New <span class="nav-badge">v1.0.2</span>
-                </a></li>
+                <li><a href="#features" @click.prevent="scrollToSection('features')" :class="{ active: activeSection === 'features' }">Features</a></li>
                 <li><a href="#sdk" @click.prevent="scrollToSection('sdk')" :class="{ active: activeSection === 'sdk' }">SDK & Libraries</a></li>
                 <li><a href="#authentication" @click.prevent="scrollToSection('authentication')" :class="{ active: activeSection === 'authentication' }">Authentication</a></li>
                 <li><a href="#rate-limiting" @click.prevent="scrollToSection('rate-limiting')" :class="{ active: activeSection === 'rate-limiting' }">Rate Limiting</a></li>
@@ -850,12 +752,10 @@ onUnmounted(() => {
 
               <h3 class="nav-section-title">Resources</h3>
               <ul class="nav-list">
-                <li><a href="#svrl-generation" @click.prevent="scrollToSection('svrl-generation')" :class="{ active: activeSection === 'svrl-generation' }">
-                  SVRL Generation <span class="nav-badge">New</span>
-                </a></li>
+                <li><a href="#svrl-generation" @click.prevent="scrollToSection('svrl-generation')" :class="{ active: activeSection === 'svrl-generation' }">SVRL Reports</a></li>
                 <li><a href="#supported-versions" @click.prevent="scrollToSection('supported-versions')" :class="{ active: activeSection === 'supported-versions' }">Supported Versions</a></li>
-                <li><a href="#examples" @click.prevent="scrollToSection('examples')" :class="{ active: activeSection === 'examples' }">Code Examples</a></li>
                 <li><a href="#response-format" @click.prevent="scrollToSection('response-format')" :class="{ active: activeSection === 'response-format' }">Response Format</a></li>
+                <li><a href="#examples" @click.prevent="scrollToSection('examples')" :class="{ active: activeSection === 'examples' }">Code Examples</a></li>
               </ul>
             </nav>
           </aside>
@@ -864,39 +764,30 @@ onUnmounted(() => {
             <section id="introduction" class="doc-section">
               <h2>Introduction</h2>
               <p>
-                The DDEX Validation API provides a simple, RESTful interface for validating DDEX Electronic Release Notification (ERN) 
-                files against official DDEX schemas and business rules. The API supports ERN versions 4.3, 4.2, and 3.8.2 with comprehensive 
-                validation including XSD schema validation, business rules, and profile-specific checks.
+                The DDEX Validation API validates DDEX Electronic Release Notification (ERN) messages for versions 4.3, 4.2 and 3.8.2.
+                Each request runs XSD schema validation and business-rule checks, plus version-specific rules when you pass a profile.
               </p>
-              
+
               <div class="info-box mt-lg">
                 <h4>Base URL</h4>
                 <code class="endpoint-url">https://api.ddex-workbench.org/v1</code>
               </div>
 
               <div class="success-box mt-lg">
-                <h4><font-awesome-icon :icon="['fas', 'rocket']" /> No Authentication Required</h4>
-                <p>The validation API is completely free and open. No API keys or authentication needed for basic validation!</p>
-              </div>
-
-              <div class="feature-box mt-lg">
-                <h4><font-awesome-icon :icon="['fas', 'bolt']" /> Version 1.0.2 Highlights</h4>
-                <ul class="feature-list">
-                  <li><strong>648 Validation Rules:</strong> Comprehensive coverage across all ERN versions</li>
-                  <li><strong>SVRL Reports:</strong> Generate detailed Schematron Validation Report Language output</li>
-                  <li><strong>Auto-Detection:</strong> Automatically detect ERN version and profile from content</li>
-                  <li><strong>Compliance Scoring:</strong> Get detailed compliance statistics and pass rates</li>
-                  <li><strong>Enhanced Performance:</strong> 2-100ms validation for typical files</li>
-                </ul>
+                <h4><font-awesome-icon :icon="['fas', 'rocket']" /> No API key needed to start</h4>
+                <p>
+                  You can call the API without an API key, at up to 10 requests per minute. An API key raises that to 60 requests
+                  per minute (see <a href="#rate-limiting" @click.prevent="scrollToSection('rate-limiting')">Rate Limiting</a>).
+                </p>
               </div>
 
               <div class="warning-box mt-lg">
-                <h4><font-awesome-icon :icon="['fas', 'check-circle']" /> Test API Status</h4>
-                <p>Before integrating, check if the API is online:</p>
+                <h4><font-awesome-icon :icon="['fas', 'check-circle']" /> Check API Status</h4>
+                <p>Before integrating, check that the API is online:</p>
                 <code class="endpoint-url">https://api.ddex-workbench.org/v1/health</code>
                 <div class="code-example mt-sm">
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard('curl https://api.ddex-workbench.org/v1/health', 'health-quick')"
                       class="copy-button"
                       :class="{ copied: copiedStates['health-quick'] }"
@@ -910,12 +801,15 @@ onUnmounted(() => {
               </div>
 
               <h3 class="mt-xl">Quick Start</h3>
-              <p>Here's a simple example to validate an ERN file. This command works in terminal, ReqBin, or any API testing tool:</p>
-              
+              <p>
+                This request validates a minimal ERN 4.3 Audio Single and returns <code>"valid": true</code>.
+                It works in a terminal, ReqBin or any API testing tool:
+              </p>
+
               <div class="code-example">
                 <div class="code-tabs">
-                  <button 
-                    v-for="lang in languages" 
+                  <button
+                    v-for="lang in languages"
                     :key="lang.id"
                     @click="activeLanguage = lang.id"
                     class="code-tab"
@@ -925,7 +819,7 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <div class="code-block-wrapper">
-                  <button 
+                  <button
                     @click="copyToClipboard(getCodeExample('quickstart', activeLanguage), `quickstart-${activeLanguage}`)"
                     class="copy-button"
                     :class="{ copied: copiedStates[`quickstart-${activeLanguage}`] }"
@@ -936,6 +830,23 @@ onUnmounted(() => {
                   <pre class="code-block"><code>{{ getCodeExample('quickstart', activeLanguage) }}</code></pre>
                 </div>
               </div>
+
+              <details class="quickstart-message mt-md">
+                <summary>View the ERN 4.3 message used in this request</summary>
+                <div class="code-example mt-sm">
+                  <div class="code-block-wrapper">
+                    <button 
+                      @click="copyToClipboard(QUICKSTART_XML_FORMATTED, 'quickstart-xml')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['quickstart-xml'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['quickstart-xml'] ? 'check' : 'copy'" />
+                      {{ copiedStates['quickstart-xml'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ QUICKSTART_XML_FORMATTED }}</code></pre>
+                  </div>
+                </div>
+              </details>
 
               <div class="info-box mt-lg">
                 <h4><font-awesome-icon :icon="['fas', 'lightbulb']" /> Testing with ReqBin</h4>
@@ -948,113 +859,56 @@ onUnmounted(() => {
               </div>
             </section>
 
-            <section id="whats-new" class="doc-section">
-              <h2>What's New in v1.0.2</h2>
-              <p>
-                Version 1.0.2 introduces major enhancements to the validation engine, powered by our proprietary rule generation technology 
-                that analyzed 8.4MB of official DDEX XSD schemas to produce 648 comprehensive validation rules.
-              </p>
+            <section id="features" class="doc-section">
+              <h2>Features</h2>
 
-              <div class="version-stats">
-                <div class="stat-card">
-                  <div class="stat-number">648</div>
-                  <div class="stat-label">Total Rules</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-number">2,231</div>
-                  <div class="stat-label">XML Elements</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-number">606</div>
-                  <div class="stat-label">Complex Types</div>
-                </div>
-              </div>
-
-              <h3>New Features</h3>
-              
               <div class="feature-card card">
                 <div class="card-body">
-                  <h4><font-awesome-icon :icon="['fas', 'clipboard']" /> SVRL Report Generation</h4>
-                  <p>
-                    Generate detailed Schematron Validation Report Language (SVRL) reports for compliance documentation 
-                    and audit trails. SVRL is the industry-standard format for validation reporting.
-                  </p>
-                  <p>Enable with: <code>options.generateSVRL = true</code></p>
+                  <h4><font-awesome-icon :icon="['fas', 'check-circle']" /> Three validation stages</h4>
+                  <ul class="feature-list">
+                    <li><strong>XSD schema:</strong> the message is checked against the official DDEX XSD schemas with xmllint-wasm. If the XML can't be parsed, validation stops here.</li>
+                    <li><strong>Business rules:</strong> required sections (MessageHeader, ResourceList, ReleaseList, DealList) and profile expectations, such as AudioAlbum expecting a ReleaseType of Album or EP.</li>
+                    <li><strong>Version-specific rules:</strong> when you pass a <code>profile</code>, 648 version-specific rules (ERN 3.8.2: 236, 4.2: 191, 4.3: 221) run as a third stage.</li>
+                  </ul>
                 </div>
               </div>
 
               <div class="feature-card card">
                 <div class="card-body">
-                  <h4><font-awesome-icon :icon="['fas', 'search']" /> Auto-Detection</h4>
+                  <h4><font-awesome-icon :icon="['fas', 'clipboard']" /> SVRL reports</h4>
                   <p>
-                    Automatically detect ERN version and profile from XML content. No need to manually specify version 
-                    if your XML contains proper namespace declarations.
+                    Set <code>generateSVRL: true</code> (with a profile) to get a Schematron Validation Report Language (SVRL) document
+                    in the <code>svrl</code> field of the response. See <a href="#svrl-generation" @click.prevent="scrollToSection('svrl-generation')">SVRL Reports</a>.
                   </p>
-                  <p>SDK method: <code>detectVersion(xmlContent)</code></p>
                 </div>
               </div>
 
               <div class="feature-card card">
                 <div class="card-body">
-                  <h4><font-awesome-icon :icon="['fas', 'chart-bar']" /> Profile Compliance Scoring</h4>
+                  <h4><font-awesome-icon :icon="['fas', 'search']" /> Structured results</h4>
                   <p>
-                    Get detailed compliance statistics including pass rates, rule counts, and categorized error breakdowns. 
-                    Perfect for quality assurance and continuous improvement.
+                    Errors and warnings are returned separately, each with a severity and rule identifier, and
+                    <code>valid</code> reflects errors only. <code>metadata.validationSteps</code> lists each stage that ran,
+                    with its duration and issue counts.
                   </p>
-                  <p>Returns: <code>complianceRate</code>, <code>passedRules</code>, <code>failedRules</code></p>
                 </div>
               </div>
 
               <div class="feature-card card">
                 <div class="card-body">
-                  <h4><font-awesome-icon :icon="['fas', 'bolt']" /> Enhanced Performance</h4>
+                  <h4><font-awesome-icon :icon="['fas', 'code']" /> SDKs</h4>
                   <p>
-                    Optimized validation engine processes typical files in 2-100ms. Batch processing now supports 
-                    concurrent validation with up to 8x faster throughput.
+                    Official JavaScript/TypeScript and Python SDKs wrap the API and add local version detection, batch validation
+                    and automatic retries. See <a href="#sdk" @click.prevent="scrollToSection('sdk')">SDK & Libraries</a>.
                   </p>
-                  <p>Batch option: <code>maxWorkers: 8</code></p>
                 </div>
               </div>
-
-              <h3>Version-Specific Rule Coverage</h3>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>ERN Version</th>
-                    <th>Total Rules</th>
-                    <th>Elements Analyzed</th>
-                    <th>Complex Types</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>ERN 3.8.2</strong></td>
-                    <td>236</td>
-                    <td>850</td>
-                    <td>212</td>
-                  </tr>
-                  <tr>
-                    <td><strong>ERN 4.2</strong></td>
-                    <td>191</td>
-                    <td>662</td>
-                    <td>190</td>
-                  </tr>
-                  <tr>
-                    <td><strong>ERN 4.3</strong></td>
-                    <td>221</td>
-                    <td>719</td>
-                    <td>204</td>
-                  </tr>
-                </tbody>
-              </table>
             </section>
 
             <section id="sdk" class="doc-section">
               <h2>SDK & Client Libraries</h2>
               <p>
-                For easier integration, we provide official SDKs that handle authentication, 
-                retry logic, and provide type-safe access to all API endpoints. Both SDKs have been 
-                updated to v1.0.2 with full support for SVRL generation and enhanced features.
+                The official SDKs send the same requests documented below and return typed results.
               </p>
 
               <div class="sdk-card card">
@@ -1064,30 +918,29 @@ onUnmounted(() => {
                       <font-awesome-icon :icon="['fab', 'npm']" class="sdk-icon" />
                       Official JavaScript/TypeScript SDK
                     </h3>
-                    <span class="badge badge-success">v1.0.2</span>
                   </div>
-                  
+
                   <p class="sdk-description">
-                    Full-featured client library with TypeScript support, automatic retries, 
-                    SVRL generation, and auto-detection capabilities.
+                    A Node.js-first client with TypeScript type definitions. It retries network errors and 5xx responses (up to 3 times by default).
+                    <code>validateFile()</code> reads from disk and works in Node.js only. Browser use is subject to the API's CORS policy.
                   </p>
 
                   <h4>Installation</h4>
                   <div class="code-example">
                     <div class="code-block-wrapper">
-                      <button 
-                        @click="copyToClipboard('npm install @ddex-workbench/sdk@latest', 'sdk-npm-install')"
+                      <button
+                        @click="copyToClipboard('npm install @ddex-workbench/sdk', 'sdk-npm-install')"
                         class="copy-button"
                         :class="{ copied: copiedStates['sdk-npm-install'] }"
                       >
                         <font-awesome-icon :icon="copiedStates['sdk-npm-install'] ? 'check' : 'copy'" />
                         {{ copiedStates['sdk-npm-install'] ? 'Copied!' : 'Copy' }}
                       </button>
-                      <pre class="code-block"><code>npm install @ddex-workbench/sdk@latest</code></pre>
+                      <pre class="code-block"><code>npm install @ddex-workbench/sdk</code></pre>
                     </div>
                   </div>
 
-                  <h4>Quick Example with v1.0.2 Features</h4>
+                  <h4>Example</h4>
                   <div class="code-example">
                     <div class="code-block-wrapper">
                       <button
@@ -1102,26 +955,23 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <h4>Key Features (v1.0.2)</h4>
+                  <h4>Main methods</h4>
                   <ul class="feature-list">
-                    <li>SVRL report generation</li>
-                    <li>Auto-detection of ERN version and profile</li>
-                    <li>Batch validation with concurrent processing</li>
-                    <li>Profile compliance scoring</li>
-                    <li>TypeScript support with full type definitions</li>
-                    <li>Automatic retry logic with exponential backoff</li>
-                    <li>Works in Node.js and browsers</li>
-                    <li>File upload helpers</li>
+                    <li><code>validate(content, options)</code> and <code>validateWithSVRL(content, options)</code></li>
+                    <li><code>validateFile(path, options)</code> (Node.js only) and <code>validateURL(url, options)</code></li>
+                    <li><code>validateBatch(items, { concurrency })</code> (concurrency defaults to 3)</li>
+                    <li><code>validator.detectVersion(content)</code>, <code>validator.detectProfile(content)</code> and <code>validator.validateAuto(content, profile)</code>: version detection runs locally from the XML namespace</li>
+                    <li><code>getSupportedFormats()</code> and <code>checkHealth()</code></li>
                   </ul>
 
                   <div class="sdk-links">
                     <a href="https://www.npmjs.com/package/@ddex-workbench/sdk" target="_blank" class="sdk-link">
                       <font-awesome-icon :icon="['fab', 'npm']" /> npm Package
                     </a>
-                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk" target="_blank" class="sdk-link">
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/ui/packages/sdk" target="_blank" class="sdk-link">
                       <font-awesome-icon :icon="['fab', 'github']" /> GitHub
                     </a>
-                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/sdk#readme" target="_blank" class="sdk-link">
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/ui/packages/sdk#readme" target="_blank" class="sdk-link">
                       <font-awesome-icon :icon="['fas', 'book']" /> Documentation
                     </a>
                   </div>
@@ -1135,29 +985,28 @@ onUnmounted(() => {
                       <font-awesome-icon :icon="['fab', 'python']" class="sdk-icon" />
                       Official Python SDK
                     </h3>
-                    <span class="badge badge-success">v1.0.2</span>
                   </div>
-                  
+
                   <p class="sdk-description">
-                    Python client library with type hints, async support, SVRL generation, and comprehensive error handling.
+                    A synchronous Python client (built on <code>requests</code>) with type hints, typed result objects and automatic retries.
                   </p>
 
                   <h4>Installation</h4>
                   <div class="code-example">
                     <div class="code-block-wrapper">
-                      <button 
-                        @click="copyToClipboard('pip install ddex-workbench --upgrade', 'sdk-pip-install')"
+                      <button
+                        @click="copyToClipboard('pip install --upgrade ddex-workbench', 'sdk-pip-install')"
                         class="copy-button"
                         :class="{ copied: copiedStates['sdk-pip-install'] }"
                       >
                         <font-awesome-icon :icon="copiedStates['sdk-pip-install'] ? 'check' : 'copy'" />
                         {{ copiedStates['sdk-pip-install'] ? 'Copied!' : 'Copy' }}
                       </button>
-                      <pre class="code-block"><code>pip install ddex-workbench --upgrade</code></pre>
+                      <pre class="code-block"><code>pip install --upgrade ddex-workbench</code></pre>
                     </div>
                   </div>
 
-                  <h4>Quick Example with v1.0.2 Features</h4>
+                  <h4>Example</h4>
                   <div class="code-example">
                     <div class="code-block-wrapper">
                       <button
@@ -1172,113 +1021,158 @@ onUnmounted(() => {
                     </div>
                   </div>
 
+                  <h4>Main methods</h4>
+                  <ul class="feature-list">
+                    <li><code>validate(content, version, profile=None, options=None)</code></li>
+                    <li><code>validate_with_svrl(content, version, profile=None)</code>, which returns a <code>(result, svrl)</code> tuple</li>
+                    <li><code>validator.validate_file(path, version, profile=None)</code> and <code>validator.validate_url(url, version, profile=None)</code></li>
+                    <li><code>validator.validate_batch(files, version, profile=None, max_workers=4)</code></li>
+                    <li><code>validator.detect_version(content)</code>, <code>validator.detect_profile(content)</code> and <code>validator.validate_auto(content)</code></li>
+                    <li><code>health()</code> and <code>formats()</code></li>
+                  </ul>
+
                   <div class="sdk-links">
                     <a href="https://pypi.org/project/ddex-workbench/" target="_blank" class="sdk-link">
                       <font-awesome-icon :icon="['fab', 'python']" /> PyPI Package
                     </a>
-                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/packages/python-sdk" target="_blank" class="sdk-link">
+                    <a href="https://github.com/daddykev/ddex-workbench/tree/main/ui/packages/python-sdk" target="_blank" class="sdk-link">
                       <font-awesome-icon :icon="['fab', 'github']" /> GitHub
                     </a>
                   </div>
                 </div>
               </div>
 
-              <div class="info-box mt-lg">
-                <h4>Why use the SDK?</h4>
-                <p>While you can call the API directly, the SDK provides:</p>
-                <ul>
-                  <li><strong>v1.0.2 Features:</strong> SVRL generation, auto-detection, compliance scoring</li>
-                  <li><strong>Type Safety:</strong> Full TypeScript/Python type support with IntelliSense</li>
-                  <li><strong>Error Handling:</strong> Structured errors with retry strategies</li>
-                  <li><strong>Convenience Methods:</strong> Shortcuts like <code>validateWithSVRL()</code></li>
-                  <li><strong>Platform Support:</strong> Works seamlessly in Node.js, browsers, and Python environments</li>
-                  <li><strong>Maintained:</strong> Regular updates with new API features</li>
-                </ul>
-              </div>
-
               <h3 class="mt-xl">Direct API Access</h3>
               <p>
-                If you prefer to call the API directly or need to use a different language, 
-                continue reading for the REST API documentation with examples in cURL, JavaScript, Python, and PHP.
+                To call the API directly or from another language, the sections below document every endpoint, with examples in
+                cURL, JavaScript, Python and PHP.
               </p>
             </section>
 
             <section id="authentication" class="doc-section">
               <h2>Authentication</h2>
               <p>
-                The DDEX Validation API is <strong>publicly accessible</strong> and does not require authentication for basic validation operations. 
-                This makes it easy to integrate into your workflow without managing API keys.
+                Authentication is optional. Requests without credentials are accepted and rate limited per client IP address.
+                Authenticating raises the rate limit to 60 requests per minute.
               </p>
 
-              <h3>Optional Authentication</h3>
+              <h3>API keys</h3>
+              <p>Send your key in the <code>X-API-Key</code> header:</p>
+              <div class="code-example">
+                <div class="code-block-wrapper">
+                  <pre class="code-block"><code>X-API-Key: ddex_your-api-key</code></pre>
+                </div>
+              </div>
               <p>
-                While not required, authenticated users can access additional features:
+                <code>Authorization: Bearer ddex_your-api-key</code> is also accepted. An invalid or revoked key is rejected with
+                <code>401</code> rather than treated as anonymous.
               </p>
-              
+
               <ul class="feature-list">
-                <li>Higher rate limits (60 requests/minute vs 10 for anonymous)</li>
-                <li>Validation history tracking</li>
-                <li>Batch validation capabilities</li>
-                <li>Priority processing during high load</li>
+                <li>60 requests per minute, counted per key</li>
+                <li>Request count and last-used time for each key on your API Keys page</li>
               </ul>
 
               <div class="info-box mt-lg">
-                <p>To get an API key for enhanced features:</p>
+                <p>To get an API key:</p>
                 <ol class="numbered-list">
-                  <li>Sign up for a free account at <a href="/signup">ddex-workbench.org/signup</a></li>
-                  <li>Navigate to your <a href="/settings">Settings page</a></li>
-                  <li>Generate an API key in the API Keys section</li>
-                  <li>Include it as: <code>X-API-Key: ddex_YOUR_KEY_HERE</code></li>
+                  <li>Create a free account at <a href="/signup">ddex-workbench.org/signup</a></li>
+                  <li>Open the <a href="/api-keys">API Keys page</a> (up to 5 active keys per account)</li>
+                  <li>Create a key and copy it. It's shown only once.</li>
+                  <li>Send it as <code>X-API-Key: ddex_your-api-key</code></li>
                 </ol>
               </div>
+
+              <h3 class="mt-lg">Signed-in web app users</h3>
+              <p>
+                When you're signed in at ddex-workbench.org, the validator and Sandbox send your Firebase ID token, which also gives
+                60 requests per minute (counted per account). An expired or invalid token is treated as anonymous. If a request
+                carries both an API key and an ID token, the API key is used.
+              </p>
             </section>
 
             <section id="rate-limiting" class="doc-section">
               <h2>Rate Limiting</h2>
               <p>
-                API requests are rate limited to ensure fair usage and system stability:
+                <code>POST /validate</code> and <code>GET /formats</code> are rate limited over a 60-second window.
+                <code>GET /health</code> is not rate limited.
               </p>
 
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>User Type</th>
+                    <th>Access</th>
                     <th>Requests per Minute</th>
-                    <th>Burst Limit</th>
-                    <th>Max File Size</th>
+                    <th>Counted Per</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Anonymous (No Auth)</td>
+                    <td>Anonymous</td>
                     <td>10</td>
-                    <td>20</td>
-                    <td>10 MB</td>
+                    <td>Client IP address</td>
                   </tr>
                   <tr>
-                    <td>Authenticated (Free)</td>
+                    <td>API key (<code>X-API-Key</code>)</td>
                     <td>60</td>
-                    <td>100</td>
-                    <td>25 MB</td>
+                    <td>API key</td>
+                  </tr>
+                  <tr>
+                    <td>Signed in to the web app</td>
+                    <td>60</td>
+                    <td>Account</td>
                   </tr>
                 </tbody>
               </table>
 
+              <p class="mt-lg">
+                Request bodies can be up to 10 MB for everyone; larger requests get <code>413</code>.
+              </p>
+
+              <h3 class="mt-lg">Response headers</h3>
+              <p>Rate-limited endpoints return these headers on every response:</p>
+              <ul class="feature-list">
+                <li><code>RateLimit-Policy</code>: the limit and window, e.g. <code>10;w=60</code></li>
+                <li><code>RateLimit-Limit</code>: requests allowed per window</li>
+                <li><code>RateLimit-Remaining</code>: requests left in the current window</li>
+                <li><code>RateLimit-Reset</code>: seconds until the window resets</li>
+                <li><code>Retry-After</code>: seconds to wait (on <code>429</code> responses only)</li>
+              </ul>
+
+              <h3 class="mt-lg">When you're rate limited</h3>
+              <div class="code-example">
+                <div class="code-block-wrapper">
+                  <button
+                    @click="copyToClipboard(getCodeExample('rateLimitResponse', 'http'), 'rate-limit-response')"
+                    class="copy-button"
+                    :class="{ copied: copiedStates['rate-limit-response'] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates['rate-limit-response'] ? 'check' : 'copy'" />
+                    {{ copiedStates['rate-limit-response'] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('rateLimitResponse', 'http') }}</code></pre>
+                </div>
+              </div>
+
               <div class="info-box mt-lg">
-                <p><strong>Note:</strong> Rate limits are applied per IP address for anonymous users and per API key for authenticated users.</p>
+                <p>
+                  <strong>Note:</strong> <code>error.retryAfter</code> in the body gives the same wait time as <code>Retry-After</code>.
+                  Use it from browser code, where cross-origin requests may not be able to read the response headers.
+                </p>
               </div>
             </section>
 
             <section id="errors" class="doc-section">
               <h2>Error Handling</h2>
               <p>
-                The API uses standard HTTP status codes and returns errors in a consistent JSON format:
+                A message that fails validation still returns <code>200</code>, with <code>"valid": false</code> and the issues found.
+                Other errors use standard HTTP status codes with this JSON body:
               </p>
 
               <h3>Error Response Format</h3>
               <div class="code-example">
                 <div class="code-block-wrapper">
-                  <button 
+                  <button
                     @click="copyToClipboard(getCodeExample('errorFormat', 'json'), 'error-format')"
                     class="copy-button"
                     :class="{ copied: copiedStates['error-format'] }"
@@ -1289,8 +1183,9 @@ onUnmounted(() => {
                   <pre class="code-block"><code>{{ getCodeExample('errorFormat', 'json') }}</code></pre>
                 </div>
               </div>
+              <p>Some errors also include <code>code</code> (e.g. <code>INVALID_API_KEY</code>, <code>RATE_LIMIT_EXCEEDED</code>) or <code>details</code>.</p>
 
-              <h3>Common HTTP Status Codes</h3>
+              <h3>HTTP Status Codes</h3>
               <table class="data-table">
                 <thead>
                   <tr>
@@ -1301,23 +1196,31 @@ onUnmounted(() => {
                 <tbody>
                   <tr>
                     <td><code>200</code></td>
-                    <td>Success - Validation completed (check response for validation results)</td>
+                    <td>Validation completed. Check <code>valid</code>, <code>errors</code> and <code>warnings</code> for the result.</td>
                   </tr>
                   <tr>
                     <td><code>400</code></td>
-                    <td>Bad Request - Invalid parameters or malformed request</td>
+                    <td>Missing or invalid fields: <code>"XML content is required"</code>, <code>"Only ERN validation is currently supported"</code> or <code>"Version is required"</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>401</code></td>
+                    <td>Invalid or revoked API key (<code>code: "INVALID_API_KEY"</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><code>404</code></td>
+                    <td>Unknown endpoint (<code>"Endpoint not found"</code>, with the requested <code>path</code>)</td>
                   </tr>
                   <tr>
                     <td><code>413</code></td>
-                    <td>Payload Too Large - XML content exceeds size limit</td>
+                    <td>Request body over 10 MB</td>
                   </tr>
                   <tr>
                     <td><code>429</code></td>
-                    <td>Too Many Requests - Rate limit exceeded</td>
+                    <td>Rate limited (<code>code: "RATE_LIMIT_EXCEEDED"</code>, with <code>retryAfter</code> in seconds)</td>
                   </tr>
                   <tr>
                     <td><code>500</code></td>
-                    <td>Internal Server Error - Unexpected error occurred</td>
+                    <td>Unexpected server error (<code>"Internal server error during validation"</code>, with <code>details</code>)</td>
                   </tr>
                 </tbody>
               </table>
@@ -1325,7 +1228,7 @@ onUnmounted(() => {
 
             <section id="validate" class="doc-section">
               <h2>POST /validate</h2>
-              <p>Validate DDEX ERN XML content against schemas and business rules.</p>
+              <p>Validate an ERN message. The pipeline is XSD schema → business rules → version-specific rules (when a profile is given) → SVRL report (when requested).</p>
 
               <div class="endpoint-details">
                 <h3>Request Body</h3>
@@ -1343,69 +1246,31 @@ onUnmounted(() => {
                       <td><code>content</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td>XML content to validate</td>
+                      <td>The ERN XML message</td>
                     </tr>
                     <tr>
                       <td><code>type</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td>Message type (currently only "ERN" supported)</td>
+                      <td>Message type. Only <code>"ERN"</code> is supported.</td>
                     </tr>
                     <tr>
                       <td><code>version</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td>DDEX version: "4.3", "4.2", or "3.8.2"</td>
+                      <td><code>"4.3"</code>, <code>"4.2"</code> or <code>"3.8.2"</code>. The API doesn't detect the version; the SDKs can detect it locally.</td>
                     </tr>
                     <tr>
                       <td><code>profile</code></td>
                       <td>string</td>
                       <td>No</td>
-                      <td>Validation profile: "AudioAlbum", "AudioSingle", "Video", "Mixed", or "ReleaseByRelease" (3.8.2 only)</td>
+                      <td><code>"AudioAlbum"</code>, <code>"AudioSingle"</code>, <code>"Video"</code>, <code>"Mixed"</code>, or <code>"ReleaseByRelease"</code> (3.8.2 only). Adds the version-specific rules stage.</td>
                     </tr>
-                    <tr class="highlight-row">
-                      <td><code>options</code></td>
-                      <td>object</td>
-                      <td>No</td>
-                      <td><span class="new-badge">v1.0.2</span> Additional validation options (see below)</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <h3 class="mt-lg">Validation Options (v1.0.2)</h3>
-                <table class="params-table">
-                  <thead>
-                    <tr>
-                      <th>Option</th>
-                      <th>Type</th>
-                      <th>Default</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
                     <tr>
                       <td><code>generateSVRL</code></td>
                       <td>boolean</td>
-                      <td>false</td>
-                      <td>Generate SVRL (Schematron Validation Report Language) report</td>
-                    </tr>
-                    <tr>
-                      <td><code>verbose</code></td>
-                      <td>boolean</td>
-                      <td>false</td>
-                      <td>Include list of passed rules in response</td>
-                    </tr>
-                    <tr>
-                      <td><code>includeMetadata</code></td>
-                      <td>boolean</td>
-                      <td>false</td>
-                      <td>Extract and include XML metadata</td>
-                    </tr>
-                    <tr>
-                      <td><code>maxErrors</code></td>
-                      <td>number</td>
-                      <td>100</td>
-                      <td>Maximum number of errors to return</td>
+                      <td>No</td>
+                      <td>Return an SVRL report in <code>svrl</code>. Requires <code>profile</code>; ignored without one. Also accepted as <code>options.generateSVRL</code>.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1413,8 +1278,8 @@ onUnmounted(() => {
                 <h3 class="mt-lg">Example Request</h3>
                 <div class="code-example">
                   <div class="code-tabs">
-                    <button 
-                      v-for="lang in languages" 
+                    <button
+                      v-for="lang in languages"
                       :key="lang.id"
                       @click="activeEndpointLang = lang.id"
                       class="code-tab"
@@ -1424,7 +1289,7 @@ onUnmounted(() => {
                     </button>
                   </div>
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard(getCodeExample('validateEndpoint', activeEndpointLang), `validate-${activeEndpointLang}`)"
                       class="copy-button"
                       :class="{ copied: copiedStates[`validate-${activeEndpointLang}`] }"
@@ -1436,10 +1301,11 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <h3 class="mt-lg">Standard Response</h3>
+                <h3 class="mt-lg">Example Response</h3>
+                <p>An invalid ERN 4.3 message validated with <code>"profile": "AudioAlbum"</code> (long messages shortened here):</p>
                 <div class="code-example">
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard(getCodeExample('validateResponse', 'json'), 'validate-response')"
                       class="copy-button"
                       :class="{ copied: copiedStates['validate-response'] }"
@@ -1451,18 +1317,19 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <h3 class="mt-lg">Enhanced Response with v1.0.2 Features</h3>
+                <h3 class="mt-lg">Malformed XML</h3>
+                <p>If the XML can't be parsed, only the XSD stage runs:</p>
                 <div class="code-example">
                   <div class="code-block-wrapper">
-                    <button 
-                      @click="copyToClipboard(getCodeExample('enhancedResponse', 'json'), 'enhanced-response')"
+                    <button
+                      @click="copyToClipboard(getCodeExample('malformedResponse', 'json'), 'malformed-response')"
                       class="copy-button"
-                      :class="{ copied: copiedStates['enhanced-response'] }"
+                      :class="{ copied: copiedStates['malformed-response'] }"
                     >
-                      <font-awesome-icon :icon="copiedStates['enhanced-response'] ? 'check' : 'copy'" />
-                      {{ copiedStates['enhanced-response'] ? 'Copied!' : 'Copy' }}
+                      <font-awesome-icon :icon="copiedStates['malformed-response'] ? 'check' : 'copy'" />
+                      {{ copiedStates['malformed-response'] ? 'Copied!' : 'Copy' }}
                     </button>
-                    <pre class="code-block"><code>{{ getCodeExample('enhancedResponse', 'json') }}</code></pre>
+                    <pre class="code-block"><code>{{ getCodeExample('malformedResponse', 'json') }}</code></pre>
                   </div>
                 </div>
 
@@ -1479,65 +1346,86 @@ onUnmounted(() => {
                     <tr>
                       <td><code>valid</code></td>
                       <td>boolean</td>
-                      <td>Whether the XML is valid according to all validation rules</td>
+                      <td><code>true</code> when there are no errors. Warnings don't affect it.</td>
                     </tr>
                     <tr>
                       <td><code>errors</code></td>
                       <td>array</td>
-                      <td>List of validation errors (severity: "error")</td>
+                      <td>Error-severity issues from all stages that ran</td>
                     </tr>
                     <tr>
                       <td><code>warnings</code></td>
                       <td>array</td>
-                      <td>List of validation warnings (severity: "warning")</td>
+                      <td>Warning-severity issues (severity <code>"warning"</code> or <code>"info"</code>)</td>
                     </tr>
                     <tr>
-                      <td><code>metadata</code></td>
-                      <td>object</td>
-                      <td>Additional information about the validation process</td>
+                      <td><code>metadata.processingTime</code></td>
+                      <td>number</td>
+                      <td>Server-side processing time in milliseconds</td>
+                    </tr>
+                    <tr>
+                      <td><code>metadata.schemaVersion</code></td>
+                      <td>string</td>
+                      <td>The version validated against, e.g. <code>"ERN 4.3"</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>metadata.profile</code></td>
+                      <td>string</td>
+                      <td>The requested profile (omitted when none was given)</td>
+                    </tr>
+                    <tr>
+                      <td><code>metadata.validatedAt</code></td>
+                      <td>string</td>
+                      <td>ISO 8601 timestamp</td>
+                    </tr>
+                    <tr>
+                      <td><code>metadata.errorCount</code> / <code>warningCount</code></td>
+                      <td>number</td>
+                      <td>Number of issues returned in <code>errors</code> / <code>warnings</code></td>
                     </tr>
                     <tr>
                       <td><code>metadata.validationSteps</code></td>
                       <td>array</td>
-                      <td>Breakdown of validation stages (XSD, BusinessRules, Schematron) with timing</td>
+                      <td>One entry per stage that ran (<code>XSD</code>, <code>BusinessRules</code>, and <code>Schematron</code> when a profile was given), each with <code>duration</code>, <code>errorCount</code> and <code>warningCount</code>. Counts are full totals, even when the returned lists were capped.</td>
                     </tr>
-                    <tr class="highlight-row">
+                    <tr>
+                      <td><code>metadata.truncatedErrors</code></td>
+                      <td>number</td>
+                      <td>How many issues were left out because of the result limits (present only when some were)</td>
+                    </tr>
+                    <tr>
                       <td><code>svrl</code></td>
                       <td>string</td>
-                      <td><span class="new-badge">v1.0.2</span> SVRL report in XML format (when requested)</td>
-                    </tr>
-                    <tr class="highlight-row">
-                      <td><code>profileCompliance</code></td>
-                      <td>object</td>
-                      <td><span class="new-badge">v1.0.2</span> Compliance statistics (when profile specified)</td>
-                    </tr>
-                    <tr class="highlight-row">
-                      <td><code>passedRules</code></td>
-                      <td>array</td>
-                      <td><span class="new-badge">v1.0.2</span> List of passed validation rules (when verbose=true)</td>
+                      <td>The SVRL report. Present only when one was requested and generated.</td>
                     </tr>
                   </tbody>
                 </table>
+
+                <h3 class="mt-lg">Result limits</h3>
+                <ul class="feature-list">
+                  <li>Each issue's <code>message</code> and <code>context</code> are capped at 300 characters, ending in "…" when cut</li>
+                  <li>At most 100 issues are returned per stage</li>
+                  <li><code>metadata.truncatedErrors</code> reports how many were left out; <code>validationSteps</code> keeps the full totals</li>
+                </ul>
               </div>
             </section>
 
             <section id="svrl-generation" class="doc-section">
-              <h2>SVRL Report Generation <span class="badge badge-new">v1.0.2</span></h2>
+              <h2>SVRL Reports</h2>
               <p>
-                SVRL (Schematron Validation Report Language) is an XML-based format for validation reports. 
-                It provides a standardized way to document validation results, making it perfect for compliance 
-                documentation, audit trails, and automated processing.
+                SVRL (Schematron Validation Report Language) is an XML format for validation reports. The API builds the report from
+                the version-specific rules stage, so it needs a <code>profile</code>.
               </p>
 
-              <h3>Enabling SVRL Generation</h3>
+              <h3>Requesting a report</h3>
               <p>
-                To generate an SVRL report, include <code>generateSVRL: true</code> in the options parameter:
+                Include <code>"generateSVRL": true</code> and a <code>profile</code> in the request body:
               </p>
 
               <div class="code-example">
                 <div class="code-tabs">
-                  <button 
-                    v-for="lang in languages" 
+                  <button
+                    v-for="lang in languages"
                     :key="lang.id"
                     @click="activeSVRLLang = lang.id"
                     class="code-tab"
@@ -1547,7 +1435,7 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <div class="code-block-wrapper">
-                  <button 
+                  <button
                     @click="copyToClipboard(getCodeExample('svrlValidation', activeSVRLLang), `svrl-${activeSVRLLang}`)"
                     class="copy-button"
                     :class="{ copied: copiedStates[`svrl-${activeSVRLLang}`] }"
@@ -1559,45 +1447,54 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <h3>SVRL Report Structure</h3>
-              <p>
-                The SVRL report contains detailed information about each validation rule that was checked:
-              </p>
-              
-              <ul class="feature-list">
-                <li><strong>Successful assertions:</strong> Rules that passed validation</li>
-                <li><strong>Failed assertions:</strong> Rules that failed with error details</li>
-                <li><strong>Rule locations:</strong> XPath expressions showing where rules were applied</li>
-                <li><strong>Error descriptions:</strong> Human-readable explanations of failures</li>
-                <li><strong>Metadata:</strong> Timestamp, version, and profile information</li>
-              </ul>
+              <h3>Example response</h3>
+              <p>A valid message whose declared profile (<code>Audio</code>) differs from the requested one, which produces one warning:</p>
+              <div class="code-example">
+                <div class="code-block-wrapper">
+                  <button
+                    @click="copyToClipboard(getCodeExample('svrlResponse', 'json'), 'svrl-response')"
+                    class="copy-button"
+                    :class="{ copied: copiedStates['svrl-response'] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates['svrl-response'] ? 'check' : 'copy'" />
+                    {{ copiedStates['svrl-response'] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('svrlResponse', 'json') }}</code></pre>
+                </div>
+              </div>
 
-              <div class="info-box mt-lg">
-                <h4><font-awesome-icon :icon="['fas', 'chart-bar']" /> Profile Compliance Statistics</h4>
-                <p>
-                  When a profile is specified, the response includes <code>profileCompliance</code> with:
-                </p>
-                <ul>
-                  <li><code>complianceRate</code> - Percentage of rules passed (0-100)</li>
-                  <li><code>totalRules</code> - Total number of rules checked</li>
-                  <li><code>passedRules</code> - Number of rules that passed</li>
-                  <li><code>failedRules</code> - Number of rules that failed</li>
-                  <li><code>schematronErrors</code> - Profile-specific errors</li>
-                  <li><code>xsdErrors</code> - Schema validation errors</li>
-                  <li><code>businessRuleErrors</code> - Business logic errors</li>
-                </ul>
+              <h3>Report structure</h3>
+              <ul class="feature-list">
+                <li><strong>Metadata:</strong> <code>svrl:text</code> lines with the generation time, ERN version, profile and message ID</li>
+                <li><strong>Failed assertions:</strong> one <code>svrl:failed-assert</code> per issue from the version-specific rules stage, with the rule in <code>test</code> and the severity in <code>role</code> (<code>"error"</code>, or <code>"warning"</code> for warnings)</li>
+                <li><strong>Summary:</strong> status and error/warning counts</li>
+              </ul>
+              <p>Rules that pass aren't listed; the report contains failures only.</p>
+
+              <div class="code-example">
+                <div class="code-block-wrapper">
+                  <button
+                    @click="copyToClipboard(getCodeExample('svrlReport', 'xml'), 'svrl-report')"
+                    class="copy-button"
+                    :class="{ copied: copiedStates['svrl-report'] }"
+                  >
+                    <font-awesome-icon :icon="copiedStates['svrl-report'] ? 'check' : 'copy'" />
+                    {{ copiedStates['svrl-report'] ? 'Copied!' : 'Copy' }}
+                  </button>
+                  <pre class="code-block"><code>{{ getCodeExample('svrlReport', 'xml') }}</code></pre>
+                </div>
               </div>
             </section>
 
             <section id="formats" class="doc-section">
               <h2>GET /formats</h2>
-              <p>Get the list of supported DDEX versions and profiles, including rule counts.</p>
+              <p>Lists the supported message types, ERN versions and profiles. <code>GET /validate/formats</code> returns the same response.</p>
 
               <div class="endpoint-details">
-                <h3>Example Response (v1.0.2)</h3>
+                <h3>Example Response</h3>
                 <div class="code-example">
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard(getCodeExample('formatsResponse', 'json'), 'formats-response')"
                       class="copy-button"
                       :class="{ copied: copiedStates['formats-response'] }"
@@ -1613,14 +1510,14 @@ onUnmounted(() => {
 
             <section id="health" class="doc-section">
               <h2>GET /health</h2>
-              <p>Check the API service health status and available features. Use this endpoint to verify the API is operational before sending validation requests.</p>
+              <p>Reports whether the API is up. It isn't rate limited, so you can call it before sending validation requests.</p>
 
               <div class="endpoint-details">
                 <h3>Quick Test</h3>
                 <div class="code-example">
                   <div class="code-tabs">
-                    <button 
-                      v-for="lang in languages" 
+                    <button
+                      v-for="lang in languages"
                       :key="lang.id"
                       @click="activeHealthLang = lang.id"
                       class="code-tab"
@@ -1630,7 +1527,7 @@ onUnmounted(() => {
                     </button>
                   </div>
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard(getCodeExample('healthCheck', activeHealthLang), `health-${activeHealthLang}`)"
                       class="copy-button"
                       :class="{ copied: copiedStates[`health-${activeHealthLang}`] }"
@@ -1642,10 +1539,10 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <h3 class="mt-lg">Example Response (v1.0.2)</h3>
+                <h3 class="mt-lg">Example Response</h3>
                 <div class="code-example">
                   <div class="code-block-wrapper">
-                    <button 
+                    <button
                       @click="copyToClipboard(getCodeExample('healthResponse', 'json'), 'health-response')"
                       class="copy-button"
                       :class="{ copied: copiedStates['health-response'] }"
@@ -1662,7 +1559,7 @@ onUnmounted(() => {
             <section id="supported-versions" class="doc-section">
               <h2>Supported DDEX Versions</h2>
               <p>
-                The API currently supports the following ERN versions and profiles, with comprehensive validation rules:
+                The API supports these ERN versions and profiles (as returned by <code>GET /formats</code>):
               </p>
 
               <div class="version-cards">
@@ -1671,13 +1568,8 @@ onUnmounted(() => {
                     <h3>ERN 4.3</h3>
                     <span class="badge badge-success">Recommended</span>
                   </div>
-                  <p class="text-sm text-secondary mb-md">
-                    Latest version with enhanced features for modern music distribution
-                  </p>
                   <div class="version-stats">
-                    <span class="stat-item">221 Rules</span>
-                    <span class="stat-divider">•</span>
-                    <span class="stat-item">719 Elements</span>
+                    <span class="stat-item">221 version-specific rules</span>
                   </div>
                   <h4 class="text-sm font-semibold mb-xs mt-md">Supported Profiles:</h4>
                   <ul class="profile-list">
@@ -1693,13 +1585,8 @@ onUnmounted(() => {
                     <h3>ERN 4.2</h3>
                     <span class="badge">Supported</span>
                   </div>
-                  <p class="text-sm text-secondary mb-md">
-                    Previous major version, still widely used
-                  </p>
                   <div class="version-stats">
-                    <span class="stat-item">191 Rules</span>
-                    <span class="stat-divider">•</span>
-                    <span class="stat-item">662 Elements</span>
+                    <span class="stat-item">191 version-specific rules</span>
                   </div>
                   <h4 class="text-sm font-semibold mb-xs mt-md">Supported Profiles:</h4>
                   <ul class="profile-list">
@@ -1713,15 +1600,10 @@ onUnmounted(() => {
                 <div class="version-card card">
                   <div class="version-header">
                     <h3>ERN 3.8.2</h3>
-                    <span class="badge">Legacy</span>
+                    <span class="badge">Supported</span>
                   </div>
-                  <p class="text-sm text-secondary mb-md">
-                    Legacy version, consider upgrading to 4.3
-                  </p>
                   <div class="version-stats">
-                    <span class="stat-item">236 Rules</span>
-                    <span class="stat-divider">•</span>
-                    <span class="stat-item">850 Elements</span>
+                    <span class="stat-item">236 version-specific rules</span>
                   </div>
                   <h4 class="text-sm font-semibold mb-xs mt-md">Supported Profiles:</h4>
                   <ul class="profile-list">
@@ -1734,32 +1616,20 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <div class="warning-box mt-lg">
-                <strong>Migration Notice:</strong> DDEX is mandating ERN 4.3 adoption by March 2026. 
-                The API will provide migration suggestions when validating older versions.
-              </div>
-
               <div class="info-box mt-lg">
-                <h4><font-awesome-icon :icon="['fas', 'chart-bar']" /> Total Validation Coverage</h4>
+                <h4><font-awesome-icon :icon="['fas', 'chart-bar']" /> Version-specific rules</h4>
                 <p>
-                  Our proprietary rule generation technology analyzed <strong>8.4MB</strong> of official DDEX XSD schemas to produce:
+                  648 version-specific rules (ERN 3.8.2: 236, 4.2: 191, 4.3: 221) generated from the official DDEX XSD schemas
+                  via our DDEX Rosetta tooling. They run in addition to XSD schema and business-rule validation when a profile is selected.
                 </p>
-                <ul>
-                  <li><strong>648</strong> total validation rules across all versions</li>
-                  <li><strong>2,231</strong> XML elements analyzed</li>
-                  <li><strong>606</strong> complex type definitions processed</li>
-                  <li><strong>8</strong> distinct validation categories per version</li>
-                </ul>
               </div>
             </section>
 
             <section id="response-format" class="doc-section">
               <h2>Response Format Details</h2>
-              <p>
-                Understanding the validation response structure helps you process results effectively:
-              </p>
 
-              <h3>Error Object Structure</h3>
+              <h3>Issue Object</h3>
+              <p>Entries in <code>errors</code> and <code>warnings</code> have these fields:</p>
               <table class="params-table">
                 <thead>
                   <tr>
@@ -1772,114 +1642,70 @@ onUnmounted(() => {
                   <tr>
                     <td><code>line</code></td>
                     <td>number</td>
-                    <td>Line number where the error occurred</td>
+                    <td>Line number, or <code>0</code> when not available</td>
                   </tr>
                   <tr>
                     <td><code>column</code></td>
                     <td>number</td>
-                    <td>Column number where the error occurred</td>
+                    <td>Column number, or <code>0</code> when not available</td>
                   </tr>
                   <tr>
                     <td><code>message</code></td>
                     <td>string</td>
-                    <td>Human-readable error description</td>
+                    <td>Human-readable description (up to 300 characters)</td>
                   </tr>
                   <tr>
                     <td><code>severity</code></td>
                     <td>string</td>
-                    <td>"error", "warning", or "info"</td>
+                    <td><code>"error"</code> in <code>errors</code>; <code>"warning"</code> or <code>"info"</code> in <code>warnings</code></td>
                   </tr>
                   <tr>
                     <td><code>rule</code></td>
                     <td>string</td>
-                    <td>Validation rule identifier (e.g., "ERN43-MessageHeader", "Schematron-AudioAlbum")</td>
+                    <td>
+                      Rule identifier. XSD issues use <code>"XSD-Schema"</code>, business rules use names like <code>"ERN43-MessageHeader"</code>
+                      or <code>"AudioAlbum-ReleaseType"</code>, and version-specific rules start with <code>"Schematron-"</code>
+                    </td>
                   </tr>
                   <tr>
                     <td><code>context</code></td>
                     <td>string</td>
-                    <td>Optional XML snippet showing the error location</td>
+                    <td>Optional. Version-specific rule issues include the profile (e.g. <code>"Profile: AudioAlbum"</code>)</td>
                   </tr>
                   <tr>
                     <td><code>suggestion</code></td>
                     <td>string</td>
-                    <td>Optional suggestion for fixing the error</td>
+                    <td>Optional suggestion for fixing the issue, when a rule provides one</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h3 class="mt-lg">Validation Steps</h3>
-              <p>Each validation request goes through multiple stages:</p>
-              
+              <h3 class="mt-lg">Validation Stages</h3>
               <ol class="validation-steps-list">
                 <li>
-                  <strong>XSD Schema Validation</strong><br>
-                  Checks XML structure against official DDEX schemas using libxmljs2
+                  <strong>XSD schema validation</strong><br>
+                  Checks the message against the official DDEX XSD schemas using xmllint-wasm. If the XML can't be parsed, the later stages are skipped.
                 </li>
                 <li>
-                  <strong>Business Rules Validation</strong><br>
-                  Applies version-specific business logic and requirements
+                  <strong>Business rules</strong><br>
+                  Checks required sections and profile expectations for the requested version.
                 </li>
                 <li>
-                  <strong>Schematron Profile Validation (if specified)</strong><br>
-                  Validates against profile-specific requirements using our 648 comprehensive rules
+                  <strong>Version-specific rules (when a profile is given)</strong><br>
+                  Runs the version's generated rules (236, 191 or 221) and builds the SVRL report if one was requested.
                 </li>
               </ol>
-
-              <h3 class="mt-lg">Profile Compliance Object (v1.0.2)</h3>
-              <table class="params-table">
-                <thead>
-                  <tr>
-                    <th>Field</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>profile</code></td>
-                    <td>string</td>
-                    <td>The profile that was validated</td>
-                  </tr>
-                  <tr>
-                    <td><code>version</code></td>
-                    <td>string</td>
-                    <td>ERN version used</td>
-                  </tr>
-                  <tr>
-                    <td><code>complianceRate</code></td>
-                    <td>number</td>
-                    <td>Percentage of rules passed (0-100)</td>
-                  </tr>
-                  <tr>
-                    <td><code>totalRules</code></td>
-                    <td>number</td>
-                    <td>Total number of rules checked</td>
-                  </tr>
-                  <tr>
-                    <td><code>passedRules</code></td>
-                    <td>number</td>
-                    <td>Number of rules that passed</td>
-                  </tr>
-                  <tr>
-                    <td><code>failedRules</code></td>
-                    <td>number</td>
-                    <td>Number of rules that failed</td>
-                  </tr>
-                </tbody>
-              </table>
             </section>
 
             <section id="examples" class="doc-section">
-              <h2>Complete Code Examples</h2>
-              <p>
-                Here are complete, working examples for common use cases with v1.0.2 features:
-              </p>
+              <h2>Code Examples</h2>
 
-              <h3>Validate a File from Disk with SVRL</h3>
+              <h3>Retry after a rate limit</h3>
+              <p>Wait for <code>retryAfter</code> seconds when you get a <code>429</code>, then try again:</p>
               <div class="code-example">
                 <div class="code-tabs">
-                  <button 
-                    v-for="lang in languages.filter(l => l.id !== 'curl')" 
+                  <button
+                    v-for="lang in languages.filter(l => l.id !== 'curl')"
                     :key="lang.id"
                     @click="activeFileExampleLang = lang.id"
                     class="code-tab"
@@ -1889,7 +1715,7 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <div class="code-block-wrapper">
-                  <button 
+                  <button
                     @click="copyToClipboard(getCodeExample('fileExamples', activeFileExampleLang), `file-${activeFileExampleLang}`)"
                     class="copy-button"
                     :class="{ copied: copiedStates[`file-${activeFileExampleLang}`] }"
@@ -1902,10 +1728,13 @@ onUnmounted(() => {
               </div>
 
               <div class="info-box mt-lg">
-                <h4>Need More Examples?</h4>
-                <p>Check out our GitHub repository for more code examples in various languages and frameworks:</p>
-                <a href="https://github.com/daddykev/ddex-workbench/tree/main/examples" target="_blank" class="btn btn-secondary">
-                  <font-awesome-icon :icon="['fab', 'github']" /> View Examples on GitHub
+                <h4>More examples</h4>
+                <p>The Python SDK includes runnable examples, and the JavaScript SDK README covers each method:</p>
+                <a href="https://github.com/daddykev/ddex-workbench/tree/main/ui/packages/python-sdk/examples" target="_blank" class="btn btn-secondary">
+                  <font-awesome-icon :icon="['fab', 'github']" /> Python SDK examples
+                </a>
+                <a href="https://github.com/daddykev/ddex-workbench/tree/main/ui/packages/sdk#readme" target="_blank" class="btn btn-secondary">
+                  <font-awesome-icon :icon="['fab', 'github']" /> JavaScript SDK README
                 </a>
               </div>
             </section>
@@ -1917,6 +1746,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Collapsible quickstart message */
+.quickstart-message summary {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+}
+
 /* Layout Container Fixes */
 .api-docs-view {
   width: 100%;
@@ -1969,46 +1805,6 @@ onUnmounted(() => {
 .badge-success {
   background-color: var(--color-success);
   color: white;
-}
-
-.badge-new {
-  background-color: #f59e0b;
-  color: white;
-}
-
-/* Feature highlight banner */
-.feature-highlight {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: rgba(255, 255, 255, 0.1);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-full);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: var(--text-sm);
-  color: white;
-}
-
-.highlight-badge {
-  background: var(--color-success);
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-semibold);
-  font-size: var(--text-xs);
-}
-
-/* Navigation badges */
-.nav-badge {
-  display: inline-block;
-  background: #f59e0b;
-  color: white;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  margin-left: var(--space-xs);
 }
 
 /* Documentation Layout */
@@ -2122,8 +1918,7 @@ onUnmounted(() => {
 /* Info Boxes */
 .info-box,
 .warning-box,
-.success-box,
-.feature-box {
+.success-box {
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
@@ -2154,17 +1949,6 @@ onUnmounted(() => {
   color: var(--color-text);
 }
 
-.feature-box {
-  background-color: rgba(245, 158, 11, 0.05);
-  border: 1px solid #f59e0b;
-  color: var(--color-text);
-}
-
-[data-theme="dark"] .feature-box {
-  background-color: rgba(245, 158, 11, 0.05);
-  border-color: #f59e0b;
-}
-
 .endpoint-url {
   display: inline-block;
   padding: var(--space-xs) var(--space-sm);
@@ -2185,28 +1969,7 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.stat-card {
-  text-align: center;
-  padding: var(--space-lg);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-}
-
-.stat-number {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-  display: block;
-  margin-bottom: var(--space-xs);
-}
-
-.stat-label {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-/* Feature cards for v1.0.2 section */
+/* Feature cards */
 .feature-card {
   margin-bottom: var(--space-md);
 }
@@ -2360,28 +2123,6 @@ pre {
   white-space: nowrap;
 }
 
-/* Highlight row for new features */
-.highlight-row {
-  background-color: rgba(245, 158, 11, 0.05);
-}
-
-[data-theme="dark"] .highlight-row {
-  background-color: rgba(245, 158, 11, 0.1);
-}
-
-/* New badge inline */
-.new-badge {
-  display: inline-block;
-  background: #f59e0b;
-  color: white;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  margin-left: var(--space-xs);
-  vertical-align: super;
-}
-
 /* Lists */
 .numbered-list {
   margin-left: var(--space-lg);
@@ -2446,10 +2187,6 @@ pre {
 
 .stat-item {
   white-space: nowrap;
-}
-
-.stat-divider {
-  color: var(--color-text-tertiary);
 }
 
 .profile-list {
@@ -2576,7 +2313,6 @@ pre {
 .mt-lg { margin-top: var(--space-lg); }
 .mt-xl { margin-top: var(--space-xl); }
 .mb-xs { margin-bottom: var(--space-xs); }
-.mb-md { margin-bottom: var(--space-md); }
 
 /* Dark theme adjustments for copy button */
 [data-theme="dark"] .copy-button {
@@ -2658,21 +2394,6 @@ pre {
   
   .container {
     padding: 0 var(--space-md);
-  }
-  
-  .feature-highlight {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--space-xs);
-    padding: var(--space-sm) var(--space-md);
-  }
-  
-  .stat-card {
-    padding: var(--space-md);
-  }
-  
-  .stat-number {
-    font-size: var(--text-2xl);
   }
 }
 

@@ -23,7 +23,7 @@
             <div class="profile-badges">
               <span class="badge badge-cto">
                 <font-awesome-icon :icon="['fas', 'wrench']" />
-                CTO, Alpha Pup Records
+                President, Alpha Pup Records
               </span>
               <span class="badge badge-grammy">
                 <font-awesome-icon :icon="['fas', 'trophy']" />
@@ -50,7 +50,7 @@
               </p>
 
               <p>
-                As CTO of Alpha Pup Records, I transformed an indie label into a globally recognized, 
+                As President of Alpha Pup Records, I transformed an indie label into a globally recognized, 
                 Spotify-preferred distributor by engineering a proprietary, cloud-based digital supply chain that 
                 required custom integrations with over 40 DDEX delivery points. Our distribution business was
                 eventually migrated to Virgin Music Group in 2023, where I continue to innovate with Alpha Pup's

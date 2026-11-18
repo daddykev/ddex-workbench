@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">Terms of Service</h1>
           <p class="hero-subtitle">
-            Last updated: August 1, 2025
+            Last updated: November 18, 2026
           </p>
         </div>
       </div>
@@ -38,7 +38,7 @@
               <p>
                 By using DDEX Workbench, you agree to these Terms of Service. DDEX Workbench is a free, 
                 open-source tool for validating DDEX standard files. If you don't agree with these terms, 
-                you may still use our open-source code under the MIT License by hosting your own instance.
+                please don't use the hosted service.
               </p>
             </section>
 
@@ -60,6 +60,7 @@
               <div class="info-box">
                 <strong>Note:</strong> These Terms apply to the hosted service at ddex-workbench.org. 
                 If you self-host the application, only the MIT License applies.
+                The application code is open source under the MIT License. The validation rule files are not included in the repository, so a self-hosted instance validates XSD and business rules only once rule support is added in a future change.
               </div>
             </section>
 
@@ -71,12 +72,12 @@
               <ul>
                 <li><strong>Web Validator</strong> - Validate ERN files (versions 3.8.2, 4.2, and 4.3)</li>
                 <li><strong>REST API</strong> - Programmatic validation for developers</li>
-                <li><strong>Community Snippets</strong> - Share and discover DDEX examples (coming soon)</li>
+                <li><strong>ERN Sandbox</strong> - Build ERN 4.3 messages with a form-based editor</li>
+                <li><strong>Community Snippets</strong> - Share and discover DDEX examples</li>
                 <li><strong>Documentation</strong> - Learn about DDEX validation</li>
               </ul>
               <p>
-                The service is provided free of charge with no premium tiers or paid features. 
-                We may introduce optional donations in the future to support hosting costs.
+                The service is provided free of charge with no premium tiers or paid features.
               </p>
             </section>
 
@@ -113,6 +114,7 @@
                   <tr>
                     <th>Access Type</th>
                     <th>Rate Limit</th>
+                    <th>Max Request Size</th>
                     <th>Cost</th>
                   </tr>
                 </thead>
@@ -120,11 +122,13 @@
                   <tr>
                     <td>Anonymous</td>
                     <td>10 requests/minute</td>
+                    <td>10 MB</td>
                     <td>Free</td>
                   </tr>
                   <tr>
                     <td>Authenticated (API Key)</td>
                     <td>60 requests/minute</td>
+                    <td>10 MB</td>
                     <td>Free</td>
                   </tr>
                 </tbody>
@@ -140,7 +144,7 @@
 
               <p>
                 If you need higher rate limits for a legitimate use case, 
-                <a href="mailto:api@ddex-workbench.org">contact us</a> - we're happy to help 
+                <a href="mailto:daddykev@gmail.com">contact us</a> - we're happy to help 
                 open-source projects and educational institutions.
               </p>
             </section>
@@ -154,13 +158,13 @@
               <ul>
                 <li>Files are processed in memory only</li>
                 <li>We don't store your validated XML content</li>
-                <li>Validation results are temporary and not logged</li>
+                <li>We don't store the content of messages you validate. We log basic request metadata (message type, ERN version and size) for operations and abuse prevention.</li>
                 <li>You retain all rights to your content</li>
               </ul>
 
-              <h3>Community Snippets (Future Feature)</h3>
+              <h3>Community Snippets</h3>
               <p>
-                If you choose to share snippets:
+                When you share snippets:
               </p>
               <ul>
                 <li>You grant us a license to display them publicly</li>
@@ -186,10 +190,6 @@
                 <li>We're not affiliated with or endorsed by DDEX</li>
                 <li>The service may change or be discontinued</li>
               </ul>
-              <p>
-                For mission-critical validation needs, we recommend running your own instance 
-                using our open-source code.
-              </p>
             </section>
 
             <section id="limitation" class="legal-section">
@@ -221,7 +221,7 @@
               <h2>10. Contact</h2>
               <p>Questions about these terms? We're here to help:</p>
               <div class="contact-info">
-                <p><strong>Email:</strong> legal@ddex-workbench.org</p>
+                <p><strong>Email:</strong> <a href="mailto:daddykev@gmail.com">daddykev@gmail.com</a></p>
                 <p><strong>GitHub:</strong> <a href="https://github.com/daddykev/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
                 <p><strong>Contributing:</strong> <a href="https://github.com/daddykev/ddex-workbench/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribution Guidelines</a></p>
               </div>

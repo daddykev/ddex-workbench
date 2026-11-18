@@ -113,7 +113,7 @@
               <button 
                 @click="validateERN" 
                 class="btn btn-sm btn-primary"
-                :disabled="!ernXml || validating"
+                :disabled="!ernXml || validating || isRateLimited"
               >
                 <font-awesome-icon 
                   :icon="['fas', validating ? 'spinner' : 'check-circle']" 
@@ -122,6 +122,12 @@
                 Validate
               </button>
             </div>
+          </div>
+
+          <!-- Rate limit notice (live countdown) -->
+          <div v-if="isRateLimited" class="alert alert-info mb-lg" role="status">
+            <font-awesome-icon :icon="['fas', 'clock']" />
+            {{ rateLimitMessage }}
           </div>
 
           <!-- XML Preview -->
@@ -169,6 +175,7 @@ import ResourceForm from '@/components/sandbox/ResourceForm.vue'
 import ernBuilder from '@/services/ernBuilder'
 import deezerApi from '@/services/deezerApi'
 import { validateERN as validateERNApi } from '@/services/api'
+import { useRateLimit } from '@/composables/useRateLimit'
 
 // Validation profile for each Sandbox release type (unknown types fall back to AudioAlbum)
 const RELEASE_TYPE_PROFILES = {
@@ -178,6 +185,9 @@ const RELEASE_TYPE_PROFILES = {
   Video: 'Video',
   VideoAlbum: 'Video'
 }
+
+// Rate limiting (429 from the API pauses validation until it resets)
+const { isRateLimited, rateLimitMessage, handleRateLimit } = useRateLimit()
 
 // Data
 const selectedTemplate = ref('')
@@ -602,6 +612,9 @@ const validateERN = async () => {
     console.log('[validateERN] Validation result:', result)
     validationResult.value = result
   } catch (error) {
+    // Rate limited: show the countdown notice instead of an error result
+    if (handleRateLimit(error)) return
+
     console.error('[validateERN] Validation failed:', error)
     validationResult.value = {
       valid: false,

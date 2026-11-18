@@ -38,10 +38,12 @@ class SVRLGenerator {
     // Add active patterns info
     svrl += this.generateActivePattern(metadata.profile);
     
-    // Process all validation results
+    // Errors and warnings are both failed assertions; the role attribute
+    // carries the severity. Passed rules aren't tracked, so no
+    // successful-report elements are emitted.
     const allResults = [
       ...errors.map(e => ({ ...e, type: 'failed-assert' })),
-      ...warnings.map(w => ({ ...w, type: 'successful-report' }))
+      ...warnings.map(w => ({ ...w, type: 'failed-assert' }))
     ];
     
     // Sort by line number if available
@@ -92,7 +94,7 @@ class SVRLGenerator {
   }
 
   /**
-   * Generate assertion (failed-assert or successful-report)
+   * Generate a failed-assert element
    */
   generateAssertion(result) {
     const { type, message, rule, context, line, column, severity } = result;
@@ -156,7 +158,7 @@ class SVRLGenerator {
   mapSeverityToRole(severity) {
     const roleMap = {
       'error': 'error',
-      'warning': 'warn',
+      'warning': 'warning',
       'info': 'info',
       'fatal': 'fatal'
     };

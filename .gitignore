@@ -35,8 +35,8 @@ coverage
 .env
 .env.local
 
-functions/schemas/ern/
-functions/validators/rules/
+ui/functions/schemas/ern/
+ui/functions/validators/rules/
 
 CLAUDE.md
 AUDIT-2026-11.md

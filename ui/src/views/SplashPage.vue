@@ -92,7 +92,7 @@
               <h3 class="feature-title">DDEX Validator</h3>
               <p class="feature-description">
                 Validate against DDEX standards. Support for ERN 3.8.2, 4.2, and 4.3 
-                with profile-specific rules.
+                with version-specific rules generated from the official DDEX XSD schemas.
               </p>
               <ul class="feature-list">
                 <li>Instant validation results</li>

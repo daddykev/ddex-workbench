@@ -115,7 +115,8 @@
             <div class="info-box mt-lg">
               <p class="text-sm">
                 <strong>Rate Limits:</strong> API keys allow 60 requests per minute. 
-                Anonymous requests are limited to 10 requests per minute.
+                Anonymous requests are limited to 10 requests per minute. 
+                Each request body can be up to 10 MB.
               </p>
             </div>
             <p class="mt-lg">

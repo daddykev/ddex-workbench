@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">DDEX ERN Validator</h1>
           <p class="hero-subtitle">
-            Validate your Electronic Release Notification messages with XSD schemas, business rules, and Schematron profiles
+            Validate your Electronic Release Notification messages: XSD schema + business rules + version-specific rules (when a profile is selected)
           </p>
         </div>
       </div>
@@ -224,7 +224,7 @@
                   class="form-select"
                   @change="updateAvailableProfiles"
                 >
-                  <option value="4.3">ERN 4.3 (Latest)</option>
+                  <option value="4.3">ERN 4.3</option>
                   <option value="4.2">ERN 4.2</option>
                   <option value="3.8.2">ERN 3.8.2</option>
                 </select>
@@ -233,7 +233,7 @@
               <div class="form-group mb-0">
                 <label class="form-label">Profile</label>
                 <select v-model="validationOptions.profile" class="form-select">
-                  <option value="">No Profile (Schema Only)</option>
+                  <option value="">No Profile (XSD + business rules only)</option>
                   <option 
                     v-for="profile in availableProfiles" 
                     :key="profile"
@@ -293,11 +293,17 @@
             </div>
           </div>
 
+          <!-- Rate limit notice (live countdown) -->
+          <div v-if="isRateLimited" class="rate-limit-notice alert alert-warning mt-xl" role="status">
+            <font-awesome-icon :icon="['fas', 'clock']" class="mr-xs" />
+            {{ rateLimitMessage }}
+          </div>
+
           <!-- Validate Button -->
           <div class="flex justify-center mt-xl mb-xl">
             <button 
               @click="validateXML"
-              :disabled="!canValidate || isValidating"
+              :disabled="!canValidate || isValidating || isRateLimited"
               class="btn btn-primary btn-lg"
             >
               <span v-if="isValidating" class="flex items-center gap-sm">
@@ -670,6 +676,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useRateLimit } from '@/composables/useRateLimit'
 import { validateERN, getSupportedFormats } from '@/services/api'
 import { debounce } from '@/utils/debounce'
 
@@ -685,6 +692,9 @@ const router = useRouter()
 
 // Auth
 const { user, isAuthenticated } = useAuth()
+
+// Rate limiting (429 from the API pauses validation until it resets)
+const { isRateLimited, rateLimitMessage, handleRateLimit } = useRateLimit()
 
 // State
 const inputMethod = ref('upload')
@@ -816,6 +826,9 @@ const validateRealtime = debounce(async () => {
     realtimeErrors.value = []
     return
   }
+
+  // Paused while rate limited
+  if (isRateLimited.value) return
   
   isValidatingRealtime.value = true
   
@@ -829,12 +842,14 @@ const validateRealtime = debounce(async () => {
     
     realtimeErrors.value = result.errors || []
   } catch (error) {
-    console.error('Real-time validation error:', error)
+    if (!handleRateLimit(error)) {
+      console.error('Real-time validation error:', error)
+    }
     realtimeErrors.value = []
   } finally {
     isValidatingRealtime.value = false
   }
-}, 500)
+}, 1500)
 
 // Load supported formats on mount
 onMounted(async () => {
@@ -1177,6 +1192,9 @@ const validateXML = async () => {
     // saveToHistory(validationResult.value)
     
   } catch (error) {
+    // Rate limited: show the countdown notice instead of an error result
+    if (handleRateLimit(error)) return
+
     console.error('Validation error:', error)
     validationResult.value = {
       valid: false,
@@ -1971,6 +1989,12 @@ const shareResult = () => {
 .security-warning {
   background-color: var(--color-warning-light);
   border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.rate-limit-notice {
+  border: 1px solid;
   border-radius: var(--radius-md);
   padding: var(--space-md);
 }

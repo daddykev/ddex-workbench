@@ -3,6 +3,23 @@ const { ERNValidator } = require('./ernValidator');
 const XSDValidator = require('./xsdValidator');
 const SchematronValidator = require('./schematronValidator');
 
+// Response size limits. XSD errors can quote the input (e.g. a whole line of a
+// malformed message), so long text is cut and each stage returns at most
+// MAX_ISSUES_PER_STEP issues.
+const MAX_TEXT_LENGTH = 300;
+const MAX_ISSUES_PER_STEP = 100;
+
+const truncateText = (value) => {
+  if (typeof value !== 'string' || value.length <= MAX_TEXT_LENGTH) return value;
+  return value.slice(0, MAX_TEXT_LENGTH) + '…';
+};
+
+const trimIssue = (issue) => ({
+  ...issue,
+  message: truncateText(issue.message),
+  ...(issue.context !== undefined && { context: truncateText(issue.context) })
+});
+
 class ValidationOrchestrator {
   constructor() {
     this.ernValidatorCache = new Map(); // Cache validators by version
@@ -10,7 +27,6 @@ class ValidationOrchestrator {
     this.schematronValidator = new SchematronValidator();
   }
 
-  // ADD THIS MISSING METHOD
   getERNValidator(version) {
     if (!this.ernValidatorCache.has(version)) {
       this.ernValidatorCache.set(version, new ERNValidator(version));
@@ -18,84 +34,60 @@ class ValidationOrchestrator {
     return this.ernValidatorCache.get(version);
   }
 
-  async validateWithSVRL(xmlContent, type, version, profile) {
-    // Run normal validation first
-    const results = await this.validate(xmlContent, type, version, profile);
-    
-    // If profile is specified, generate SVRL
-    if (profile && this.schematronValidator) {
-      try {
-        // Use the SchematronValidator to generate SVRL
-        const svrlResult = await this.schematronValidator.validate(
-          xmlContent,
-          version,
-          profile,
-          { generateSVRL: true }
-        );
-        
-        // Add SVRL to results if it was generated
-        if (svrlResult && svrlResult.svrl) {
-          results.svrl = svrlResult.svrl;
-        }
-        
-        // Merge Schematron errors if not already included
-        if (svrlResult && svrlResult.errors && svrlResult.errors.length > 0) {
-          // Check if Schematron errors are already in results
-          const hasSchematronErrors = results.errors.some(e => e.rule && e.rule.includes('Schematron'));
-          if (!hasSchematronErrors) {
-            results.errors.push(...svrlResult.errors);
-            results.valid = results.errors.length === 0;
-          }
-        }
-        
-      } catch (error) {
-        console.warn('Could not generate SVRL:', error.message);
-        if (results) {
-          results.svrlError = error.message;
-        }
-      }
-    }
-    
-    return results;
-  }
-
-  async validate(xmlContent, type, version, profile) {
-    console.log('ValidationOrchestrator.validate() starting');
-    
+  /**
+   * Run the validation pipeline:
+   *   1. XSD schema (stops here if the XML isn't well-formed)
+   *   2. Business rules
+   *   3. Schematron rules, only when a profile is given
+   *   4. SVRL report, only when options.generateSVRL is true (reuses step 3's results)
+   *
+   * Items with severity 'warning' or 'info' go to `warnings`; `valid` is true when
+   * there are no errors.
+   */
+  async validate(xmlContent, type, version, profile, options = {}) {
+    const startTime = Date.now();
     const results = {
       valid: true,
       errors: [],
       warnings: [],
+      svrl: null,
       metadata: {
-        startTime: Date.now(),
         version,
         profile,
         validationSteps: []
       }
     };
+    let truncatedErrors = 0;
 
-    console.log('Initial results object created:', {
-      errorsIsArray: Array.isArray(results.errors),
-      warningsIsArray: Array.isArray(results.warnings),
-      validationStepsIsArray: Array.isArray(results.metadata.validationSteps)
-    });
+    // Record a step's issues, routing them to errors or warnings by severity.
+    // errorCount/warningCount report the full totals; the returned lists are capped.
+    const addStep = (type, stepStart, issues) => {
+      const allErrors = issues.filter(i => (i.severity || 'error') === 'error' || i.severity === 'fatal');
+      const allWarnings = issues.filter(i => i.severity === 'warning' || i.severity === 'info');
+      const stepErrors = allErrors.slice(0, MAX_ISSUES_PER_STEP).map(trimIssue);
+      const stepWarnings = allWarnings
+        .slice(0, Math.max(0, MAX_ISSUES_PER_STEP - stepErrors.length))
+        .map(trimIssue);
+      truncatedErrors += (allErrors.length - stepErrors.length) + (allWarnings.length - stepWarnings.length);
+      results.errors.push(...stepErrors);
+      results.warnings.push(...stepWarnings);
+      results.metadata.validationSteps.push({
+        type,
+        duration: Date.now() - stepStart,
+        errorCount: allErrors.length,
+        warningCount: allWarnings.length
+      });
+    };
 
     try {
-      // Step 1: XSD Schema Validation
-      console.log('Starting XSD validation...');
-      const xsdStartTime = Date.now();
-      let xsdErrors = [];
-      
+      // Step 1: XSD schema validation
+      const xsdStart = Date.now();
+      let xsdIssues = [];
       try {
         const xsdResult = await this.xsdValidator.validate(xmlContent, version);
-        console.log('XSD Result:', { hasErrors: !!xsdResult?.errors, errorsLength: xsdResult?.errors?.length });
-        
-        xsdErrors = (xsdResult && Array.isArray(xsdResult.errors)) ? xsdResult.errors : [];
-        console.log('XSD Errors processed:', { count: xsdErrors.length });
-        
+        xsdIssues = (xsdResult && Array.isArray(xsdResult.errors)) ? xsdResult.errors : [];
       } catch (xsdError) {
-        console.log('XSD validation threw error:', xsdError.message);
-        xsdErrors = [{
+        xsdIssues = [{
           line: 0,
           column: 0,
           message: `XSD validation error: ${xsdError.message}`,
@@ -103,88 +95,70 @@ class ValidationOrchestrator {
           rule: 'XSD-System-Error'
         }];
       }
-      
-      console.log('About to push XSD validation step...');
-      console.log('validationSteps is array?', Array.isArray(results.metadata.validationSteps));
-      
-      results.metadata.validationSteps.push({
-        type: 'XSD',
-        duration: Date.now() - xsdStartTime,
-        errorCount: xsdErrors.length
-      });
-      
-      console.log('XSD validation step pushed successfully');
+      addStep('XSD', xsdStart, xsdIssues);
 
-      if (xsdErrors.length > 0) {
-        console.log('About to push XSD errors...');
-        console.log('results.errors is array?', Array.isArray(results.errors));
-        
-        results.errors.push(...xsdErrors);
-        results.valid = false;
-        
-        console.log('XSD errors pushed successfully');
+      // Later stages can't run on XML that doesn't parse
+      if (!this.hasFatalXSDErrors(xsdIssues)) {
+        // Step 2: Business rules
+        const ernStart = Date.now();
+        let ernIssues = [];
+        try {
+          const ernResult = await this.getERNValidator(version).validate(xmlContent, profile);
+          ernIssues = (ernResult && Array.isArray(ernResult.errors)) ? ernResult.errors : [];
+        } catch (ernError) {
+          ernIssues = [{
+            line: 0,
+            column: 0,
+            message: `ERN validation error: ${ernError.message}`,
+            severity: 'error',
+            rule: 'ERN-System-Error'
+          }];
+        }
+        addStep('BusinessRules', ernStart, ernIssues);
+
+        // Step 3: Schematron rules (when a profile is given), with optional SVRL
+        if (profile) {
+          const schStart = Date.now();
+          let schIssues = [];
+          try {
+            const schResult = await this.schematronValidator.validate(
+              xmlContent,
+              version,
+              profile,
+              { generateSVRL: !!options.generateSVRL }
+            );
+            schIssues = [...(schResult.errors || []), ...(schResult.warnings || [])];
+            if (schResult.svrl) {
+              results.svrl = schResult.svrl;
+            }
+          } catch (schError) {
+            schIssues = [{
+              line: 0,
+              column: 0,
+              message: `Schematron validation error: ${schError.message}`,
+              severity: 'error',
+              rule: 'Schematron-System-Error'
+            }];
+          }
+          addStep('Schematron', schStart, schIssues);
+        }
       }
 
-      // Continue with ERN validation...
-      console.log('Starting ERN validation...');
-      const ernStartTime = Date.now();
-      let ernErrors = [];
-      
-      try {
-        console.log('Getting ERN validator...');
-        const ernValidator = this.getERNValidator(version);
-        console.log('ERN validator obtained, calling validate...');
-        
-        const ernResult = await ernValidator.validate(xmlContent, profile);
-        console.log('ERN Result:', { hasErrors: !!ernResult?.errors, errorsLength: ernResult?.errors?.length });
-        
-        ernErrors = (ernResult && Array.isArray(ernResult.errors)) ? ernResult.errors : [];
-        console.log('ERN Errors processed:', { count: ernErrors.length });
-        
-      } catch (ernError) {
-        console.log('ERN validation threw error:', ernError.message);
-        ernErrors = [{
-          line: 0,
-          column: 0,
-          message: `ERN validation error: ${ernError.message}`,
-          severity: 'error',
-          rule: 'ERN-System-Error'
-        }];
-      }
-      
-      console.log('About to push ERN validation step...');
-      results.metadata.validationSteps.push({
-        type: 'BusinessRules',
-        duration: Date.now() - ernStartTime,
-        errorCount: ernErrors.length
-      });
-      console.log('ERN validation step pushed successfully');
-
-      if (ernErrors.length > 0) {
-        console.log('About to push ERN errors...');
-        console.log('results.errors is array?', Array.isArray(results.errors));
-        
-        results.errors.push(...ernErrors);
-        results.valid = false;
-        
-        console.log('ERN errors pushed successfully');
-      }
-
-      // Add final metadata
-      results.metadata.processingTime = Date.now() - results.metadata.startTime;
+      results.valid = results.errors.length === 0;
+      results.metadata.processingTime = Date.now() - startTime;
       results.metadata.schemaVersion = `ERN ${version}`;
       results.metadata.validatedAt = new Date().toISOString();
       results.metadata.errorCount = results.errors.length;
       results.metadata.warningCount = results.warnings.length;
-
-      console.log('Validation completed successfully');
+      if (truncatedErrors > 0) {
+        results.metadata.truncatedErrors = truncatedErrors;
+      }
       return results;
 
     } catch (error) {
       console.error('Validation orchestrator caught error:', error);
-      console.error('Error stack:', error.stack);
-      
-      // Even in error case, ensure we return a valid structure
+
+      // Even in the error case, return a valid structure
       return {
         valid: false,
         errors: [{
@@ -195,8 +169,9 @@ class ValidationOrchestrator {
           rule: 'System-Error'
         }],
         warnings: [],
+        svrl: null,
         metadata: {
-          processingTime: Date.now() - results.metadata.startTime,
+          processingTime: Date.now() - startTime,
           schemaVersion: `ERN ${version}`,
           validatedAt: new Date().toISOString(),
           errorCount: 1,
@@ -210,8 +185,10 @@ class ValidationOrchestrator {
   hasFatalXSDErrors(errors) {
     if (!errors || !Array.isArray(errors)) return false;
     // Check if there are errors that prevent further validation
+    // (xmllint reports malformed XML as "parser error : ...")
     return errors.some(error => 
       error.message && (
+        error.message.includes('parser error') ||
         error.message.includes('Cannot parse') ||
         error.message.includes('Premature end of data') ||
         error.message.includes('XML validation error')

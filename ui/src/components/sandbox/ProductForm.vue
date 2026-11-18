@@ -379,28 +379,24 @@ const getModelDisplayName = (modelType) => {
 
 const getAvailableUsageTypes = (modelType) => {
   // Based on DDEX standards, different commercial models support different usage types
+  // Use types must be ERN 4.3 allowed values (UseType in allowed-value-sets.xsd)
   const usageTypesByModel = {
     'PayAsYouGoModel': [
       { value: 'PermanentDownload', label: 'Permanent Download' },
       { value: 'ConditionalDownload', label: 'Conditional Download' },
-      { value: 'TetheredDownload', label: 'Tethered Download' },
-      { value: 'PayPerView', label: 'Pay Per View' }
+      { value: 'TetheredDownload', label: 'Tethered Download' }
     ],
     'SubscriptionModel': [
       { value: 'OnDemandStream', label: 'On-Demand Stream' },
       { value: 'ConditionalDownload', label: 'Conditional Download' },
       { value: 'TetheredDownload', label: 'Tethered Download' },
-      { value: 'SubscriptionDownload', label: 'Subscription Download' },
       { value: 'NonInteractiveStream', label: 'Non-Interactive Stream' }
     ],
     'AdvertisementSupportedModel': [
       { value: 'OnDemandStream', label: 'On-Demand Stream' },
-      { value: 'NonInteractiveStream', label: 'Non-Interactive Stream' },
-      { value: 'WebcastStream', label: 'Webcast Stream' },
-      { value: 'FreePreview', label: 'Free Preview' }
+      { value: 'NonInteractiveStream', label: 'Non-Interactive Stream' }
     ],
     'FreeOfChargeModel': [
-      { value: 'FreePreview', label: 'Free Preview' },
       { value: 'OnDemandStream', label: 'On-Demand Stream' },
       { value: 'PermanentDownload', label: 'Permanent Download (Free)' },
       { value: 'ConditionalDownload', label: 'Conditional Download' }

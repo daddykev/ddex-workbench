@@ -19,6 +19,19 @@ const API_CONFIG = {
 // Get current environment config
 const config = import.meta.env.DEV ? API_CONFIG.development : API_CONFIG.production
 
+/**
+ * Thrown when the API returns 429. `retryAfter` is the number of seconds
+ * until requests are accepted again.
+ */
+export class RateLimitError extends Error {
+  constructor(message, retryAfter) {
+    super(message)
+    this.name = 'RateLimitError'
+    this.status = 429
+    this.retryAfter = retryAfter
+  }
+}
+
 // Create axios instance
 const apiClient = axios.create({
   baseURL: config.baseURL,
@@ -28,27 +41,15 @@ const apiClient = axios.create({
   }
 })
 
-// Request interceptor to add auth token
+// Request interceptor to add the signed-in user's ID token. /api/keys requires it;
+// on validation requests it identifies the user for the higher rate limit.
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      // Only add auth token for endpoints that require it
-      const authRequiredEndpoints = [
-        '/api/keys',
-        '/api/validations/history',
-        '/api/validations/*/export'
-      ];
-      
-      const requiresAuth = authRequiredEndpoints.some(endpoint => 
-        config.url.includes(endpoint)
-      );
-      
-      if (requiresAuth) {
-        const user = auth.currentUser;
-        if (user) {
-          const token = await user.getIdToken();
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
       console.warn('Failed to get auth token:', error);
@@ -64,6 +65,17 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Rate limited: surface a typed error with the wait time
+    if (error.response?.status === 429) {
+      const headerSeconds = Number(error.response.headers?.['retry-after'])
+      const bodySeconds = Number(error.response.data?.error?.retryAfter)
+      const retryAfter = bodySeconds || headerSeconds || 60
+      return Promise.reject(new RateLimitError(
+        error.response.data?.error?.message || 'Rate limit exceeded',
+        retryAfter
+      ))
+    }
+
     // Extract meaningful error message
     const errorMessage = error.response?.data?.error?.message || 
                         error.response?.data?.message || 

@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">Privacy Policy</h1>
           <p class="hero-subtitle">
-            Last updated: August 1, 2025
+            Last updated: November 18, 2026
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@
                   <li>We do NOT sell your data to anyone</li>
                   <li>We do NOT store your validated XML files unless you explicitly save them</li>
                   <li>We collect only essential information for service functionality</li>
-                  <li>Our entire codebase is open source and auditable</li>
+                  <li>Our application code is open source (MIT) and auditable</li>
                 </ul>
               </div>
             </section>
@@ -58,7 +58,7 @@
               <ul>
                 <li>Our code is publicly available on <a href="https://github.com/daddykev/ddex-workbench" target="_blank" rel="noopener">GitHub</a></li>
                 <li>You can review exactly how we handle your data</li>
-                <li>You can self-host your own instance if desired</li>
+                <li>The application code is open source under the MIT License. The validation rule files are not included in the repository, so a self-hosted instance validates XSD and business rules only once rule support is added in a future change.</li>
                 <li>We welcome community contributions and oversight</li>
               </ul>
             </section>
@@ -83,9 +83,8 @@
 
               <h3>Technical Information</h3>
               <ul>
-                <li><strong>Browser type and version</strong> - for compatibility</li>
+                <li><strong>Standard server request logs</strong> (IP address, browser user-agent, timestamps), retained by Google Cloud for operations and security</li>
                 <li><strong>IP address</strong> - for rate limiting and security</li>
-                <li><strong>Timestamps</strong> - for usage patterns and debugging</li>
               </ul>
             </section>
 
@@ -115,7 +114,6 @@
               <ul>
                 <li>Authenticate users who choose to create accounts</li>
                 <li>Enforce rate limits to ensure fair usage</li>
-                <li>Generate anonymous usage statistics</li>
                 <li>Debug and improve the validation service</li>
                 <li>Respond to support requests</li>
                 <li>Comply with legal obligations</li>
@@ -138,7 +136,8 @@
               </ul>
               <p>
                 All data is encrypted in transit using HTTPS and at rest using Google's encryption standards.
-                We do not maintain any servers or databases outside of the Firebase ecosystem.
+                Requests to our API (api.ddex-workbench.org) pass through Cloudflare before reaching
+                our Firebase functions. We do not maintain any other servers or databases.
               </p>
             </section>
 
@@ -147,12 +146,24 @@
               <p>We use minimal third-party services:</p>
               <ul>
                 <li>
-                  <strong>Firebase/Google Cloud</strong> - Infrastructure and authentication<br>
+                  <strong>Firebase/Google Cloud</strong> - Hosting, serverless functions, database, and
+                  authentication (email/password sign-in)<br>
                   <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy Policy</a>
                 </li>
                 <li>
-                  <strong>GitHub</strong> - OAuth provider (optional login method)<br>
-                  <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>
+                  <strong>Google Sign-In</strong> - Optional sign-in with your Google account, handled by
+                  Firebase Authentication<br>
+                  <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>
+                </li>
+                <li>
+                  <strong>Cloudflare</strong> - Proxies requests to api.ddex-workbench.org<br>
+                  <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a>
+                </li>
+                <li>
+                  <strong>Deezer</strong> - When you use metadata import in the ERN Sandbox, the UPC/EAN or
+                  track identifiers you enter are sent through our server to Deezer's public API to look up
+                  release metadata. No account information is sent.<br>
+                  <a href="https://www.deezer.com/legal/personal-datas" target="_blank" rel="noopener">Deezer Privacy Policy</a>
                 </li>
               </ul>
               <p>
@@ -173,15 +184,15 @@
 
               <h3>For Registered Users</h3>
               <ul>
-                <li><strong>Access</strong> - Download all your account data</li>
-                <li><strong>Correction</strong> - Update your profile information</li>
-                <li><strong>Deletion</strong> - Delete your account and all associated data</li>
-                <li><strong>Portability</strong> - Export your data in JSON format</li>
+                <li><strong>Access</strong> - Request a copy of your account data</li>
+                <li><strong>Correction</strong> - Update your display name on the account settings page</li>
+                <li><strong>Deletion</strong> - Request deletion of your account and all associated data</li>
+                <li><strong>Portability</strong> - Request your data in JSON format</li>
               </ul>
 
               <p>
-                To exercise these rights, you can use the account settings page or 
-                contact us at privacy@ddex-workbench.org.
+                To make a request, email us at
+                <a href="mailto:daddykev@gmail.com">daddykev@gmail.com</a>.
               </p>
             </section>
 
@@ -191,7 +202,7 @@
                 For privacy-related questions or concerns:
               </p>
               <div class="contact-info">
-                <p><strong>Email:</strong> privacy@ddex-workbench.org</p>
+                <p><strong>Email:</strong> <a href="mailto:daddykev@gmail.com">daddykev@gmail.com</a></p>
                 <p><strong>GitHub Issues:</strong> <a href="https://github.com/daddykev/ddex-workbench/issues" target="_blank" rel="noopener">Open an issue</a></p>
                 <p><strong>Response Time:</strong> We aim to respond within 48 hours</p>
               </div>

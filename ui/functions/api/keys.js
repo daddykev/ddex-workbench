@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
+const { FieldValue } = require('firebase-admin/firestore');
 const crypto = require('crypto');
 
 // Middleware to ensure user is authenticated
@@ -102,7 +103,7 @@ router.post('/', requireAuth, async (req, res) => {
       userId: req.user.uid,
       name: name.trim(),
       hashedKey,
-      created: admin.firestore.FieldValue.serverTimestamp(),
+      created: FieldValue.serverTimestamp(),
       lastUsed: null,
       requestCount: 0,
       rateLimit: 60, // Default rate limit
