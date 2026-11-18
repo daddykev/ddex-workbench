@@ -261,10 +261,7 @@ const openInValidator = (snippet) => {
 
 const handleSnippetCreated = (newSnippet) => {
   // Add to the beginning of the list
-  snippets.value.unshift({
-    ...newSnippet,
-    views: 0
-  })
+  snippets.value.unshift(newSnippet)
   
   // Update counts
   updateCategoryCounts()
@@ -501,7 +498,6 @@ onMounted(() => {
                     <p class="snippet-meta text-sm text-secondary">
                       by <span class="font-medium">{{ snippet.author.displayName }}</span>
                       • {{ formatDate(snippet.created) }}
-                      • {{ snippet.views }} views
                     </p>
                   </div>
                   <div class="snippet-header-right">

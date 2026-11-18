@@ -96,8 +96,6 @@ export const createSnippet = async (snippetData) => {
       uid: auth.currentUser.uid,
       displayName: userData?.displayName || auth.currentUser.email.split('@')[0]
     },
-    commentCount: 0,
-    views: 0,
     created: serverTimestamp(),
     updated: serverTimestamp()
   }
