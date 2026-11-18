@@ -245,16 +245,6 @@
               </div>
 
               <div class="form-group mb-0">
-                <label class="form-label">Validation Mode</label>
-                <select v-model="validationOptions.mode" class="form-select">
-                  <option value="full">Full Validation (XSD + Business Rules + Schematron)</option>
-                  <option value="xsd">XSD Schema Only</option>
-                  <option value="business">Business Rules Only</option>
-                  <option value="quick">Quick Check (XSD + Basic Rules)</option>
-                </select>
-              </div>
-              
-              <div class="form-group mb-0">
                 <label class="form-label flex items-center gap-xs">
                   <input 
                     v-model="validationOptions.realtime" 
@@ -282,48 +272,22 @@
               </button>
               
               <div v-if="showAdvanced" class="advanced-content mt-md">
-                <div class="grid grid-cols-2 gap-md">
-                  <div class="form-group mb-0">
-                    <label class="form-label flex items-center gap-xs">
-                      <input 
-                        v-model="validationOptions.strictMode" 
-                        type="checkbox"
-                        class="form-checkbox"
-                      >
-                      Strict Mode
-                    </label>
-                    <p class="form-help">Treat warnings as errors</p>
-                  </div>
-                  
-                  <div class="form-group mb-0">
-                    <label class="form-label flex items-center gap-xs">
-                      <input 
-                        v-model="validationOptions.validateReferences" 
-                        type="checkbox"
-                        class="form-checkbox"
-                      >
-                      Validate References
-                    </label>
-                    <p class="form-help">Check resource and party references</p>
-                  </div>
-
-                  <div class="form-group mb-0">
-                    <label class="form-label flex items-center gap-xs">
-                      <input 
-                        v-model="validationOptions.generateSVRL" 
-                        type="checkbox"
-                        class="form-checkbox"
-                        :disabled="!validationOptions.profile"
-                      >
-                      Generate SVRL Report
-                    </label>
-                    <p class="form-help">
-                      Generate Schematron Validation Report
-                      <span v-if="!validationOptions.profile" class="text-warning">
-                        (Requires profile selection)
-                      </span>
-                    </p>
-                  </div>
+                <div class="form-group mb-0">
+                  <label class="form-label flex items-center gap-xs">
+                    <input 
+                      v-model="validationOptions.generateSVRL" 
+                      type="checkbox"
+                      class="form-checkbox"
+                      :disabled="!validationOptions.profile"
+                    >
+                    Generate SVRL Report
+                  </label>
+                  <p class="form-help">
+                    Generate Schematron Validation Report
+                    <span v-if="!validationOptions.profile" class="text-warning">
+                      (Requires profile selection)
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -630,10 +594,6 @@
                     <p class="font-medium">{{ validationOptions.profile || 'None' }}</p>
                   </div>
                   <div>
-                    <p class="text-sm text-secondary">Validation Mode</p>
-                    <p class="font-medium">{{ formatValidationMode(validationOptions.mode) }}</p>
-                  </div>
-                  <div>
                     <p class="text-sm text-secondary">Processing Time</p>
                     <p class="font-medium">{{ validationResult.metadata.processingTime }}ms</p>
                   </div>
@@ -680,14 +640,6 @@
                       >
                         <font-awesome-icon :icon="['fas', 'file-code']" class="mr-sm" />
                         Export as SVRL
-                      </button>
-                      <button 
-                        class="export-option disabled"
-                        disabled
-                      >
-                        <font-awesome-icon :icon="['fas', 'file']" class="mr-sm" />
-                        Export as PDF
-                        <span class="badge badge-sm ml-auto">Coming Soon</span>
                       </button>
                       <div class="export-divider"></div>
                       <button 
@@ -763,10 +715,7 @@ const securityError = ref(null)
 const validationOptions = ref({
   version: '4.3',
   profile: 'AudioAlbum',
-  mode: 'full',
   realtime: false,
-  strictMode: false,
-  validateReferences: true,
   generateSVRL: false  // New option for SVRL generation
 })
 
@@ -875,8 +824,7 @@ const validateRealtime = debounce(async () => {
       content: xmlContent.value,
       type: 'ERN',
       version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      mode: 'quick' // Quick mode for real-time
+      profile: validationOptions.value.profile
     })
     
     realtimeErrors.value = result.errors || []
@@ -1199,10 +1147,7 @@ const validateXML = async () => {
       content,
       type: 'ERN',
       version: validationOptions.value.version,
-      profile: validationOptions.value.profile,
-      mode: validationOptions.value.mode,
-      strictMode: validationOptions.value.strictMode,
-      validateReferences: validationOptions.value.validateReferences
+      profile: validationOptions.value.profile
     }
     
     // Add SVRL generation flag if enabled and profile is selected
@@ -1305,16 +1250,6 @@ const formatGroupHeader = (key, groupBy) => {
   return key
 }
 
-const formatValidationMode = (mode) => {
-  const modes = {
-    'full': 'Full Validation',
-    'xsd': 'XSD Schema Only',
-    'business': 'Business Rules Only',
-    'quick': 'Quick Check'
-  }
-  return modes[mode] || mode
-}
-
 const openDDEXReference = (rule) => {
   // Extract the actual rule ID and open DDEX knowledge base
   const ruleId = rule.split('-').pop()
@@ -1378,7 +1313,6 @@ const exportAsJSON = () => {
       valid: validationResult.value.valid,
       ernVersion: validationOptions.value.version,
       profile: validationOptions.value.profile || 'None',
-      mode: validationOptions.value.mode,
       processingTime: validationResult.value.metadata.processingTime + 'ms',
       errorCount: validationResult.value.metadata.errorCount,
       warningCount: validationResult.value.metadata.warningCount
@@ -1412,7 +1346,6 @@ SUMMARY
 Status: ${validationResult.value.valid ? 'VALID' : 'INVALID'}
 ERN Version: ${validationOptions.value.version}
 Profile: ${validationOptions.value.profile || 'None'}
-Validation Mode: ${formatValidationMode(validationOptions.value.mode)}
 Processing Time: ${validationResult.value.metadata.processingTime}ms
 Total Errors: ${validationResult.value.metadata.errorCount}
 Total Warnings: ${validationResult.value.metadata.warningCount}
@@ -1824,11 +1757,6 @@ const shareResult = () => {
   background-color: var(--color-bg-secondary);
 }
 
-.export-option.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .export-divider {
   height: 1px;
   background-color: var(--color-border);
@@ -1986,10 +1914,6 @@ const shareResult = () => {
 
 .mr-sm {
   margin-right: var(--space-sm);
-}
-
-.ml-auto {
-  margin-left: auto;
 }
 
 .mt-xs {

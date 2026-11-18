@@ -64,7 +64,7 @@
           
           <div class="footer-bottom">
             <p class="text-sm text-tertiary text-center">
-              © 2025 DDEX Workbench. Open source under MIT License.
+              © {{ currentYear }} DDEX Workbench. Open source under MIT License.
             </p>
           </div>
         </div>
@@ -78,6 +78,9 @@ import { ref, onMounted } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner.vue'
 import themeManager from '@/utils/themeManager'
+
+// Footer copyright year
+const currentYear = new Date().getFullYear()
 
 // Theme management
 const currentTheme = ref('light')

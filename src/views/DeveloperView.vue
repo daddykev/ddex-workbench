@@ -58,8 +58,8 @@
               </p>
               
               <p>
-                Today the world of digital distribution stands at an inflection point. The impending March 2026
-                deadline for DDEX ERN 4.3 compliance looms large, and the pressure is on for all stakeholders to adapt.
+                Today the world of digital distribution runs on DDEX. ERN 4.3 is the current standard for release
+                delivery, and every stakeholder, from independent artists to major labels, needs to get it right.
                 DDEX standards like MEAD and RDR are critical for the future of music distribution, yet
                 the tools available to navigate these complexities are largely outdated and inaccessible.
               </p>
@@ -72,8 +72,8 @@
               <p>
                 As a self-taught coder since the age of 8, I've built a wide range of projects, from simple websites to complex data pipelines.
                 Fittingly, one of my first coding projects was a database on the VIC-20 for my action figure collection.
-                Today, I bring that same passion for data architecture to the DDEX open source ecosystem, starting with a modern ERN 4.3 validator,
-                with much more to come.
+                Today, I bring that same passion for data architecture to the DDEX open source ecosystem with a modern validator,
+                sandbox, and API for working with ERN messages.
               </p>
 
             </div>
@@ -122,7 +122,7 @@
             </div>
             <h3>The Problem</h3>
             <p>
-              The March 2026 deprecation of ERN 3.x approaches, yet no modern open-source tools exist for ERN 4.3.
+              Working with DDEX ERN usually means expensive tools, members-only resources, or hand-checking XML.
             </p>
           </div>
           
@@ -133,7 +133,7 @@
             <h3>The Solution</h3>
             <p>
               DDEX Workbench brings my experience building enterprise distribution systems to the 
-              open-source community, starting with the industry's first modern ERN 4.3 validator and API.
+              open-source community, with a free ERN validator, sandbox, and API that anyone can use.
             </p>
           </div>
           

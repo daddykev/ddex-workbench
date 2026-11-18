@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { 
   getSnippets, 
-  voteSnippet as voteSnippetApi,
   updateSnippet as updateSnippetApi,
   deleteSnippet as deleteSnippetApi
 } from '@/services/snippets'
@@ -18,7 +17,7 @@ const { user, isAuthenticated } = useAuth()
 const searchQuery = ref('')
 const selectedCategory = ref('all')
 const selectedTags = ref([])
-const sortBy = ref('popular')
+const sortBy = ref('recent')
 const currentPage = ref(1)
 const itemsPerPage = 10
 const loading = ref(false)
@@ -43,7 +42,6 @@ const categories = ref([
 const popularTags = ref([
   { name: 'ERN 4.3', count: 0 },
   { name: 'Audio Album', count: 0 },
-  { name: 'DSR', count: 0 },
   { name: 'Migration', count: 0 },
   { name: 'Immersive Audio', count: 0 },
   { name: 'UGC', count: 0 },
@@ -239,35 +237,6 @@ const truncateCode = (code) => {
   return code
 }
 
-const viewSnippet = (snippet) => {
-  // TODO: Navigate to snippet detail page or open modal
-  console.log('View snippet:', snippet.id)
-  // router.push(`/snippets/${snippet.id}`)
-}
-
-const voteSnippet = async (snippet, vote) => {
-  if (!isAuthenticated.value) {
-    router.push('/login')
-    return
-  }
-  
-  try {
-    // Optimistic update
-    const oldVote = snippet.userVote || 0
-    
-    // Update local state
-    snippet.votes += vote - oldVote
-    snippet.userVote = vote
-    
-    // Call API
-    await voteSnippetApi(snippet.id, vote)
-  } catch (err) {
-    console.error('Failed to vote:', err)
-    // Reload to get correct state
-    await loadSnippets()
-  }
-}
-
 const copySnippet = async (snippet) => {
   try {
     await navigator.clipboard.writeText(snippet.content)
@@ -294,7 +263,6 @@ const handleSnippetCreated = (newSnippet) => {
   // Add to the beginning of the list
   snippets.value.unshift({
     ...newSnippet,
-    userVote: 0,
     views: 0
   })
   
@@ -327,8 +295,7 @@ const handleSnippetUpdated = async (updatedSnippet) => {
   if (index !== -1) {
     snippets.value[index] = {
       ...snippets.value[index],
-      ...updatedSnippet,
-      userVote: snippets.value[index].userVote // Preserve vote state
+      ...updatedSnippet
     }
   }
   
@@ -460,10 +427,8 @@ onMounted(() => {
             <div class="filter-section">
               <h3 class="filter-title">Sort By</h3>
               <select v-model="sortBy" @change="sortSnippets" class="form-select">
-                <option value="popular">Most Popular</option>
-                <option value="recent">Most Recent</option>
-                <option value="votes">Most Votes</option>
-                <option value="views">Most Viewed</option>
+                <option value="recent">Newest</option>
+                <option value="oldest">Oldest</option>
               </select>
             </div>
           </aside>
@@ -532,11 +497,7 @@ onMounted(() => {
               >
                 <div class="snippet-header">
                   <div>
-                    <h3 class="snippet-title">
-                      <a @click="viewSnippet(snippet)" class="snippet-link">
-                        {{ snippet.title }}
-                      </a>
-                    </h3>
+                    <h3 class="snippet-title">{{ snippet.title }}</h3>
                     <p class="snippet-meta text-sm text-secondary">
                       by <span class="font-medium">{{ snippet.author.displayName }}</span>
                       • {{ formatDate(snippet.created) }}
@@ -586,23 +547,6 @@ onMounted(() => {
                 </div>
 
                 <div class="snippet-footer">
-                  <div class="snippet-actions">
-                    <button 
-                      @click="voteSnippet(snippet, snippet.userVote === 1 ? 0 : 1)"
-                      class="action-btn"
-                      :class="{ active: snippet.userVote === 1 }"
-                      :disabled="!isAuthenticated"
-                    >
-                      <font-awesome-icon :icon="['fas', 'arrow-up']" />
-                      <span>{{ snippet.votes }}</span>
-                    </button>
-                    
-                    <button class="action-btn" @click="viewSnippet(snippet)">
-                      <font-awesome-icon :icon="['fas', 'comment']" />
-                      <span>{{ snippet.commentCount }}</span>
-                    </button>
-                  </div>
-
                   <div class="snippet-buttons">
                     <button 
                       @click="copySnippet(snippet)"
@@ -875,17 +819,6 @@ onMounted(() => {
   margin-bottom: var(--space-xs);
 }
 
-.snippet-link {
-  color: var(--color-heading);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color var(--transition-base);
-}
-
-.snippet-link:hover {
-  color: var(--color-primary);
-}
-
 .snippet-meta {
   color: var(--color-text-secondary);
 }
@@ -969,41 +902,10 @@ onMounted(() => {
 
 .snippet-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
-}
-
-.snippet-actions {
-  display: flex;
-  gap: var(--space-md);
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: color var(--transition-base);
-}
-
-.action-btn:hover {
-  color: var(--color-text);
-}
-
-.action-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.action-btn.active {
-  color: var(--color-primary);
 }
 
 .snippet-buttons {

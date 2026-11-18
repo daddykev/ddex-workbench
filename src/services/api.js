@@ -110,48 +110,6 @@ export const validateERN = async (payload) => {
 }
 
 /**
- * Validate DDEX XML file
- * @param {File} file - XML file to validate
- * @param {Object} options
- * @param {string} options.type - Type of DDEX document
- * @param {string} options.version - DDEX version
- * @param {string} options.profile - DDEX profile
- * @returns {Promise<ValidationResult>}
- */
-export const validateFile = async (file, options) => {
-  // For files larger than 1MB, show a warning
-  if (file.size > 1024 * 1024) {
-    console.warn('Large file detected. Upload may take longer.')
-  }
-  
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('type', options.type)
-  formData.append('version', options.version)
-  formData.append('profile', options.profile)
-  
-  const response = await apiClient.post('/api/validate/file', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
-  
-  return response.data
-}
-
-/**
- * Get validation history for authenticated user
- * @param {Object} params
- * @param {number} params.limit - Number of records to fetch
- * @param {string} params.startAfter - Cursor for pagination
- * @returns {Promise<ValidationHistoryResponse>}
- */
-export const getValidationHistory = async (params = {}) => {
-  const response = await apiClient.get('/api/validations/history', { params })
-  return response.data
-}
-
-/**
  * API Keys Management
  */
 
@@ -204,21 +162,6 @@ export const checkHealth = async () => {
  */
 export const getSupportedFormats = async () => {
   const response = await apiClient.get('/api/formats')
-  return response.data
-}
-
-/**
- * Export validation report
- * @param {string} validationId
- * @param {string} format - 'pdf' or 'json'
- * @returns {Promise<Blob>}
- */
-export const exportValidationReport = async (validationId, format = 'pdf') => {
-  const response = await apiClient.get(`/api/validations/${validationId}/export`, {
-    params: { format },
-    responseType: 'blob'
-  })
-  
   return response.data
 }
 

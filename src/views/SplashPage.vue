@@ -20,10 +20,9 @@
             </router-link>
           </div>
           
-          <!-- UPDATED: SDK Quick Links showing both npm and pip -->
+          <!-- SDK Quick Links showing both npm and pip -->
           <div class="hero-sdk-section">
             <div class="hero-sdk-banner">
-              <span class="sdk-badge">NEW</span>
               <font-awesome-icon :icon="['fab', 'npm']" class="npm-icon" />
               <span>JavaScript/TypeScript:</span>
               <code class="sdk-install">npm install @ddex-workbench/sdk</code>
@@ -38,7 +37,6 @@
             </div>
             
             <div class="hero-sdk-banner">
-              <span class="sdk-badge">NEW</span>
               <font-awesome-icon :icon="['fab', 'python']" class="python-icon" />
               <span>Python SDK:</span>
               <code class="sdk-install">pip install ddex-workbench</code>
@@ -60,8 +58,8 @@
             </div>
             <div class="stat-divider"></div>
             <div class="stat">
-              <div class="stat-value">2,231</div>
-              <div class="stat-label">XML Elements</div>
+              <div class="stat-value">3</div>
+              <div class="stat-label">ERN Versions</div>
             </div>
             <div class="stat-divider"></div>
             <div class="stat">
@@ -77,14 +75,14 @@
     <section class="features-section section bg-secondary">
       <div class="container">
         <div class="text-center features-header">
-          <h2 class="text-3xl font-semibold mb-md">Available Now</h2>
+          <h2 class="text-3xl font-semibold mb-md">Features</h2>
           <p class="text-lg text-secondary">
             Essential tools for digital music supply chains
           </p>
         </div>
-        
-        <!-- Changed to 4-column grid on desktop, 2 on tablet -->
-        <div class="grid grid-cols-md-2 grid-cols-lg-4 gap-lg">
+
+        <!-- 3-column grid on desktop, 2 on tablet, 1 on mobile -->
+        <div class="grid grid-cols-md-2 grid-cols-lg-3 gap-lg">
           <!-- DDEX Validator -->
           <div class="feature-card card card-hover">
             <div class="card-body">
@@ -100,10 +98,33 @@
                 <li>Instant validation results</li>
                 <li>Detailed error messages</li>
                 <li>Line-by-line error tracking</li>
-                <li>Version migration hints</li>
               </ul>
               <router-link to="/validator" class="btn btn-primary mt-lg">
                 Try Validator
+              </router-link>
+            </div>
+          </div>
+
+          <!-- ERN Sandbox -->
+          <div class="feature-card card card-hover">
+            <div class="card-body">
+              <div class="feature-icon">
+                <font-awesome-icon :icon="['fas', 'edit']" size="3x" />
+              </div>
+              <h3 class="feature-title">ERN Sandbox</h3>
+              <p class="feature-description">
+                Build valid ERN 4.3 messages with a form-based editor, import metadata from a UPC/EAN,
+                and validate in one click.
+              </p>
+              <ul class="feature-list">
+                <li>Form-based message builder</li>
+                <li>Metadata import by UPC/EAN</li>
+                <li>Live ERN 4.3 XML preview</li>
+                <li>One-click validation</li>
+              </ul>
+              <p class="text-sm text-tertiary text-center mb-sm">Sign in required</p>
+              <router-link to="/sandbox" class="btn btn-primary">
+                Open Sandbox
               </router-link>
             </div>
           </div>
@@ -116,14 +137,11 @@
               </div>
               <h3 class="feature-title">Code Snippets</h3>
               <p class="feature-description">
-                Community-driven collection of DDEX XML examples, patterns, and solutions 
-                for common use cases.
+                Community-contributed ERN examples and patterns.
               </p>
               <ul class="feature-list">
                 <li>Version-specific examples</li>
                 <li>Common patterns library</li>
-                <li>Migration guides</li>
-                <li>Community voting</li>
               </ul>
               <router-link to="/snippets" class="btn btn-primary mt-lg">
                 Browse Snippets
@@ -161,10 +179,7 @@
                 <font-awesome-icon :icon="['fab', 'npm']" size="3x" />
                 <font-awesome-icon :icon="['fab', 'python']" size="3x" />
               </div>
-              <h3 class="feature-title">
-                Official SDKs
-                <span class="new-badge">NEW</span>
-              </h3>
+              <h3 class="feature-title">Official SDKs</h3>
               <p class="feature-description">
                 Native SDKs for JavaScript/TypeScript and Python. Easy integration with type safety.
               </p>
@@ -199,69 +214,30 @@
       </div>
     </section>
 
-    <!-- The DDEX Migration Challenge -->
-    <section class="challenge-section section">
+    <!-- How it works -->
+    <section class="how-section section">
       <div class="container">
-        <div class="challenge-content">
-          <div class="challenge-text">
-            <h2 class="text-3xl font-semibold mb-lg">The ERN 4.3 Migration Challenge</h2>
-            <p class="text-lg mb-md">
-              DDEX is mandating ERN 4.3 migration by March 2026, sunsetting all previous versions. 
-              This isn't a minor update—it's a complete re-architecture that breaks compatibility with existing systems.
-            </p>
-            <p class="mb-lg">
-              The entire music industry faces a complex transition with limited time and resources. 
-              DDEX Workbench validates ERN 4.3 with the latest XSD, business rules, and Schematron profiles.
-              Migrate with less stress.
-            </p>
-            <div class="challenge-stats">
-              <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'clock']" class="stat-icon warning" />
-                <span>Less than 7 months until ERN 3.x sunset</span>
-              </div>
-              <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'code-branch']" class="stat-icon warning" />
-                <span>Breaking changes require complete XML restructuring</span>
-              </div>
-              <div class="stat-item">
-                <font-awesome-icon :icon="['fas', 'users']" class="stat-icon warning" />
-                <span>Hundreds of aggregators need migration support</span>
-              </div>
+        <div class="text-center features-header">
+          <h2 class="text-3xl font-semibold mb-md">How it works</h2>
+        </div>
+        <div class="solution-highlight">
+          <div class="solution-steps">
+            <div class="step">
+              <font-awesome-icon :icon="['fas', 'check-circle']" />
+              <strong class="step-title">Validate</strong>
+              <span>Check ERN 3.8.2, 4.2 and 4.3 messages against the official XSDs, business rules and 648 version-specific rules.</span>
             </div>
-          </div>
-          <div class="challenge-image">
-            <!-- Updated graphic to show solution -->
-            <div class="challenge-graphic">
-              <div class="solution-highlight">
-                <div class="solution-label">Your Migration Path</div>
-                <div class="solution-steps">
-                  <div class="step">
-                    <font-awesome-icon :icon="['fas', 'file-code']" />
-                    <span>Validate existing ERN</span>
-                  </div>
-                  <div class="step-arrow">→</div>
-                  <div class="step">
-                    <font-awesome-icon :icon="['fas', 'wrench']" />
-                    <span>Use Sandbox for ERN 4.3</span>
-                  </div>
-                  <div class="step-arrow">→</div>
-                  <div class="step">
-                    <font-awesome-icon :icon="['fas', 'check-circle']" />
-                    <span>Deploy with confidence</span>
-                  </div>
-                </div>
-              </div>
-              <div class="timeline mt-lg">
-                <div class="timeline-item">
-                  <div class="timeline-date">Now</div>
-                  <div class="timeline-label">Start Migration</div>
-                </div>
-                <div class="timeline-arrow">→</div>
-                <div class="timeline-item highlight">
-                  <div class="timeline-date">March 2026</div>
-                  <div class="timeline-label">ERN 4.3</div>
-                </div>
-              </div>
+            <div class="step-arrow">→</div>
+            <div class="step">
+              <font-awesome-icon :icon="['fas', 'wrench']" />
+              <strong class="step-title">Build</strong>
+              <span>Create an ERN 4.3 message in the Sandbox, optionally importing release metadata by UPC/EAN.</span>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step">
+              <font-awesome-icon :icon="['fas', 'code']" />
+              <strong class="step-title">Automate</strong>
+              <span>Validate from your own pipeline with the REST API or the JavaScript and Python SDKs.</span>
             </div>
           </div>
         </div>
@@ -355,15 +331,6 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: var(--text-sm);
   color: white;
-}
-
-.sdk-badge {
-  background: var(--color-success);
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-semibold);
-  font-size: var(--text-xs);
 }
 
 .npm-icon {
@@ -497,19 +464,6 @@
   width: 100%;
 }
 
-/* New badge for SDK card */
-.new-badge {
-  display: inline-block;
-  background: var(--color-success);
-  color: white;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  margin-left: var(--space-xs);
-  vertical-align: super;
-}
-
 /* SDK buttons - ensure they're at the bottom and full width */
 .sdk-buttons {
   display: flex;
@@ -522,71 +476,17 @@
   justify-content: center;
 }
 
-/* Grid adjustment for 4 columns */
-.grid-cols-lg-4 {
-  grid-template-columns: repeat(4, 1fr);
+/* Grid adjustment for 3 columns */
+.grid-cols-lg-3 {
+  grid-template-columns: repeat(3, 1fr);
 }
 
-/* Challenge Section */
-.challenge-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2xl);
-  align-items: center;
-}
-
-.challenge-stats {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  color: var(--color-text-secondary);
-}
-
-.stat-icon {
-  color: var(--color-warning);
-  font-size: var(--text-xl);
-}
-
-.stat-icon.warning {
-  color: var(--color-warning);
-}
-
-.stat-item.success {
-  background: var(--color-success-light);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  margin-top: var(--space-sm);
-}
-
-.stat-item.success .stat-icon {
-  color: var(--color-success);
-}
-
-.challenge-graphic {
-  background: var(--color-bg-secondary);
-  padding: var(--space-2xl);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-}
-
+/* How it works */
 .solution-highlight {
   background: var(--color-primary-light);
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
-}
-
-.solution-label {
-  font-weight: var(--font-semibold);
-  color: var(--color-primary);
-  margin-bottom: var(--space-md);
-  text-align: center;
 }
 
 .solution-steps {
@@ -610,6 +510,10 @@
   color: var(--color-primary);
 }
 
+.step-title {
+  color: var(--color-text);
+}
+
 .step span {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
@@ -619,67 +523,9 @@
   color: var(--color-text-tertiary);
 }
 
-.timeline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-}
-
-.timeline-item {
-  text-align: center;
-  flex: 1;
-}
-
-.timeline-date {
-  font-weight: var(--font-semibold);
-  color: var(--color-text);
-  margin-bottom: var(--space-xs);
-}
-
-.timeline-label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-}
-
-.timeline-item.highlight .timeline-date {
-  color: var(--color-primary);
-}
-
-.timeline-arrow {
-  font-size: var(--text-2xl);
-  color: var(--color-text-tertiary);
-}
-
 /* Dark theme adjustments */
-[data-theme="dark"] .stat-item.success {
-  background: rgba(65, 196, 100, 0.1);
-}
-
 [data-theme="dark"] .solution-highlight {
   background: rgba(66, 133, 244, 0.1);
-}
-
-[data-theme="dark"] .roadmap-beta-btn {
-  background: var(--color-success);
-  color: var(--color-bg);
-}
-
-[data-theme="dark"] .roadmap-beta-btn:hover {
-  background: var(--color-success);
-  color: var(--color-bg);
-  box-shadow: 0 2px 8px rgba(65, 196, 100, 0.4);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 2px solid white;
-  color: white;
-}
-
-.btn-outline:hover {
-  background: white;
-  color: var(--color-primary);
 }
 
 /* Utilities */
@@ -693,13 +539,13 @@
 
 /* Responsive */
 @media (min-width: 1024px) {
-  .grid-cols-lg-4 {
-    grid-template-columns: repeat(4, 1fr);
+  .grid-cols-lg-3 {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 1024px) and (min-width: 768px) {
-  .grid-cols-lg-4 {
+  .grid-cols-lg-3 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -732,10 +578,6 @@
     height: 1px;
   }
   
-  .challenge-content {
-    grid-template-columns: 1fr;
-  }
-  
   .solution-steps {
     flex-direction: column;
   }
@@ -744,18 +586,8 @@
     transform: rotate(90deg);
   }
   
-  .grid-cols-lg-4 {
+  .grid-cols-lg-3 {
     grid-template-columns: 1fr;
-  }
-  
-  .cta-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .cta-actions .btn {
-    width: 100%;
-    max-width: 300px;
   }
 }
 </style>

@@ -30,14 +30,12 @@ export const getSnippets = async (params = {}) => {
   
   // Apply sorting
   switch (params.sort) {
+    case 'oldest':
+      q = query(q, orderBy('created', 'asc'))
+      break
     case 'recent':
-      q = query(q, orderBy('created', 'desc'))
-      break
-    case 'votes':
-      q = query(q, orderBy('votes', 'desc'))
-      break
     default:
-      q = query(q, orderBy('votes', 'desc'))
+      q = query(q, orderBy('created', 'desc'))
   }
   
   if (params.limit) {
@@ -47,22 +45,11 @@ export const getSnippets = async (params = {}) => {
   const snapshot = await getDocs(q)
   const snippets = []
   
-  // Get user votes if authenticated
-  const userVotes = {}
-  if (auth.currentUser) {
-    const votesRef = collection(db, 'users', auth.currentUser.uid, 'votes')
-    const votesSnapshot = await getDocs(votesRef)
-    votesSnapshot.forEach(doc => {
-      userVotes[doc.id] = doc.data().vote
-    })
-  }
-  
   snapshot.forEach(doc => {
     const data = doc.data()
     snippets.push({
       id: doc.id,
       ...data,
-      userVote: userVotes[doc.id] || 0,
       created: data.created?.toDate().toISOString(),
       updated: data.updated?.toDate().toISOString()
     })
@@ -109,7 +96,6 @@ export const createSnippet = async (snippetData) => {
       uid: auth.currentUser.uid,
       displayName: userData?.displayName || auth.currentUser.email.split('@')[0]
     },
-    votes: 0,
     commentCount: 0,
     views: 0,
     created: serverTimestamp(),
@@ -200,47 +186,5 @@ export const deleteSnippet = async (snippetId) => {
   await updateDoc(doc(db, 'users', auth.currentUser.uid), {
     snippetCount: increment(-1)
   })
-  
-  // Clean up votes (this could be done in a Cloud Function for better performance)
-  // For now, we'll skip this as it requires a collection group query
 }
 
-/**
- * Vote on a snippet
- */
-export const voteSnippet = async (snippetId, vote) => {
-  if (!auth.currentUser) {
-    throw new Error('Must be authenticated to vote')
-  }
-  
-  const snippetRef = doc(db, 'snippets', snippetId)
-  const voteRef = doc(db, 'users', auth.currentUser.uid, 'votes', snippetId)
-  
-  // Get current vote
-  const voteDoc = await getDoc(voteRef)
-  const currentVote = voteDoc.exists() ? voteDoc.data().vote : 0
-  const voteChange = vote - currentVote
-  
-  // Use a transaction to update both the vote and the snippet count
-  const batch = db.batch()
-  
-  if (vote === 0) {
-    // Remove vote
-    batch.delete(voteRef)
-  } else {
-    // Add/update vote
-    batch.set(voteRef, { 
-      vote, 
-      timestamp: serverTimestamp() 
-    })
-  }
-  
-  // Update snippet vote count
-  batch.update(snippetRef, {
-    votes: increment(voteChange)
-  })
-  
-  await batch.commit()
-  
-  return { success: true, vote }
-}

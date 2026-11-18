@@ -170,6 +170,15 @@ import ernBuilder from '@/services/ernBuilder'
 import deezerApi from '@/services/deezerApi'
 import { validateERN as validateERNApi } from '@/services/api'
 
+// Validation profile for each Sandbox release type (unknown types fall back to AudioAlbum)
+const RELEASE_TYPE_PROFILES = {
+  Album: 'AudioAlbum',
+  EP: 'AudioAlbum',
+  Single: 'AudioSingle',
+  Video: 'Video',
+  VideoAlbum: 'Video'
+}
+
 // Data
 const selectedTemplate = ref('')
 const product = ref({
@@ -587,9 +596,7 @@ const validateERN = async () => {
       content: ernXml.value,
       type: 'ERN',
       version: '4.3',
-      profile: product.value.releaseType === 'Album' ? 'AudioAlbum' : 
-               product.value.releaseType === 'Single' ? 'AudioSingle' : 
-               'Video'
+      profile: RELEASE_TYPE_PROFILES[product.value.releaseType] || 'AudioAlbum'
     })
     
     console.log('[validateERN] Validation result:', result)

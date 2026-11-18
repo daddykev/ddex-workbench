@@ -7,7 +7,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { auth, db, onAuthChange } from '@/firebase'
@@ -147,6 +148,12 @@ export function useAuth() {
     }
   }
 
+  // Errors are thrown to the caller (not stored in `error`) so the login
+  // form's error alert isn't reused for reset-specific messages
+  const resetPassword = async (email) => {
+    await sendPasswordResetEmail(auth, email)
+  }
+
   const checkEmailVerification = async () => {
     const currentUser = auth.currentUser
     if (!currentUser) return false
@@ -178,6 +185,7 @@ export function useAuth() {
     loginWithGoogle,
     logout,
     updateUserProfile,
+    resetPassword,
     sendVerificationEmail,
     checkEmailVerification
   }

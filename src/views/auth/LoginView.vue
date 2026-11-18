@@ -4,93 +4,139 @@
       <div class="auth-container">
         <div class="auth-card card">
           <div class="card-body">
-            <div class="auth-header">
-              <h1 class="auth-title">Welcome Back</h1>
-              <p class="auth-subtitle">Sign in to your account</p>
-            </div>
-
-            <form @submit.prevent="handleSubmit" class="auth-form">
-              <!-- Email Input -->
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                <input
-                  v-model="form.email"
-                  type="email"
-                  class="form-input"
-                  placeholder="you@example.com"
-                  required
-                  :disabled="loading"
-                />
+            <!-- Password Reset -->
+            <template v-if="showReset">
+              <div class="auth-header">
+                <h1 class="auth-title">Reset Password</h1>
+                <p class="auth-subtitle">We'll email you a link to set a new password</p>
               </div>
 
-              <!-- Password Input -->
-              <div class="form-group">
-                <label class="form-label">Password</label>
-                <input
-                  v-model="form.password"
-                  type="password"
-                  class="form-input"
-                  placeholder="••••••••"
-                  required
-                  :disabled="loading"
-                />
-              </div>
-
-              <!-- Remember Me & Forgot Password -->
-              <div class="form-options">
-                <div class="form-checkbox">
+              <form @submit.prevent="handleResetPassword" class="auth-form">
+                <div class="form-group">
+                  <label class="form-label">Email</label>
                   <input
-                    v-model="form.rememberMe"
-                    type="checkbox"
-                    id="remember"
+                    v-model="resetEmail"
+                    type="email"
+                    class="form-input"
+                    placeholder="you@example.com"
+                    required
+                    :disabled="resetLoading"
+                  />
+                </div>
+
+                <div v-if="resetMessage" class="alert alert-success">
+                  {{ resetMessage }}
+                </div>
+
+                <div v-if="resetError" class="alert alert-error">
+                  {{ resetError }}
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" :disabled="resetLoading">
+                  <span v-if="resetLoading" class="flex items-center justify-center gap-sm">
+                    <font-awesome-icon :icon="['fas', 'spinner']" spin />
+                    Sending...
+                  </span>
+                  <span v-else>Send reset link</span>
+                </button>
+
+                <p class="text-center">
+                  <a href="#" class="forgot-link" @click.prevent="closeReset">
+                    Back to sign in
+                  </a>
+                </p>
+              </form>
+            </template>
+
+            <template v-else>
+              <div class="auth-header">
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to your account</p>
+              </div>
+
+              <form @submit.prevent="handleSubmit" class="auth-form">
+                <!-- Email Input -->
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input
+                    v-model="form.email"
+                    type="email"
+                    class="form-input"
+                    placeholder="you@example.com"
+                    required
                     :disabled="loading"
                   />
-                  <label for="remember">Remember me</label>
                 </div>
-                <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
-                  Forgot password?
-                </a>
-              </div>
 
-              <!-- Error Message -->
-              <div v-if="error" class="alert alert-error">
-                {{ error }}
-              </div>
+                <!-- Password Input -->
+                <div class="form-group">
+                  <label class="form-label">Password</label>
+                  <input
+                    v-model="form.password"
+                    type="password"
+                    class="form-input"
+                    placeholder="••••••••"
+                    required
+                    :disabled="loading"
+                  />
+                </div>
 
-              <!-- In LoginView.vue, add after the error display -->
-              <div v-if="needsVerification" class="alert alert-warning">
-                <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="mr-sm" />
-                Please verify your email before logging in. Check your inbox for the verification link.
-                <button @click="resendVerification" class="btn btn-sm btn-secondary mt-sm">
-                  Resend Email
+                <!-- Remember Me & Forgot Password -->
+                <div class="form-options">
+                  <div class="form-checkbox">
+                    <input
+                      v-model="form.rememberMe"
+                      type="checkbox"
+                      id="remember"
+                      :disabled="loading"
+                    />
+                    <label for="remember">Remember me</label>
+                  </div>
+                  <a href="#" class="forgot-link" @click.prevent="handleForgotPassword">
+                    Forgot password?
+                  </a>
+                </div>
+
+                <!-- Error Message -->
+                <div v-if="error" class="alert alert-error">
+                  {{ error }}
+                </div>
+
+                <!-- In LoginView.vue, add after the error display -->
+                <div v-if="needsVerification" class="alert alert-warning">
+                  <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="mr-sm" />
+                  Please verify your email before logging in. Check your inbox for the verification link.
+                  <button @click="resendVerification" class="btn btn-sm btn-secondary mt-sm">
+                    Resend Email
+                  </button>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+                  <span v-if="loading" class="flex items-center justify-center gap-sm">
+                    <font-awesome-icon :icon="['fas', 'spinner']" spin />
+                    Signing in...
+                  </span>
+                  <span v-else>Sign In</span>
                 </button>
-              </div>
 
-              <!-- Submit Button -->
-              <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-                <span v-if="loading" class="flex items-center justify-center gap-sm">
-                  <font-awesome-icon :icon="['fas', 'spinner']" spin />
-                  Signing in...
-                </span>
-                <span v-else>Sign In</span>
-              </button>
+                <!-- Divider -->
+                <div class="auth-divider">
+                  <span>or sign in with</span>
+                </div>
 
-              <!-- Divider -->
-              <div class="auth-divider">
-                <span>or sign in with</span>
-              </div>
-
-              <!-- Google Sign In -->
-              <button
-                type="button"
-                @click="handleGoogleSignIn"
-                class="btn btn-secondary btn-block"
-                :disabled="loading"
-              >
-                <font-awesome-icon :icon="['fab', 'google']" class="mr-sm" />
-                Google
-              </button>
-            </form>
+                <!-- Google Sign In -->
+                <button
+                  type="button"
+                  @click="handleGoogleSignIn"
+                  class="btn btn-secondary btn-block"
+                  :disabled="loading"
+                >
+                  <font-awesome-icon :icon="['fab', 'google']" class="mr-sm" />
+                  Google
+                </button>
+              </form>
+            </template>
 
             <!-- Sign Up Link -->
             <div class="auth-footer">
@@ -114,14 +160,33 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { login, loginWithGoogle, error } = useAuth()
+const { login, loginWithGoogle, resetPassword, error } = useAuth()
 
 const loading = ref(false)
+
+// Password reset state
+const showReset = ref(false)
+const resetEmail = ref('')
+const resetLoading = ref(false)
+const resetMessage = ref(null)
+const resetError = ref(null)
+
 const form = reactive({
   email: '',
   password: '',
   rememberMe: true
 })
+
+// Return to the page the user was trying to reach. Only same-app paths are
+// allowed ("/..." but not "//host" or "/\host") to prevent open redirects.
+const redirectAfterLogin = () => {
+  const redirect = router.currentRoute.value.query.redirect
+  const isSafe = typeof redirect === 'string' &&
+    redirect.startsWith('/') &&
+    !redirect.startsWith('//') &&
+    !redirect.startsWith('/\\')
+  router.replace(isSafe ? redirect : '/')
+}
 
 const handleSubmit = async () => {
   loading.value = true
@@ -129,9 +194,7 @@ const handleSubmit = async () => {
   
   try {
     await login(form.email, form.password)
-    // Redirect to the page they were trying to access, or home
-    const redirectTo = router.currentRoute.value.query.redirect || '/'
-    router.push(redirectTo)
+    redirectAfterLogin()
   } catch (err) {
     // Error is handled by useAuth composable
   } finally {
@@ -145,8 +208,7 @@ const handleGoogleSignIn = async () => {
   
   try {
     await loginWithGoogle()
-    const redirectTo = router.currentRoute.value.query.redirect || '/'
-    router.push(redirectTo)
+    redirectAfterLogin()
   } catch (err) {
     // Error is handled by useAuth composable
   } finally {
@@ -155,8 +217,44 @@ const handleGoogleSignIn = async () => {
 }
 
 const handleForgotPassword = () => {
-  // TODO: Implement password reset
-  console.log('Password reset not implemented yet')
+  resetEmail.value = form.email
+  resetMessage.value = null
+  resetError.value = null
+  showReset.value = true
+}
+
+const closeReset = () => {
+  showReset.value = false
+}
+
+const handleResetPassword = async () => {
+  resetLoading.value = true
+  resetMessage.value = null
+  resetError.value = null
+
+  // Same message whether or not the account exists, so emails can't be probed
+  const sentMessage = 'If an account exists for that email, a reset link is on its way.'
+
+  try {
+    await resetPassword(resetEmail.value.trim())
+    resetMessage.value = sentMessage
+  } catch (err) {
+    switch (err.code) {
+      case 'auth/user-not-found':
+        resetMessage.value = sentMessage
+        break
+      case 'auth/invalid-email':
+        resetError.value = 'Please enter a valid email address.'
+        break
+      case 'auth/too-many-requests':
+        resetError.value = 'Too many attempts. Please wait a few minutes and try again.'
+        break
+      default:
+        resetError.value = 'Something went wrong sending the reset link. Please try again.'
+    }
+  } finally {
+    resetLoading.value = false
+  }
 }
 </script>
 
@@ -265,6 +363,11 @@ const handleForgotPassword = () => {
 
 .alert-error {
   background-color: var(--color-error);
+  color: white;
+}
+
+.alert-success {
+  background-color: var(--color-success);
   color: white;
 }
 

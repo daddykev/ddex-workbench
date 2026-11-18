@@ -112,7 +112,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Check if route requires auth
   if (to.meta.requiresAuth && !user) {
-    return next('/login')
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   // Check if route requires admin

@@ -174,6 +174,9 @@
             <router-link to="/api" class="mobile-nav-link" @click="showMobileMenu = false">
               API Docs
             </router-link>
+            <router-link to="/sandbox" class="mobile-nav-link" @click="showMobileMenu = false">
+              ERN Sandbox
+            </router-link>
             
             <div class="mobile-nav-divider"></div>
             

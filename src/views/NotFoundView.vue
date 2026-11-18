@@ -58,13 +58,13 @@
           <div class="helpful-links">
             <h3>Helpful Links</h3>
             <div class="links-grid">
-              <router-link to="/" class="link-card">
+              <router-link to="/validator" class="link-card">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary)">
                   <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
                 </svg>
                 <div>
                   <h4>DDEX Validator</h4>
-                  <p>Validate your ERN 4.3 files</p>
+                  <p>Validate ERN 3.8.2, 4.2 and 4.3 messages</p>
                 </div>
               </router-link>
               

@@ -9,8 +9,23 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "votes",
+          "fieldPath": "created",
           "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "snippets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created",
+          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"

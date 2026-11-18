@@ -40,6 +40,16 @@
                 <p class="form-help">Email cannot be changed</p>
               </div>
 
+              <div class="form-group">
+                <label class="form-label">Member Since</label>
+                <input
+                  :value="formatDate(user?.created)"
+                  type="text"
+                  class="form-input"
+                  disabled
+                />
+              </div>
+
               <div v-if="profileSuccess" class="alert alert-success">
                 Profile updated successfully!
               </div>
@@ -59,33 +69,6 @@
           </div>
         </section>
 
-        <!-- Usage Stats -->
-        <section class="settings-section card">
-          <div class="card-header">
-            <h2 class="section-title">Usage Statistics</h2>
-          </div>
-          <div class="card-body">
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.validations || 0 }}</div>
-                <div class="stat-label">Total Validations</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.snippets || 0 }}</div>
-                <div class="stat-label">Snippets Created</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.apiCalls || 0 }}</div>
-                <div class="stat-label">API Calls</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ formatDate(user?.created) }}</div>
-                <div class="stat-label">Member Since</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- Account Actions -->
         <section class="settings-section card">
           <div class="card-header">
@@ -101,16 +84,6 @@
                 <router-link to="/api-keys" class="btn btn-secondary">
                   Manage Keys
                 </router-link>
-              </div>
-              
-              <div class="action-item">
-                <div class="action-info">
-                  <h4 class="action-title">Export Data</h4>
-                  <p class="action-description">Download your data in JSON format</p>
-                </div>
-                <button class="btn btn-secondary" disabled>
-                  Coming Soon
-                </button>
               </div>
             </div>
           </div>
@@ -142,19 +115,11 @@ const profileLoading = ref(false)
 const profileSuccess = ref(false)
 const profileError = ref(null)
 
-// Stats state
-const stats = reactive({
-  validations: 0,
-  snippets: 0,
-  apiCalls: 0
-})
-
 // Watch for user changes
 watch(user, (newUser) => {
   if (newUser) {
     console.log('User loaded:', newUser);
     profileForm.displayName = newUser.displayName || ''
-    // TODO: Load user stats
   }
 })
 
@@ -163,7 +128,6 @@ onMounted(() => {
   console.log('UserSettings mounted, user:', user.value);
   if (user.value && !authLoading.value) {
     profileForm.displayName = user.value.displayName || ''
-    // TODO: Load user stats
   }
 })
 
@@ -238,29 +202,6 @@ const formatDate = (date) => {
   margin-top: var(--space-md);
 }
 
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-lg);
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-value {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-  margin-bottom: var(--space-xs);
-}
-
-.stat-label {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
 /* Account Actions */
 .account-actions {
   display: flex;
@@ -321,10 +262,6 @@ const formatDate = (date) => {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-sm);
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
