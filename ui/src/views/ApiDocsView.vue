@@ -66,15 +66,16 @@ const QUICKSTART_XML_FORMATTED = `<ern:NewReleaseMessage xmlns:ern="http://ddex.
     </ReleaseDeal>
   </DealList>
 </ern:NewReleaseMessage>`
+// Must stay free of single quotes: the cURL quickstart wraps it in -d '...'
 const QUICKSTART_XML = QUICKSTART_XML_FORMATTED.replace(/>\s+</g, '><')
 
 // Code examples. Request and response shapes follow functions/api/validate.js;
 // example responses come from functions/test/fixtures/api-responses.md.
 const codeExamples = {
   quickstart: {
-    curl: `curl -X POST https://api.ddex-workbench.org/v1/validate \\
-  -H "Content-Type: application/json" \\
-  -d '{"content":"${QUICKSTART_XML.replace(/"/g, '\\"')}","type":"ERN","version":"4.3"}'`,
+    // Raw XML body with options in the query string: one line, no backslash escapes,
+    // so it also pastes cleanly into curl parsers such as ReqBin's
+    curl: `curl -X POST "https://api.ddex-workbench.org/v1/validate?version=4.3" -H "Content-Type: application/xml" -d '${QUICKSTART_XML}'`,
     javascript: `const response = await fetch('https://api.ddex-workbench.org/v1/validate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -132,12 +133,19 @@ echo "API status: " . $data['status'] . "\\n";`
   errorFormat: {
     json: `{
   "error": {
-    "message": "Version is required"
+    "message": "Version is required (JSON field \`version\` or query parameter \`?version=\`)."
   }
 }`
   },
+  rawXml: {
+    curl: `curl -X POST -H "Content-Type: application/xml" --data-binary @release.xml "https://api.ddex-workbench.org/v1/validate?version=4.3&profile=AudioAlbum"`
+  },
   validateEndpoint: {
-    curl: `# Build the JSON body from a local file with jq, then send it
+    curl: `# Send release.xml as the raw body, with the options in the query string
+curl -X POST -H "Content-Type: application/xml" --data-binary @release.xml \\
+  "https://api.ddex-workbench.org/v1/validate?version=4.3&profile=AudioAlbum"
+
+# Or build a JSON body from the file with jq, then send it
 jq -n --rawfile xml release.xml \\
   '{content: $xml, type: "ERN", version: "4.3", profile: "AudioAlbum"}' |
 curl -X POST https://api.ddex-workbench.org/v1/validate \\
@@ -802,8 +810,8 @@ onUnmounted(() => {
 
               <h3 class="mt-xl">Quick Start</h3>
               <p>
-                This request validates a minimal ERN 4.3 Audio Single and returns <code>"valid": true</code>.
-                It works in a terminal, ReqBin or any API testing tool:
+                This single command validates a minimal ERN 4.3 Audio Single and returns <code>"valid": true</code>.
+                Paste it into a terminal, ReqBin, or any tool that accepts cURL.
               </p>
 
               <div class="code-example">
@@ -850,11 +858,11 @@ onUnmounted(() => {
 
               <div class="info-box mt-lg">
                 <h4><font-awesome-icon :icon="['fas', 'lightbulb']" /> Testing with ReqBin</h4>
-                <p>To test this API using <a href="https://reqbin.com/curl" target="_blank">Reqbin.com</a>:</p>
+                <p>To test this API using <a href="https://reqbin.com/curl" target="_blank" rel="noopener">ReqBin</a>:</p>
                 <ol class="numbered-list">
                   <li>Copy the cURL command above</li>
-                  <li>Paste the command into the text area</li>
-                  <li>Click "Run" to execute the request</li>
+                  <li>Paste the command into ReqBin</li>
+                  <li>Click <strong>Run</strong></li>
                 </ol>
               </div>
             </section>
@@ -1200,7 +1208,11 @@ onUnmounted(() => {
                   </tr>
                   <tr>
                     <td><code>400</code></td>
-                    <td>Missing or invalid fields: <code>"XML content is required"</code>, <code>"Only ERN validation is currently supported"</code> or <code>"Version is required"</code></td>
+                    <td>Missing or invalid fields: <code>"XML content is required"</code>, <code>"Only ERN validation is currently supported"</code>, <code>"Version is required (JSON field `version` or query parameter `?version=`)."</code> or, for raw XML, <code>"Request body is empty."</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>400</code></td>
+                    <td>Request body is not valid JSON. The hosting runtime rejects it before it reaches the API, so this response is a plain HTML <code>Bad Request</code> page, not the JSON error format above. Sending the message as raw XML (<code>Content-Type: application/xml</code>) sidesteps this, because the body isn't parsed as JSON.</td>
                   </tr>
                   <tr>
                     <td><code>401</code></td>
@@ -1231,7 +1243,15 @@ onUnmounted(() => {
               <p>Validate an ERN message. The pipeline is XSD schema → business rules → version-specific rules (when a profile is given) → SVRL report (when requested).</p>
 
               <div class="endpoint-details">
-                <h3>Request Body</h3>
+                <h3>Request Formats</h3>
+                <p>Send the message in either of two ways:</p>
+                <ul class="feature-list">
+                  <li><strong>JSON body</strong> (<code>Content-Type: application/json</code>): the message and options as JSON fields. This is what the SDKs send.</li>
+                  <li><strong>Raw XML</strong> (<code>Content-Type: application/xml</code> or <code>text/xml</code>): the message itself as the body, with the options as query parameters. Nothing needs escaping, so it suits single cURL commands.</li>
+                </ul>
+                <p>If a request has both a JSON body and query parameters, the JSON fields take precedence.</p>
+
+                <h4 class="mt-lg">JSON body</h4>
                 <table class="params-table">
                   <thead>
                     <tr>
@@ -1274,6 +1294,54 @@ onUnmounted(() => {
                     </tr>
                   </tbody>
                 </table>
+
+                <h4 class="mt-lg">Raw XML</h4>
+                <p>The body is the ERN message as UTF-8. Options go in the query string:</p>
+                <table class="params-table">
+                  <thead>
+                    <tr>
+                      <th>Query parameter</th>
+                      <th>Required</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>type</code></td>
+                      <td>No</td>
+                      <td>Defaults to <code>ERN</code>, the only supported type.</td>
+                    </tr>
+                    <tr>
+                      <td><code>version</code></td>
+                      <td>Yes</td>
+                      <td><code>4.3</code>, <code>4.2</code> or <code>3.8.2</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>profile</code></td>
+                      <td>No</td>
+                      <td>Same values as the JSON field. Adds the version-specific rules stage.</td>
+                    </tr>
+                    <tr>
+                      <td><code>generateSVRL</code></td>
+                      <td>No</td>
+                      <td><code>true</code> or <code>1</code> to return an SVRL report. Requires <code>profile</code>.</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="code-example mt-sm">
+                  <div class="code-block-wrapper">
+                    <button
+                      @click="copyToClipboard(getCodeExample('rawXml', 'curl'), 'raw-xml')"
+                      class="copy-button"
+                      :class="{ copied: copiedStates['raw-xml'] }"
+                    >
+                      <font-awesome-icon :icon="copiedStates['raw-xml'] ? 'check' : 'copy'" />
+                      {{ copiedStates['raw-xml'] ? 'Copied!' : 'Copy' }}
+                    </button>
+                    <pre class="code-block"><code>{{ getCodeExample('rawXml', 'curl') }}</code></pre>
+                  </div>
+                </div>
+                <p>The response is the same as for a JSON request. An empty body returns <code>400</code> with <code>"Request body is empty."</code></p>
 
                 <h3 class="mt-lg">Example Request</h3>
                 <div class="code-example">
@@ -1419,7 +1487,8 @@ onUnmounted(() => {
 
               <h3>Requesting a report</h3>
               <p>
-                Include <code>"generateSVRL": true</code> and a <code>profile</code> in the request body:
+                Include <code>"generateSVRL": true</code> and a <code>profile</code> in the request body
+                (or, for a raw XML request, <code>?generateSVRL=true&amp;profile=…</code> in the query string):
               </p>
 
               <div class="code-example">

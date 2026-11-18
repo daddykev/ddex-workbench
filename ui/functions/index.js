@@ -148,6 +148,19 @@ app.use((req, res) => {
   });
 });
 
+// Malformed JSON body (from express.json): return JSON instead of the default HTML page.
+// Note: under the Functions Framework (deployed and in the emulator) the body is
+// parsed before this app runs, so a malformed body is rejected there with an HTML
+// 400 and never reaches this handler. It applies only when express.json parses.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({
+      error: { code: 'INVALID_JSON', message: 'Request body is not valid JSON.' }
+    });
+  }
+  next(err);
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
