@@ -12,9 +12,15 @@ export interface DDEXClientConfig {
   timeout?: number;
   /** Environment (development, staging, production) */
   environment?: "development" | "staging" | "production";
-  /** Maximum number of retry attempts */
+  /**
+   * Maximum number of retry attempts for network errors and 5xx responses
+   * (default 3). 429 responses are never retried.
+   */
   maxRetries?: number;
-  /** Delay between retries in milliseconds */
+  /**
+   * Base delay for retries in milliseconds (default 1000). Retries use
+   * exponential backoff with jitter: about retryDelay * 2^attempt, capped at 30 s.
+   */
   retryDelay?: number;
   /** Custom headers */
   headers?: Record<string, string>;
@@ -33,9 +39,6 @@ export type ERNProfile =
   | "AudioSingle"
   | "Video"
   | "Mixed"
-  | "Classical"
-  | "Ringtone"
-  | "DJ"
   | "ReleaseByRelease"; // Only for ERN 3.8.2
 
 /**
@@ -53,14 +56,20 @@ export interface ValidationOptions {
   profile?: ERNProfile;
   /** Generate SVRL (Schematron Validation Report Language) report */
   generateSVRL?: boolean;
-  /** Include passed rules in the response */
+  /**
+   * @deprecated Not supported by the API and no longer sent. The API doesn't
+   * return passed rules. Will be removed in 2.0.
+   */
   verbose?: boolean;
-  /** Custom validation rules to apply */
+  /**
+   * @deprecated Not supported by the API and no longer sent. Will be removed in 2.0.
+   */
   customRules?: CustomValidationRule[];
 }
 
 /**
  * Custom validation rule
+ * @deprecated Custom rules are not supported by the API. Will be removed in 2.0.
  */
 export interface CustomValidationRule {
   /** Rule identifier */
@@ -180,7 +189,10 @@ export interface ValidationResult {
   metadata: ValidationMetadata;
   /** SVRL (Schematron Validation Report Language) XML report */
   svrl?: string;
-  /** Successfully passed rules (when verbose=true) */
+  /**
+   * Successfully passed rules.
+   * @deprecated The API doesn't return passed rules; this is always undefined.
+   */
   passedRules?: PassedRule[];
   /** Summary statistics */
   summary?: ValidationSummary;
@@ -210,21 +222,22 @@ export interface ValidationSummary {
 export interface ApiKey {
   /** Unique key identifier */
   id: string;
-  /** API key value (only shown once) */
-  key?: string;
   /** Key name/description */
   name: string;
-  /** Creation timestamp */
-  createdAt: string;
-  /** Last used timestamp */
-  lastUsed?: string;
-  /** Whether key is active */
-  active: boolean;
-  /** Usage statistics */
-  usage?: {
-    requests: number;
-    lastRequest?: string;
-  };
+  /** Creation timestamp (ISO 8601) */
+  created: string;
+  /** Requests allowed per minute with this key */
+  rateLimit: number;
+  /** API key value; only returned when the key is created */
+  key?: string;
+  /** Last used timestamp (ISO 8601), or null if never used. Not in the create response. */
+  lastUsed?: string | null;
+  /** Number of requests made with this key. Not in the create response. */
+  requestCount?: number;
+  /** Whether the key is active (listing only returns active keys). Not in the create response. */
+  active?: boolean;
+  /** Owner's user ID. Not in the create response. */
+  userId?: string;
 }
 
 /**
@@ -296,11 +309,14 @@ export interface BatchValidationResult {
  * SVRL statistics parsed from report
  */
 export interface SVRLStatistics {
-  /** Number of successful assertions */
+  /**
+   * Total number of failed-assert elements (all roles). The API's SVRL
+   * doesn't include successful-report elements, so passed checks aren't counted.
+   */
   assertions: number;
-  /** Number of failed assertions */
+  /** failed-assert elements with role "error" or "fatal" (or no role) */
   failures: number;
-  /** Number of warnings */
+  /** failed-assert elements with role "warning" or "info" */
   warnings: number;
   /** Number of fired rules */
   firedRules: number;

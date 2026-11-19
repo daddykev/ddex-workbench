@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "vite",
@@ -17,15 +17,11 @@
     "@fortawesome/free-regular-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/vue-fontawesome": "^3.1.1",
-    "@xmldom/xmldom": "^0.9.8",
     "axios": "^1.11.0",
     "fast-xml-parser": "^5.2.5",
     "firebase": "^12.0.0",
-    "libxmljs2": "^0.37.0",
-    "node-fetch": "^3.3.2",
     "vue": "^3.5.18",
-    "vue-router": "^4.5.1",
-    "xpath": "^0.0.34"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",

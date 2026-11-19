@@ -12,6 +12,8 @@ import {
   BatchValidationOptions,
   BatchValidationResult,
 } from "./types";
+import { warnDeprecated } from "./deprecation";
+
 
 /**
  * DDEX Validator - High-level validation helper
@@ -165,11 +167,21 @@ export class DDEXValidator {
    * @returns SVRL statistics
    */
   parseSVRL(svrl: string): SVRLStatistics {
-    // Basic SVRL parsing using regex
-    const assertions = (svrl.match(/<svrl:successful-report/g) || []).length;
-    const failures = (svrl.match(/<svrl:failed-assert/g) || []).length;
-    const warnings = (svrl.match(/role="warning"/g) || []).length;
-    const firedRules = (svrl.match(/<svrl:fired-rule/g) || []).length;
+    // Count failed-assert elements by their role attribute. The API's SVRL
+    // has no successful-report elements, so those aren't used.
+    const failedAsserts = svrl.match(/<svrl:failed-assert\b[^>]*>/g) || [];
+    let failures = 0;
+    let warnings = 0;
+    for (const tag of failedAsserts) {
+      const role = (tag.match(/\brole="([^"]*)"/)?.[1] || "error").toLowerCase();
+      if (role === "warning" || role === "info") {
+        warnings++;
+      } else {
+        failures++;
+      }
+    }
+    const assertions = failedAsserts.length;
+    const firedRules = (svrl.match(/<svrl:fired-rule\b/g) || []).length;
 
     // Extract profile and schema version if present
     const profileMatch = svrl.match(/profile="([^"]+)"/);
@@ -187,6 +199,10 @@ export class DDEXValidator {
 
   /**
    * Get profile compliance report
+   *
+   * @deprecated The API doesn't return passed rules, so `passedRules` is
+   * always 0 and `complianceRate` is always 0%. Use `client.validate()` with a
+   * profile and check `valid`, `errors` and `warnings` instead. Will be removed in 2.0.
    *
    * @param content - XML content
    * @param version - ERN version
@@ -209,11 +225,15 @@ export class DDEXValidator {
     svrlAvailable: boolean;
     details?: PassedRule[];
   }> {
+    warnDeprecated(
+      "getProfileCompliance()",
+      "passedRules and complianceRate are always 0 because the API doesn't return passed rules. It will be removed in 2.0.",
+    );
+
     const result = await this.client.validate(content, {
       version,
       profile,
       generateSVRL: true,
-      verbose: true,
     });
 
     const passedRulesCount = result.passedRules?.length || 0;
@@ -242,10 +262,18 @@ export class DDEXValidator {
   /**
    * Generate validation summary
    *
+   * @deprecated The API doesn't return passed rules, so `passedRules` is
+   * always 0 and `complianceRate` is always 0%. Use `result.valid`,
+   * `getXSDErrors()` and `getSchematronErrors()` instead. Will be removed in 2.0.
+   *
    * @param result - Validation result
    * @returns Validation summary
    */
   generateSummary(result: ValidationResult): ValidationSummary {
+    warnDeprecated(
+      "generateSummary()",
+      "passedRules and complianceRate are always 0 because the API doesn't return passed rules. It will be removed in 2.0.",
+    );
     const passedRules = result.passedRules?.length || 0;
     const failedRules = result.errors.filter((e) => e.rule).length;
     const totalRules = passedRules + failedRules;
@@ -408,18 +436,6 @@ export class DDEXValidator {
       Mixed: [
         /ReleaseProfileVersionId="[^"]*Mixed/i,
         /Profile[^>]*Mixed/i,
-      ],
-      Classical: [
-        /ReleaseProfileVersionId="[^"]*Classical/i,
-        /Profile[^>]*Classical/i,
-      ],
-      Ringtone: [
-        /ReleaseProfileVersionId="[^"]*Ringtone/i,
-        /Profile[^>]*Ringtone/i,
-      ],
-      DJ: [
-        /ReleaseProfileVersionId="[^"]*DJ/i,
-        /Profile[^>]*DJ/i,
       ],
       ReleaseByRelease: [
         /ReleaseProfileVersionId="[^"]*ReleaseByRelease/i,

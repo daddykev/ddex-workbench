@@ -8,6 +8,7 @@ Main client for interacting with the DDEX Workbench API.
 import json
 import platform
 import time
+import warnings as _warnings  # validate() has a local named "warnings"
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
@@ -15,6 +16,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from ._deprecation import KEY_MANAGEMENT_DEPRECATION, warn_deprecated_once
 from .errors import (
     APIError,
     AuthenticationError,
@@ -27,6 +29,7 @@ from .errors import (
     ValidationError,
 )
 from .types import (
+    DEPRECATED_PROFILES,
     ApiKey,
     HealthStatus,
     PassedRule,
@@ -88,12 +91,19 @@ class DDEXClient:
     
     def _setup_session(self):
         """Setup session with retry strategy and headers"""
-        # Configure retry strategy
+        # Retry connection errors and 5xx responses with exponential backoff
+        # (retry_delay * 2^n) plus random jitter. 429 is deliberately not in
+        # status_forcelist: rate-limited requests fail fast with RateLimitError.
+        # raise_on_status=False returns the last 5xx response once retries are
+        # exhausted, so _request raises ServerError instead of a generic error.
         retry_strategy = Retry(
             total=self.max_retries,
             backoff_factor=self.retry_delay,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "POST", "PUT", "DELETE"]
+            backoff_jitter=self.retry_delay,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE"],
+            respect_retry_after_header=False,
+            raise_on_status=False,
         )
         
         adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -152,12 +162,45 @@ class DDEXClient:
             "user_agent": self._get_user_agent()
         }
     
+    def _build_url(self, endpoint: str) -> str:
+        """
+        Build the full URL for an endpoint.
+
+        urljoin replaces the last path segment of a base URL that doesn't end
+        with "/", so ".../v1" + "validate" would become ".../validate". Always
+        join against the base URL with a trailing slash.
+        """
+        return urljoin(self.base_url.rstrip('/') + '/', endpoint.lstrip('/'))
+
+    @staticmethod
+    def _int_or_none(value: Any) -> Optional[int]:
+        """Convert a header or JSON value to int, or None if it isn't numeric"""
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _error_body(response: requests.Response) -> Dict[str, Any]:
+        """Return the "error" object from an API error response, or {}"""
+        try:
+            data = response.json()
+        except ValueError:
+            return {}
+        if isinstance(data, dict):
+            error = data.get('error')
+            if isinstance(error, dict):
+                return error
+            if isinstance(error, str):
+                return {'message': error}
+        return {}
+
     def _request(
         self,
         method: str,
         endpoint: str,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """
         Make HTTP request to API
         
@@ -172,7 +215,7 @@ class DDEXClient:
         Raises:
             Various DDEXError subclasses based on response
         """
-        url = urljoin(self.base_url, endpoint.lstrip('/'))
+        url = self._build_url(endpoint)
         
         # Set timeout if not provided
         if 'timeout' not in kwargs:
@@ -184,22 +227,32 @@ class DDEXClient:
         try:
             response = self.session.request(method, url, **kwargs)
             
-            # Handle rate limiting
+            # Handle rate limiting. Never retried automatically: retry_after
+            # comes from the body's error.retryAfter, then the Retry-After
+            # header, then 60 seconds.
             if response.status_code == 429:
-                retry_after = response.headers.get('Retry-After', 60)
-                limit = response.headers.get('X-RateLimit-Limit')
-                remaining = response.headers.get('X-RateLimit-Remaining', 0)
-                
+                error = self._error_body(response)
+                headers = response.headers
+                retry_after = self._int_or_none(error.get('retryAfter'))
+                if retry_after is None:
+                    retry_after = self._int_or_none(headers.get('Retry-After'))
+                if retry_after is None:
+                    retry_after = 60
+
                 raise RateLimitError(
-                    message="Rate limit exceeded",
-                    retry_after=int(retry_after),
-                    limit=int(limit) if limit else None,
-                    remaining=int(remaining)
+                    message=error.get('message') or "Rate limit exceeded",
+                    retry_after=retry_after,
+                    limit=self._int_or_none(headers.get('RateLimit-Limit')),
+                    remaining=self._int_or_none(headers.get('RateLimit-Remaining')),
+                    reset=self._int_or_none(headers.get('RateLimit-Reset')),
+                    policy=headers.get('RateLimit-Policy'),
                 )
             
             # Handle authentication errors
             if response.status_code == 401:
-                raise AuthenticationError("Invalid or missing API key")
+                raise AuthenticationError(
+                    self._error_body(response).get('message') or "Invalid or missing API key"
+                )
             
             # Handle not found
             if response.status_code == 404:
@@ -214,11 +267,10 @@ class DDEXClient:
             
             # Handle other client errors
             if response.status_code >= 400:
-                try:
-                    error_data = response.json()
-                    message = error_data.get('error', f"API error: {response.status_code}")
-                except:
-                    message = f"API error: {response.status_code}"
+                message = (
+                    self._error_body(response).get('message')
+                    or f"API error: {response.status_code}"
+                )
                 
                 raise APIError(
                     message,
@@ -228,7 +280,9 @@ class DDEXClient:
                     response_body=response.text
                 )
             
-            # Parse successful response
+            # Parse successful response (204 No Content, e.g. DELETE /keys/:id, has no body)
+            if response.status_code == 204 or not response.content:
+                return {}
             try:
                 return response.json()
             except json.JSONDecodeError as e:
@@ -274,20 +328,23 @@ class DDEXClient:
         }
         
         if profile:
-            payload["profile"] = profile
+            profile_value = getattr(profile, "value", profile)
+            if profile_value in DEPRECATED_PROFILES:
+                _warnings.warn(
+                    f"The {profile_value!r} profile is deprecated: the DDEX Workbench API doesn't "
+                    "support it, and it will be removed in 2.0. Supported profiles are AudioAlbum, "
+                    "AudioSingle, Video and Mixed (plus ReleaseByRelease for ERN 3.8.2).",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            payload["profile"] = profile_value
         
-        # Add options if provided
+        # Add options if provided. verbose, include_passed_rules, custom_rules
+        # and max_errors are deprecated: the API doesn't support them, so they
+        # aren't sent.
         if options:
             if options.generate_svrl:
                 payload["generateSVRL"] = True
-            if options.verbose:
-                payload["verbose"] = True
-            if options.include_passed_rules:
-                payload["includePassedRules"] = True
-            if options.custom_rules:
-                payload["customRules"] = options.custom_rules
-            if options.max_errors:
-                payload["maxErrors"] = options.max_errors
         
         response = self._request("POST", "/validate", json=payload)
         
@@ -426,6 +483,13 @@ class DDEXClient:
         """
         Create new API key (requires authentication)
         
+        .. deprecated:: 1.1.0
+            API key management requires a signed-in session and isn't
+            supported from the SDK. Manage keys at
+            https://ddex-workbench.org/api-keys. Will be removed in 2.0.
+            It still works if you set ``client.session.headers["Authorization"]
+            = f"Bearer {firebase_id_token}"`` yourself.
+        
         Args:
             name: Name/description for the API key
             
@@ -435,12 +499,20 @@ class DDEXClient:
         Raises:
             AuthenticationError: If not authenticated
         """
-        response = self._request("POST", "/api-keys", json={"name": name})
-        return ApiKey(**response)
+        warn_deprecated_once("create_api_key()", KEY_MANAGEMENT_DEPRECATION)
+        response = self._request("POST", "/keys", json={"name": name})
+        return ApiKey.from_api(response)
     
     def list_api_keys(self) -> List[ApiKey]:
         """
         List all API keys (requires authentication)
+        
+        .. deprecated:: 1.1.0
+            API key management requires a signed-in session and isn't
+            supported from the SDK. Manage keys at
+            https://ddex-workbench.org/api-keys. Will be removed in 2.0.
+            It still works if you set ``client.session.headers["Authorization"]
+            = f"Bearer {firebase_id_token}"`` yourself.
         
         Returns:
             List of ApiKey objects
@@ -448,12 +520,22 @@ class DDEXClient:
         Raises:
             AuthenticationError: If not authenticated
         """
-        response = self._request("GET", "/api-keys")
-        return [ApiKey(**key) for key in response.get("keys", [])]
+        warn_deprecated_once("list_api_keys()", KEY_MANAGEMENT_DEPRECATION)
+        response = self._request("GET", "/keys")
+        # The API returns a bare list; accept {"keys": [...]} too
+        keys = response.get("keys", []) if isinstance(response, dict) else response
+        return [ApiKey.from_api(key) for key in keys]
     
     def delete_api_key(self, key_id: str) -> bool:
         """
-        Delete an API key (requires authentication)
+        Delete (revoke) an API key (requires authentication)
+        
+        .. deprecated:: 1.1.0
+            API key management requires a signed-in session and isn't
+            supported from the SDK. Manage keys at
+            https://ddex-workbench.org/api-keys. Will be removed in 2.0.
+            It still works if you set ``client.session.headers["Authorization"]
+            = f"Bearer {firebase_id_token}"`` yourself.
         
         Args:
             key_id: ID of the key to delete
@@ -465,7 +547,8 @@ class DDEXClient:
             AuthenticationError: If not authenticated
             NotFoundError: If key not found
         """
-        self._request("DELETE", f"/api-keys/{key_id}")
+        warn_deprecated_once("delete_api_key()", KEY_MANAGEMENT_DEPRECATION)
+        self._request("DELETE", f"/keys/{key_id}")
         return True
     
     def __enter__(self):

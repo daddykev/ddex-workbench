@@ -31,7 +31,9 @@ async function handleRequest(request) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+    // X-Client: the JS SDK (1.1.0+) identifies itself with it in browsers
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, X-Client',
+    'Access-Control-Expose-Headers': 'RateLimit-Policy, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After',
     'Access-Control-Max-Age': '86400',
   }
   

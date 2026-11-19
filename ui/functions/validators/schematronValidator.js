@@ -4,10 +4,27 @@ const path = require('path');
 const { XMLParser } = require('fast-xml-parser');
 const SVRLGenerator = require('../utils/svrlGenerator');
 
-// Import version-specific rule modules
-const ERN382Rules = require('./rules/schematron-382');
-const ERN42Rules = require('./rules/schematron-42');
-const ERN43Rules = require('./rules/schematron-43');
+// Version-specific rule modules. validators/rules/ is private and gitignored,
+// so it may be missing from a checkout or a deploy. Load it without crashing the
+// whole function: if it can't be loaded, /validate answers 503 (see
+// api/validate.js) and every other endpoint keeps working.
+const rulesStatus = { installed: false, error: null };
+let ERN382Rules, ERN42Rules, ERN43Rules;
+try {
+  ERN382Rules = require('./rules/schematron-382');
+  ERN42Rules = require('./rules/schematron-42');
+  ERN43Rules = require('./rules/schematron-43');
+  rulesStatus.installed = true;
+} catch (err) {
+  rulesStatus.error = err.code === 'MODULE_NOT_FOUND'
+    ? `missing rule module (${err.message.split('\n')[0]})`
+    : `failed to load rule modules (${err.message})`;
+  console.error(
+    `[startup] Validation rules are not installed: ${rulesStatus.error}. ` +
+    'Expected functions/validators/rules/schematron-{382,42,43}.js. ' +
+    'POST /validate will return 503 until they are deployed.'
+  );
+}
 
 class SchematronValidator {
   constructor() {
@@ -17,11 +34,13 @@ class SchematronValidator {
     this.lastValidationResult = null;
     
     // Initialize rule engines
-    this.ruleEngines = {
-      '3.8.2': new ERN382Rules(),
-      '4.2': new ERN42Rules(),
-      '4.3': new ERN43Rules()
-    };
+    this.ruleEngines = rulesStatus.installed
+      ? {
+          '3.8.2': new ERN382Rules(),
+          '4.2': new ERN42Rules(),
+          '4.3': new ERN43Rules()
+        }
+      : {};
   }
 
   async validate(xmlContent, version, profile, options = {}) {
@@ -258,3 +277,4 @@ class SchematronValidator {
 }
 
 module.exports = SchematronValidator;
+module.exports.rulesStatus = rulesStatus;

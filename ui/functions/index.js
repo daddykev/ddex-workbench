@@ -4,6 +4,9 @@ const admin = require('firebase-admin');
 const cors = require('cors');
 const express = require('express');
 
+// Service version reported by /health (the API service, not the SDKs)
+const { version: SERVICE_VERSION } = require('./package.json');
+
 // Initialize Firebase Admin
 admin.initializeApp();
 
@@ -32,7 +35,10 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+  // X-Client: the JS SDK identifies itself with it in browsers (User-Agent can't be set there)
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Client'],
+  // Let browser clients read the rate-limit headers
+  exposedHeaders: ['RateLimit-Policy', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After']
 };
 
 // Apply CORS middleware
@@ -94,7 +100,7 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'DDEX Workbench API',
-    version: '1.0.2'
+    version: SERVICE_VERSION
   });
 });
 
@@ -103,7 +109,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     service: 'DDEX Workbench API',
-    version: '1.0.2'
+    version: SERVICE_VERSION
   });
 });
 

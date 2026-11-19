@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 import requests
 
 # Local imports - be careful with circular imports
+from ._deprecation import warn_deprecated_once
 from .errors import ValidationError, FileError, ParseError
 from .types import (
     BatchValidationResult,
@@ -289,7 +290,15 @@ class DDEXValidator:
         profile: str
     ) -> ValidationSummary:
         """
-        Get detailed compliance report with pass/fail rates
+        Get a compliance summary for a profile
+        
+        .. deprecated:: 1.1.0
+            The API doesn't report passed rules, so ``passed_rules``,
+            ``total_rules`` and ``pass_rate`` are estimated from the error
+            count, not real rule counts. The error counts
+            (``schematron_errors``, ``xsd_errors``, ``business_rule_errors``)
+            are accurate. Use ``client.validate()`` with a profile and the
+            ``get_*_errors()`` helpers instead. Will be removed in 2.0.
         
         Args:
             content: XML content to validate
@@ -299,11 +308,12 @@ class DDEXValidator:
         Returns:
             ValidationSummary with compliance statistics
         """
-        options = ValidationOptions(
-            generate_svrl=True,
-            verbose=True,
-            include_passed_rules=True
+        warn_deprecated_once(
+            "get_profile_compliance()",
+            "the API doesn't report passed rules, so passed_rules, total_rules and pass_rate "
+            "are estimates. It will be removed in 2.0.",
         )
+        options = ValidationOptions(generate_svrl=True)
         
         result = self.client.validate(
             content, version, profile,
@@ -566,12 +576,6 @@ class DDEXValidator:
                 return 'Video'
             elif 'musicvideo' in profile_lower:
                 return 'Video'
-            elif 'classical' in profile_lower:
-                return 'Classical'
-            elif 'ringtone' in profile_lower:
-                return 'Ringtone'
-            elif 'dj' in profile_lower:
-                return 'DJ'
             elif 'mixed' in profile_lower:
                 return 'Mixed'
             elif 'releasebyrelease' in profile_lower:

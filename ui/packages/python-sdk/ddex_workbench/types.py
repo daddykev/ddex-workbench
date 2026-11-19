@@ -15,15 +15,29 @@ class ERNVersion(str, Enum):
 
 
 class ERNProfile(str, Enum):
-    """Supported ERN profiles"""
+    """
+    ERN profiles
+
+    The API supports AudioAlbum, AudioSingle, Video and Mixed for all versions,
+    plus ReleaseByRelease for ERN 3.8.2 only.
+
+    Deprecated since 1.1.0: ``CLASSICAL``, ``RINGTONE`` and ``DJ``. The API
+    doesn't support these profiles. They are kept so existing code doesn't
+    break, but passing one to ``DDEXClient.validate()`` emits a
+    ``DeprecationWarning``. They will be removed in 2.0.
+    """
     AUDIO_ALBUM = "AudioAlbum"
     AUDIO_SINGLE = "AudioSingle"
     VIDEO = "Video"
     MIXED = "Mixed"
-    CLASSICAL = "Classical"
-    RINGTONE = "Ringtone"
-    DJ = "DJ"
+    CLASSICAL = "Classical"  # Deprecated: not supported by the API; removed in 2.0
+    RINGTONE = "Ringtone"  # Deprecated: not supported by the API; removed in 2.0
+    DJ = "DJ"  # Deprecated: not supported by the API; removed in 2.0
     RELEASE_BY_RELEASE = "ReleaseByRelease"
+
+
+# Profile values the API doesn't support (deprecated in 1.1.0, removed in 2.0)
+DEPRECATED_PROFILES = frozenset({"Classical", "Ringtone", "DJ"})
 
 
 @dataclass
@@ -83,7 +97,20 @@ class SVRLStatistics:
 
 @dataclass
 class ValidationOptions:
-    """Extended validation options"""
+    """
+    Extended validation options
+
+    Attributes:
+        generate_svrl: Include an SVRL report in the result.
+        verbose: Deprecated since 1.1.0. Not supported by the API and no
+            longer sent. Will be removed in 2.0.
+        custom_rules: Deprecated since 1.1.0. Not supported by the API and
+            no longer sent. Will be removed in 2.0.
+        include_passed_rules: Deprecated since 1.1.0. The API doesn't return
+            passed rules; no longer sent. Will be removed in 2.0.
+        max_errors: Deprecated since 1.1.0. Not supported by the API and no
+            longer sent. Will be removed in 2.0.
+    """
     generate_svrl: bool = False
     verbose: bool = False
     custom_rules: Optional[List[str]] = None
@@ -161,3 +188,17 @@ class ApiKey:
     key: Optional[str] = None  # Only present when creating
     last_used: Optional[str] = None
     request_count: int = 0
+    rate_limit: Optional[int] = None
+
+    @classmethod
+    def from_api(cls, data: Dict[str, Any]) -> "ApiKey":
+        """Build an ApiKey from a /keys response object (camelCase fields)"""
+        return cls(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            created_at=data.get("created") or data.get("createdAt") or "",
+            key=data.get("key"),
+            last_used=data.get("lastUsed"),
+            request_count=data.get("requestCount") or 0,
+            rate_limit=data.get("rateLimit"),
+        )

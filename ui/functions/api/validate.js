@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const ValidationOrchestrator = require('../validators/validationOrchestrator');
+const { rulesStatus } = require('../validators/schematronValidator');
 
 // Create a validation orchestrator instance
 const validationOrchestrator = new ValidationOrchestrator();
@@ -23,6 +24,15 @@ const queryFlag = (value) => {
 // message with Content-Type application/xml or text/xml and the options in the
 // query string. JSON fields take precedence over query parameters.
 router.post('/', async (req, res) => {
+  if (!rulesStatus.installed) {
+    return res.status(503).json({
+      error: {
+        code: 'VALIDATION_RULES_UNAVAILABLE',
+        message: 'Validation is unavailable: the validation rules are not installed on this server.'
+      }
+    });
+  }
+
   try {
     const query = req.query || {};
     let content, type, version, profile, finalGenerateSVRL;

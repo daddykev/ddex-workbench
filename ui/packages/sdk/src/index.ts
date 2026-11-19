@@ -1,5 +1,5 @@
 // packages/sdk/src/index.ts
-export { DDEXClient } from "./client";
+export { DDEXClient, SDK_VERSION } from "./client";
 export { DDEXValidator } from "./validator";
 
 // Export all types
@@ -26,6 +26,7 @@ export type {
   FileValidationOptions,
   URLValidationOptions,
 } from "./types";
+export type { RateLimitInfo } from "./errors";
 
 // Export all error classes
 export {

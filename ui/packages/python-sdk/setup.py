@@ -3,8 +3,6 @@
 Setup configuration for DDEX Workbench Python SDK
 """
 
-import os
-import sys
 from pathlib import Path
 from setuptools import setup, find_packages
 
@@ -14,7 +12,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 # Get version from __init__.py
 version_file = here / "ddex_workbench" / "__init__.py"
-version = "1.0.2"
+version = "1.1.0"
 for line in version_file.read_text().splitlines():
     if line.startswith("__version__"):
         version = line.split('"')[1]
@@ -44,50 +42,47 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Typing :: Typed",
     ],
     keywords="ddex ern music metadata validation xml music-industry digital-distribution",
     packages=find_packages(exclude=["tests", "tests.*", "examples", "examples.*"]),
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     install_requires=[
-        "requests>=2.28.0",
-        "urllib3>=1.26.0",
-        'typing-extensions>=4.0.0;python_version<"3.8"',
-        'dataclasses>=0.6;python_version<"3.7"',
+        "requests>=2.28.0,<3",
+        "urllib3>=2,<3",
     ],
     extras_require={
         "dev": [
             "pytest>=7.0.0",
             "pytest-cov>=4.0.0",
             "pytest-mock>=3.10.0",
-            "pytest-asyncio>=0.21.0",
+            "pytest-asyncio>=0.24.0",
+            "pytest-timeout>=2.1.0",
             "responses>=0.22.0",
+            "faker>=18.0.0",
             "black>=23.0.0",
-            "mypy>=1.0.0",
-            "flake8>=6.0.0",
             "isort>=5.12.0",
+            "flake8>=6.0.0",
+            "flake8-docstrings>=1.7.0",
+            "pylint>=2.17.0",
+            "mypy>=1.0.0",
+            "types-requests>=2.28.0",
             "tox>=4.0.0",
+            "build>=0.10.0",
             "twine>=4.0.0",
             "wheel>=0.38.0",
-            "build>=0.10.0",
         ],
         "docs": [
             "sphinx>=5.0.0",
             "sphinx-rtd-theme>=1.2.0",
             "sphinx-autodoc-typehints>=1.22.0",
-        ],
-    },
-    entry_points={
-        "console_scripts": [
-            "ddex-validate=ddex_workbench.cli:main",
         ],
     },
     package_data={

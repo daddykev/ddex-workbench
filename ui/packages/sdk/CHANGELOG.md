@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.1.0] - 2026-11-18
+
+### Changed
+- **Rate limits (429):** a 429 response now throws `RateLimitError` immediately. It is never retried automatically.
+  `retryAfter` comes from the response body's `error.retryAfter`, falling back to the `Retry-After` header, then 60 seconds.
+  `RateLimitError` also exposes `limit`, `remaining`, `reset` and `policy` from the standard `RateLimit-*` headers.
+- **Retries:** network errors and 5xx responses are still retried (up to `maxRetries`), now with exponential backoff and
+  jitter (about `retryDelay * 2^attempt`, capped at 30 s) instead of a fixed 1 s delay.
+- **Client identification:** the `User-Agent` version now comes from `package.json` at build time (it said `1.1.0` while the
+  package was 1.0.2). In browsers, where scripts can't set `User-Agent`, the SDK sends `X-Client` instead.
+- `parseSVRL()` counts `failed-assert` elements by `role` (error/fatal vs. warning/info). The API's SVRL doesn't contain
+  `successful-report` elements, so `assertions` is now the total number of failed assertions.
+- Requires Node.js 22 or later (`engines.node` is `>=22`; the `npm` engine entry was removed). `@types/node` (dev only)
+  is now `^22` to match.
+- The `ApiKey` type now matches what the API returns: `id`, `name`, `created`, `rateLimit`, plus `key` (create
+  response only) and `lastUsed`, `requestCount`, `active` and `userId` (list response only). The old `createdAt` and
+  `usage` fields, which the API never sent, were removed.
+
+### Deprecated
+- `listApiKeys()`, `createApiKey()` and `revokeApiKey()`: API key management requires a signed-in session and isn't
+  supported from the SDK. Manage keys at https://ddex-workbench.org/api-keys. Each method logs a one-time warning, and
+  they will be removed in 2.0. They still call the API's `/keys` routes, so they work if you set an
+  `Authorization: Bearer <Firebase ID token>` header yourself (e.g. via the `headers` option).
+- `validator.getProfileCompliance()` and `validator.generateSummary()`: they always report 0 passed rules and a 0%
+  compliance rate, because the API doesn't return passed rules. Each logs a one-time warning. They will be removed in 2.0.
+- `ValidationOptions.verbose` and `ValidationOptions.customRules`: the API doesn't support them and they are no longer sent.
+  They will be removed in 2.0.
+
+### Removed
+- `Classical`, `Ringtone` and `DJ` from the `ERNProfile` type (and from `detectProfile()`). The API doesn't support these
+  profiles. This is a type-level removal: plain JavaScript callers can still pass the strings, and the API accepts them
+  but has no rules for them, so only the version-wide checks run.
+
+### Security
+- Raised the minimum `axios` to 1.21.1 and `form-data` to 4.0.6, which fix the high-severity advisories in earlier versions.
+- Updated dev dependencies with `npm audit fix`.
+
 ## [1.0.2] - 2025-09-02
 
 ### Added

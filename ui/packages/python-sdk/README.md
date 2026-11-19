@@ -3,11 +3,11 @@
 [![PyPI version](https://img.shields.io/pypi/v/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 [![Python versions](https://img.shields.io/pypi/pyversions/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://ddex-workbench.org/docs)
+[![Documentation](https://img.shields.io/badge/docs-website-blue.svg)](https://ddex-workbench.org/docs)
 
 Official Python SDK for [DDEX Workbench](https://ddex-workbench.org) - Open-source DDEX validation and processing tools for the music industry.
 
-## 🎉 New in Version 1.0.2
+## Highlights
 
 - **Enhanced Schematron Rules**: Comprehensive business rule validation with meaningful, actionable SVRL reports
 - **SVRL Report Generation**: Generate detailed validation reports in Schematron Validation Report Language format
@@ -15,10 +15,10 @@ Official Python SDK for [DDEX Workbench](https://ddex-workbench.org) - Open-sour
 - **Concurrent Batch Processing**: Validate multiple files in parallel with configurable worker pools
 - **URL and File Validation**: Validate XML directly from URLs or files with optional hash generation
 - **Advanced Error Filtering**: Separate and analyze errors by type (Schematron, XSD, Business Rules)
-- **Profile Compliance Reports**: Get detailed compliance statistics with pass/fail rates
+- **Profile Error Breakdown**: Count Schematron, XSD and business-rule errors for a profile
 - **Metadata Extraction**: Extract message IDs, creation dates, and release counts from XML
 - **Enhanced Error Classes**: Specialized error handling for parsing, files, configuration, and API errors
-- **Dynamic API Key Management**: Update or clear API keys without recreating client
+- **Dynamic API Keys**: Set, change or clear the API key without recreating the client
 
 See [CHANGELOG.md](CHANGELOG.md) for full details.
 
@@ -27,10 +27,10 @@ See [CHANGELOG.md](CHANGELOG.md) for full details.
 - 🚀 **Simple API** - Intuitive methods for all DDEX validation operations
 - 🔧 **Full Type Safety** - Type hints, dataclasses, and IDE autocomplete support
 - 🌐 **Smart Networking** - Connection pooling, retry logic, and timeout handling
-- 📊 **Flexible Validation** - Support for ERN 3.8.2, 4.2, and 4.3 with all profiles
+- 📊 **Flexible Validation** - Support for ERN 3.8.2, 4.2, and 4.3 with the AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for 3.8.2)
 - 🎯 **Comprehensive Error Reporting** - Detailed errors with line numbers, context, and suggestions
 - 📈 **Multiple Report Formats** - JSON, CSV, text, and SVRL output formats
-- 🔑 **Authentication Support** - API key management for higher rate limits
+- 🔑 **API Key Support** - Send an API key for higher rate limits
 - ⚡ **High Performance** - Efficient XML processing and parallel batch operations
 - 🛡️ **Robust Error Handling** - Specialized exception classes for different error scenarios
 - 📦 **Zero Configuration** - Works out of the box with sensible defaults
@@ -68,7 +68,7 @@ else:
         print(f"  Line {error.line}: {error.message}")
 ```
 
-## New v1.0.2 Features
+## Feature Guide
 
 ### Auto-Detection and Validation
 
@@ -123,31 +123,25 @@ if svrl:
 # Or use validation options
 from ddex_workbench import ValidationOptions
 
-options = ValidationOptions(
-    generate_svrl=True,
-    verbose=True,
-    include_passed_rules=True
-)
+options = ValidationOptions(generate_svrl=True)
 
 result = client.validate(xml_content, version="4.3", options=options)
 ```
 
-### Profile Compliance Reporting
+### Profile Error Breakdown
 
 ```python
-# Get detailed compliance report
-summary = client.validator.get_profile_compliance(
-    content=xml_content,
-    version="4.3",
-    profile="AudioAlbum"
-)
+# Validate against a profile and count errors by stage
+result = client.validate(xml_content, version="4.3", profile="AudioAlbum")
 
-print(f"Compliance Rate: {summary.pass_rate:.1%}")
-print(f"Passed Rules: {summary.passed_rules}/{summary.total_rules}")
-print(f"Schematron Errors: {summary.schematron_errors}")
-print(f"XSD Errors: {summary.xsd_errors}")
-print(f"Business Rule Errors: {summary.business_rule_errors}")
+print(f"Schematron Errors: {len(client.validator.get_schematron_errors(result))}")
+print(f"XSD Errors: {len(client.validator.get_xsd_errors(result))}")
+print(f"Business Rule Errors: {len(client.validator.get_business_rule_errors(result))}")
 ```
+
+> `client.validator.get_profile_compliance()` is deprecated: the API doesn't report passed rules,
+> so its `passed_rules`, `total_rules` and `pass_rate` are estimates. It warns once and will be
+> removed in 2.0.
 
 ### Enhanced Error Filtering and Analysis
 
@@ -224,11 +218,10 @@ client = DDEXClient()
 
 # Configure validation options
 options = ValidationOptions(
-    generate_svrl=True,           # Generate SVRL report
-    verbose=True,                  # Include detailed information
-    include_passed_rules=True,     # Show which rules passed
-    max_errors=100                 # Limit number of errors
+    generate_svrl=True            # Generate SVRL report
 )
+# verbose, include_passed_rules, custom_rules and max_errors are deprecated
+# since 1.1.0: the API doesn't support them and they are no longer sent.
 
 result = client.validate(
     content=xml_content,
@@ -237,15 +230,17 @@ result = client.validate(
     options=options
 )
 
-# Access additional information
-if result.passed_rules:
-    print(f"Passed {len(result.passed_rules)} rules")
-
 if result.svrl:
     print("SVRL report generated")
 ```
 
-### Dynamic API Key Management
+### Getting an API key
+
+Sign in at [ddex-workbench.org](https://ddex-workbench.org) and create a key on the
+[API Keys page](https://ddex-workbench.org/api-keys). Keys are created and revoked there,
+not through the SDK.
+
+### Setting the API Key
 
 ```python
 client = DDEXClient()
@@ -270,6 +265,7 @@ print(f"Timeout: {config['timeout']}s")
 ```python
 from ddex_workbench import (
     DDEXClient,
+    DDEXError,
     RateLimitError,
     ValidationError,
     AuthenticationError,
@@ -283,6 +279,9 @@ client = DDEXClient()
 try:
     result = client.validate(xml_content, version="4.3")
 except RateLimitError as e:
+    # 429s are never retried automatically. retry_after comes from the
+    # response body (error.retryAfter), falling back to the Retry-After header;
+    # limit / remaining / reset come from the RateLimit-* headers.
     print(f"Rate limited. Retry after {e.retry_after} seconds")
     print(e.get_retry_message())
 except AuthenticationError:
@@ -328,25 +327,6 @@ with DDEXClient(api_key="ddex_key") as client:
     # Session automatically closed after block
 ```
 
-## Command Line Interface
-
-```bash
-# Validate a file
-ddex-validate release.xml --version 4.3 --profile AudioAlbum
-
-# Auto-detect version
-ddex-validate release.xml --auto
-
-# Validate with SVRL generation
-ddex-validate release.xml --version 4.3 --svrl report.svrl
-
-# Batch validate directory
-ddex-validate releases/ --version 4.3 --recursive --workers 8
-
-# Generate compliance report
-ddex-validate release.xml --version 4.3 --profile AudioAlbum --compliance
-```
-
 ## Configuration
 
 ```python
@@ -357,8 +337,8 @@ client = DDEXClient(
     api_key="ddex_your-api-key",           # Optional API key
     base_url="https://api.ddex-workbench.org/v1",  # API endpoint
     timeout=30,                             # Request timeout in seconds
-    max_retries=3,                          # Max retry attempts
-    retry_delay=1.0,                        # Initial retry delay
+    max_retries=3,                          # Retries for connection errors and 5xx (never 429)
+    retry_delay=1.0,                        # Backoff base: exponential, with jitter
     verify_ssl=True                         # SSL verification
 )
 ```
@@ -366,30 +346,29 @@ client = DDEXClient(
 ## Supported Versions and Profiles
 
 ### ERN Versions
-- **ERN 4.3** (Recommended)
+- **ERN 4.3**
 - **ERN 4.2**
 - **ERN 3.8.2**
 
 ### Profiles by Version
 
-**ERN 4.3 & 4.2:**
+**ERN 4.3, 4.2 and 3.8.2:**
 - AudioAlbum
 - AudioSingle
 - Video
 - Mixed
-- Classical
-- Ringtone
-- DJ
 
-**ERN 3.8.2:**
-- All above profiles plus:
+**ERN 3.8.2 only:**
 - ReleaseByRelease
+
+`ERNProfile.CLASSICAL`, `RINGTONE` and `DJ` are deprecated: the API doesn't support these
+profiles. Passing one to `validate()` emits a `DeprecationWarning`, and they will be removed in 2.0.
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.10+
 - requests 2.28+
-- urllib3 1.26+
+- urllib3 2.x
 
 ## Development
 
@@ -457,14 +436,11 @@ pytest
 # Run specific test file
 pytest tests/test_client.py
 
-# Run integration tests
-pytest tests/integration/
+# Run integration tests (against the live API)
+DDEX_INTEGRATION_TEST=true pytest tests/test_integration.py
 
 # Run with coverage
 pytest --cov=ddex_workbench --cov-report=html
-
-# Run tests in parallel
-pytest -n auto
 ```
 
 ## Documentation
@@ -507,15 +483,16 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed version history.
 
-### Recent Updates (v1.0.2)
-- ✅ Schematron validation support
-- ✅ SVRL report generation
-- ✅ Auto-detection of version and profile
-- ✅ Batch processing with concurrency
-- ✅ URL and file validation methods
-- ✅ Profile compliance reporting
-- ✅ Enhanced error filtering
-- ✅ Dynamic API key management
+### Recent Updates (v1.1.0)
+- Rate limits: a 429 raises `RateLimitError` immediately (no automatic retry), with `retry_after` from the response body and `limit` / `remaining` / `reset` from the `RateLimit-*` headers
+- Connection errors and 5xx responses are retried with exponential backoff and jitter
+- Fixed request URLs dropping the `/v1` path segment of the base URL
+- `verbose`, `include_passed_rules`, `custom_rules` and `max_errors` are deprecated and no longer sent
+- Requires Python 3.10+ and urllib3 2.x
+- Removed the unused `ddex-validate` console-script entry point
+- API key management methods (`create_api_key()`, `list_api_keys()`, `delete_api_key()`) are deprecated; manage keys at https://ddex-workbench.org/api-keys
+- `get_profile_compliance()` is deprecated (its pass rate is estimated)
+- The `Classical`, `Ringtone` and `DJ` profiles are deprecated (the API doesn't support them)
 
 ## Acknowledgments
 

@@ -141,10 +141,10 @@
         v-model="localProduct.pLineText"
         type="text"
         class="form-input"
-        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}`"
+        :placeholder="`${currentYear} ${localProduct.label || 'Label Name'}`"
         @input="updateProduct"
       />
-      <p class="form-help">Do not include (P) symbol. Format: "2025 Label Name"</p>
+      <p class="form-help">Do not include (P) symbol. Format: "{{ currentYear }} Label Name"</p>
     </div>
 
     <div class="form-group">
@@ -153,10 +153,10 @@
         v-model="localProduct.cLineText"
         type="text"
         class="form-input"
-        :placeholder="`${new Date().getFullYear()} ${localProduct.label || 'Label Name'}`"
+        :placeholder="`${currentYear} ${localProduct.label || 'Label Name'}`"
         @input="updateProduct"
       />
-      <p class="form-help">Do not include © or (C) symbol. Format: "2025 Label Name"</p>
+      <p class="form-help">Do not include © or (C) symbol. Format: "{{ currentYear }} Label Name"</p>
     </div>
 
     <!-- Deal Configuration -->
@@ -315,6 +315,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'update'])
+
+// Used in the P/C line placeholders and format hints
+const currentYear = new Date().getFullYear()
 
 const localProduct = ref({ ...props.modelValue })
 

@@ -34,19 +34,36 @@ class DDEXError(Exception):
 
 
 class RateLimitError(DDEXError):
-    """Rate limit exceeded error"""
+    """
+    Rate limit exceeded error (HTTP 429)
+
+    The SDK never retries 429 responses automatically; wait ``retry_after``
+    seconds before trying again.
+
+    Attributes:
+        retry_after: Seconds to wait (from the response body's
+            ``error.retryAfter``, falling back to the ``Retry-After`` header)
+        limit: Requests allowed per window (``RateLimit-Limit`` header)
+        remaining: Requests left in the window (``RateLimit-Remaining`` header)
+        reset: Seconds until the window resets (``RateLimit-Reset`` header)
+        policy: Raw ``RateLimit-Policy`` header, e.g. ``"10;w=60"``
+    """
     
     def __init__(
         self,
         message: str = "Rate limit exceeded",
         retry_after: Optional[int] = None,
         limit: Optional[int] = None,
-        remaining: Optional[int] = None
+        remaining: Optional[int] = None,
+        reset: Optional[int] = None,
+        policy: Optional[str] = None
     ):
         super().__init__(message, "RATE_LIMIT_EXCEEDED", 429)
         self.retry_after = retry_after
         self.limit = limit
         self.remaining = remaining
+        self.reset = reset
+        self.policy = policy
     
     def get_retry_message(self) -> str:
         """Get human-readable retry message"""

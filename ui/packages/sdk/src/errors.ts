@@ -16,14 +16,45 @@ export class DDEXError extends Error {
 }
 
 /**
- * Rate limit error
+ * Rate limit details from the standard RateLimit-* response headers.
+ * Browsers can read these only if the API exposes them via CORS.
+ */
+export interface RateLimitInfo {
+  /** Requests allowed per window (RateLimit-Limit) */
+  limit?: number;
+  /** Requests left in the current window (RateLimit-Remaining) */
+  remaining?: number;
+  /** Seconds until the window resets (RateLimit-Reset) */
+  reset?: number;
+  /** Raw RateLimit-Policy header, e.g. "10;w=60" */
+  policy?: string;
+}
+
+/**
+ * Rate limit error (HTTP 429). The SDK never retries these automatically;
+ * wait `retryAfter` seconds before trying again.
  */
 export class RateLimitError extends DDEXError {
+  /** Requests allowed per window, if reported */
+  public readonly limit?: number;
+  /** Requests left in the current window, if reported */
+  public readonly remaining?: number;
+  /** Seconds until the window resets, if reported */
+  public readonly reset?: number;
+  /** Raw RateLimit-Policy header, if reported */
+  public readonly policy?: string;
+
   constructor(
     message: string,
+    /** Seconds to wait before retrying */
     public readonly retryAfter: number,
+    info: RateLimitInfo = {},
   ) {
     super(message, "RATE_LIMIT_EXCEEDED");
+    this.limit = info.limit;
+    this.remaining = info.remaining;
+    this.reset = info.reset;
+    this.policy = info.policy;
     this.name = "RateLimitError";
     Object.setPrototypeOf(this, RateLimitError.prototype);
   }

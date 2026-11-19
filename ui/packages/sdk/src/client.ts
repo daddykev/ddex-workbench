@@ -1,5 +1,5 @@
 // packages/sdk/src/client.ts
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosError, AxiosHeaders } from "axios";
 import {
   DDEXClientConfig,
   ValidationResult,
@@ -20,6 +20,24 @@ import {
   NetworkError,
 } from "./errors";
 import { DDEXValidator } from "./validator";
+import { warnDeprecated, KEY_MANAGEMENT_DEPRECATION } from "./deprecation";
+
+/** SDK version, injected from package.json at build time (see tsup.config.ts). */
+declare const __SDK_VERSION__: string;
+export const SDK_VERSION: string =
+  typeof __SDK_VERSION__ !== "undefined" ? __SDK_VERSION__ : "0.0.0-dev";
+
+/** Upper bound for a single retry delay, in milliseconds. */
+const MAX_RETRY_DELAY = 30000;
+
+const isBrowser = (): boolean =>
+  typeof window !== "undefined" && typeof document !== "undefined";
+
+const toNumber = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
 
 /**
  * DDEX Workbench API Client
@@ -55,13 +73,17 @@ export class DDEXClient {
       ...config,
     };
 
+    // Browsers don't allow scripts to set User-Agent, so identify the SDK with
+    // X-Client there instead.
+    const clientId = `ddex-workbench-sdk/${SDK_VERSION} (${this.getEnvironment()})`;
+
     // Create axios instance
     this.client = axios.create({
       baseURL: this.config.baseURL,
       timeout: this.config.timeout,
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": `ddex-workbench-sdk/1.1.0 (${this.getEnvironment()})`,
+        ...(isBrowser() ? { "X-Client": clientId } : { "User-Agent": clientId }),
         ...this.config.headers,
       },
     });
@@ -106,8 +128,6 @@ export class DDEXClient {
           version: options.version,
           profile: options.profile,
           generateSVRL: options.generateSVRL,
-          verbose: options.verbose,
-          customRules: options.customRules,
         }),
       );
 
@@ -339,9 +359,15 @@ export class DDEXClient {
   /**
    * List API keys (requires authentication)
    *
+   * @deprecated API key management requires a signed-in session and isn't
+   * supported from the SDK. Manage keys at https://ddex-workbench.org/api-keys.
+   * Will be removed in 2.0. (If you set an `Authorization: Bearer <Firebase ID token>`
+   * header yourself, it still works.)
+   *
    * @returns List of API keys
    */
   async listApiKeys(): Promise<ApiKey[]> {
+    warnDeprecated("listApiKeys()", KEY_MANAGEMENT_DEPRECATION);
     try {
       const response = await this.client.get<ApiKey[]>("/keys");
       return response.data;
@@ -353,10 +379,16 @@ export class DDEXClient {
   /**
    * Create a new API key (requires authentication)
    *
+   * @deprecated API key management requires a signed-in session and isn't
+   * supported from the SDK. Manage keys at https://ddex-workbench.org/api-keys.
+   * Will be removed in 2.0. (If you set an `Authorization: Bearer <Firebase ID token>`
+   * header yourself, it still works.)
+   *
    * @param name - Name for the API key
    * @returns Created API key
    */
   async createApiKey(name: string): Promise<ApiKey> {
+    warnDeprecated("createApiKey()", KEY_MANAGEMENT_DEPRECATION);
     try {
       const response = await this.client.post<ApiKey>("/keys", { name });
       return response.data;
@@ -368,9 +400,15 @@ export class DDEXClient {
   /**
    * Revoke an API key (requires authentication)
    *
+   * @deprecated API key management requires a signed-in session and isn't
+   * supported from the SDK. Manage keys at https://ddex-workbench.org/api-keys.
+   * Will be removed in 2.0. (If you set an `Authorization: Bearer <Firebase ID token>`
+   * header yourself, it still works.)
+   *
    * @param keyId - ID of the key to revoke
    */
   async revokeApiKey(keyId: string): Promise<void> {
+    warnDeprecated("revokeApiKey()", KEY_MANAGEMENT_DEPRECATION);
     try {
       await this.client.delete(`/keys/${keyId}`);
     } catch (error) {
@@ -390,20 +428,21 @@ export class DDEXClient {
   }
 
   /**
-   * Execute request with retry logic
+   * Execute request with retry logic. Network errors and 5xx responses are
+   * retried with exponential backoff and jitter; 429 and other 4xx responses
+   * are never retried.
    */
-  private async retryableRequest<T>(
-    request: () => Promise<T>,
-    retries = this.config.maxRetries || 3,
-  ): Promise<T> {
-    try {
-      return await request();
-    } catch (error) {
-      if (retries > 0 && this.shouldRetry(error)) {
-        await this.delay(this.config.retryDelay || 1000);
-        return this.retryableRequest(request, retries - 1);
+  private async retryableRequest<T>(request: () => Promise<T>): Promise<T> {
+    const maxRetries = this.config.maxRetries ?? 3;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await request();
+      } catch (error) {
+        if (attempt >= maxRetries || !this.shouldRetry(error)) {
+          throw error;
+        }
+        await this.delay(this.getRetryDelay(attempt));
       }
-      throw error;
     }
   }
 
@@ -414,8 +453,18 @@ export class DDEXClient {
     if (!axios.isAxiosError(error)) return false;
 
     const status = error.response?.status;
-    // Retry on network errors or 5xx status codes
+    // Retry on network errors or 5xx status codes only (never on 429)
     return !status || status >= 500;
+  }
+
+  /**
+   * Backoff delay for a retry attempt (0-based): retryDelay * 2^attempt,
+   * capped at 30 s, with "equal jitter" (between half and all of that value).
+   */
+  private getRetryDelay(attempt: number): number {
+    const base = this.config.retryDelay ?? 1000;
+    const exp = Math.min(MAX_RETRY_DELAY, base * 2 ** attempt);
+    return exp / 2 + Math.random() * (exp / 2);
   }
 
   /**
@@ -433,7 +482,9 @@ export class DDEXClient {
       return error instanceof Error ? error : new Error(String(error));
     }
 
-    const axiosError = error as AxiosError<{ error?: { message: string } }>;
+    const axiosError = error as AxiosError<{
+      error?: { message?: string; code?: string; retryAfter?: number };
+    }>;
     const message =
       axiosError.response?.data?.error?.message ||
       axiosError.message ||
@@ -444,11 +495,25 @@ export class DDEXClient {
     switch (status) {
       case 401:
         return new AuthenticationError(message);
-      case 429:
-        const retryAfter = parseInt(
-          axiosError.response?.headers["retry-after"] || "60",
+      case 429: {
+        // Prefer the JSON body's error.retryAfter (always readable, even
+        // cross-origin), then the Retry-After header, then 60 s.
+        // AxiosHeaders lookups are case-insensitive
+        const headers = AxiosHeaders.from(
+          (axiosError.response?.headers ?? {}) as Record<string, string>,
         );
-        return new RateLimitError(message, retryAfter);
+        const header = (name: string): unknown => headers.get(name);
+        const retryAfter =
+          toNumber(axiosError.response?.data?.error?.retryAfter) ??
+          toNumber(header("retry-after")) ??
+          60;
+        return new RateLimitError(message, retryAfter, {
+          limit: toNumber(header("ratelimit-limit")),
+          remaining: toNumber(header("ratelimit-remaining")),
+          reset: toNumber(header("ratelimit-reset")),
+          policy: (header("ratelimit-policy") as string | undefined) || undefined,
+        });
+      }
       case 422:
         return new ValidationError(message);
       case 400:
@@ -472,7 +537,7 @@ export class DDEXClient {
    * Get current environment
    */
   private getEnvironment(): string {
-    if (typeof window !== "undefined") {
+    if (isBrowser()) {
       return `browser/${this.config.environment}`;
     }
     if (typeof process !== "undefined" && process.versions?.node) {

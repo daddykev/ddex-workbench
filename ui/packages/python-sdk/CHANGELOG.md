@@ -2,6 +2,46 @@
 
 All notable changes to the DDEX Workbench Python SDK will be documented in this file.
 
+## [1.1.0] - 2026-11-18
+
+### Changed
+- **Rate limits (429):** a 429 response now raises `RateLimitError` immediately. Previously urllib3 retried 429s, and
+  once the retries ran out the error could surface as a `NetworkError`. `retry_after` comes from the response body's
+  `error.retryAfter`, falling back to the `Retry-After` header, then 60 seconds. `limit`, `remaining`, and the new `reset`
+  and `policy` attributes come from the standard `RateLimit-*` headers (the SDK used to read `X-RateLimit-*`, which the
+  API doesn't send).
+- **Retries:** connection errors and 5xx responses are still retried (up to `max_retries`) with exponential backoff, now
+  with jitter. When retries run out, a 5xx raises `ServerError` with its status code.
+- Error messages for other 4xx responses now use the API's `error.message` (they used to show the whole error object).
+- Requires Python 3.10 or later (classifiers 3.10 to 3.14) and urllib3 2.x (`urllib3>=2,<3`; the SDK imports
+  `urllib3.util.retry` directly).
+- The `dev` extra is now the single list of development dependencies; `requirements-dev.txt` just installs `.[dev]`.
+
+### Fixed
+- Request URLs dropped the last path segment of the base URL (`urljoin(".../v1", "validate")` gave `.../validate`).
+  The base URL is now always joined with a trailing slash, so requests go to `.../v1/validate`.
+- `create_api_key()`, `list_api_keys()` and `delete_api_key()` called `/api-keys`, which doesn't exist. They now call
+  the API's `/keys` routes. They also parse the real responses: `list_api_keys()` accepts the bare list the API returns,
+  `ApiKey` is built from the API's `created` / `lastUsed` / `requestCount` / `rateLimit` fields (new `rate_limit`
+  attribute), and `delete_api_key()` handles the empty 204 response. (These methods are also deprecated; see below.)
+
+### Deprecated
+- `create_api_key()`, `list_api_keys()` and `delete_api_key()`: API key management requires a signed-in session and
+  isn't supported from the SDK. Manage keys at https://ddex-workbench.org/api-keys. Each method emits a one-time
+  `DeprecationWarning`, and they will be removed in 2.0. They work if you set
+  `client.session.headers["Authorization"] = f"Bearer {firebase_id_token}"` yourself.
+- `validator.get_profile_compliance()`: the API doesn't report passed rules, so `passed_rules`, `total_rules` and
+  `pass_rate` are estimated from the error count. It emits a one-time `DeprecationWarning` and will be removed in 2.0.
+  Use `validate()` with a profile and the `get_*_errors()` helpers instead.
+- `ValidationOptions.verbose`, `include_passed_rules`, `custom_rules` and `max_errors`: the API doesn't support them and
+  they are no longer sent. The fields remain for compatibility and will be removed in 2.0.
+- `ERNProfile.CLASSICAL`, `RINGTONE` and `DJ`: the API doesn't support these profiles. The members remain so existing
+  code doesn't break, but passing one (or the string `"Classical"`, `"Ringtone"` or `"DJ"`) to `validate()` emits a
+  `DeprecationWarning`. They will be removed in 2.0. `detect_profile()` no longer returns them.
+
+### Removed
+- The `ddex-validate` console-script entry point. It pointed to a `ddex_workbench.cli` module that doesn't exist.
+
 ## [1.0.2] - 2025-09-02
 
 ### Added

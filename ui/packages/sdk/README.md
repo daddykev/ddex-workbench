@@ -10,16 +10,15 @@ Official JavaScript/TypeScript SDK for [DDEX Workbench](https://ddex-workbench.o
 
 ## Features
 
-- 🚀 **Comprehensive Validation** - Three-stage pipeline: XSD Schema → Business Rules → Schematron Profile Validation
+- 🚀 **Comprehensive Validation** - XSD Schema → Business Rules → Schematron profile rules (when a profile is given)
 - 📋 **SVRL Reports** - Generate Schematron Validation Report Language (SVRL) XML reports
-- 🎯 **Profile-Specific Validation** - Full support for AudioAlbum, AudioSingle, Video, Mixed, Classical, Ringtone, DJ profiles
+- 🎯 **Profile-Specific Validation** - AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for ERN 3.8.2)
 - 📦 **TypeScript Support** - Full type definitions with IntelliSense
 - 🌐 **Universal** - Works in Node.js and browsers
-- 🔄 **Auto-retry** - Built-in retry logic with exponential backoff
+- 🔄 **Auto-retry** - Retries network errors and 5xx responses with exponential backoff and jitter (429s are never retried)
 - 🔍 **Auto-detection** - Automatic ERN version and profile detection
 - 📊 **Batch Processing** - Validate multiple files with concurrency control
-- 🔑 **API Key Management** - Optional authentication for higher rate limits
-- 📈 **Compliance Reports** - Detailed profile compliance statistics
+- 🔑 **API Key Support** - Send an API key for higher rate limits
 
 ## Installation
 
@@ -30,6 +29,8 @@ yarn add @ddex-workbench/sdk
 # or
 pnpm add @ddex-workbench/sdk
 ```
+
+Requires Node.js 22 or later (or any modern browser).
 
 ## Quick Start
 
@@ -60,11 +61,11 @@ if (result.valid) {
 
 ### Three-Stage Validation Pipeline
 
-Every validation request runs through our comprehensive pipeline:
+Every validation request runs the first two stages; the third runs when you pass a `profile`:
 
 1. **XSD Schema Validation** - Validates XML structure against official DDEX schemas
 2. **Business Rules Validation** - Checks ERN-specific rules and requirements
-3. **Schematron Profile Validation** - Validates profile-specific requirements (AudioAlbum, Video, etc.)
+3. **Schematron Profile Validation** - Validates profile-specific requirements (AudioAlbum, AudioSingle, Video, Mixed, or ReleaseByRelease for 3.8.2)
 
 ### SVRL Report Generation
 
@@ -130,22 +131,23 @@ const results = await client.validateBatch(files, {
 console.log(`Valid files: ${results.validFiles}/${results.totalFiles}`);
 ```
 
-### Profile Compliance Reports
+### Profile Compliance
 
-Get detailed compliance statistics for any profile:
+Validate with a profile and check the result:
 
 ```javascript
-const compliance = await validator.getProfileCompliance(
-  xmlContent,
-  '4.3',
-  'AudioAlbum'
-);
+const result = await client.validate(xmlContent, {
+  version: '4.3',
+  profile: 'AudioAlbum'
+});
 
-console.log(`Profile: ${compliance.profile}`);
-console.log(`Compliance Rate: ${compliance.complianceRate}%`);
-console.log(`Passed Rules: ${compliance.passedRules}`);
-console.log(`Failed Rules: ${compliance.failedRules}`);
+console.log(`Profile compliant: ${validator.getSchematronErrors(result).length === 0}`);
+console.log(`Errors: ${result.errors.length}, warnings: ${result.warnings.length}`);
 ```
+
+> **Deprecated:** `validator.getProfileCompliance()` and `validator.generateSummary()` always
+> report 0 passed rules and a 0% compliance rate, because the API doesn't return passed rules.
+> They log a one-time warning and will be removed in 2.0.
 
 ### Error Analysis
 
@@ -198,7 +200,7 @@ const fileResult = await client.validateFile(
 ## Supported Versions & Profiles
 
 ### ERN Versions
-- **ERN 4.3** (Latest - Recommended)
+- **ERN 4.3**
 - **ERN 4.2**
 - **ERN 3.8.2**
 
@@ -210,12 +212,15 @@ const fileResult = await client.validateFile(
 | AudioSingle | ✅ | ✅ | ✅ | Single track releases |
 | Video | ✅ | ✅ | ✅ | Music video releases |
 | Mixed | ✅ | ✅ | ✅ | Mixed media releases |
-| Classical | ✅ | ✅ | ✅ | Classical music releases |
-| Ringtone | ✅ | ✅ | ✅ | Ringtone releases |
-| DJ | ✅ | ✅ | ✅ | DJ mix releases |
 | ReleaseByRelease | ✅ | ❌ | ❌ | Release-by-release (3.8.2 only) |
 
 ## API Configuration
+
+### Getting an API key
+
+Sign in at [ddex-workbench.org](https://ddex-workbench.org) and create a key on the
+[API Keys page](https://ddex-workbench.org/api-keys). Keys are created and revoked there,
+not through the SDK.
 
 ### Authentication
 
@@ -242,11 +247,14 @@ const client = new DDEXClient({
   apiKey: 'ddex_your-api-key',
   baseURL: 'https://api.ddex-workbench.org/v1',  // Default
   timeout: 30000,  // 30 seconds
-  maxRetries: 3,
-  retryDelay: 1000,  // 1 second
+  maxRetries: 3,     // retries for network errors and 5xx responses
+  retryDelay: 1000,  // base backoff delay; grows exponentially with jitter, capped at 30 s
   environment: 'production'
 });
 ```
+
+In Node.js the SDK identifies itself with a `User-Agent` header (`ddex-workbench-sdk/<version>`).
+Browsers don't allow scripts to set `User-Agent`, so there it sends `X-Client` instead.
 
 ## TypeScript Support
 
@@ -268,8 +276,7 @@ const client = new DDEXClient();
 const options: ValidationOptions = {
   version: '4.3',
   profile: 'AudioAlbum',
-  generateSVRL: true,
-  verbose: true
+  generateSVRL: true
 };
 
 const result: ValidationResult = await client.validate(xmlContent, options);
@@ -296,7 +303,11 @@ try {
   const result = await client.validate(xmlContent, options);
 } catch (error) {
   if (error instanceof RateLimitError) {
+    // 429s are never retried automatically. retryAfter comes from the response
+    // body (error.retryAfter), falling back to the Retry-After header.
     console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);
+    // From the RateLimit-* headers, when the API exposes them
+    console.log(`Limit: ${error.limit}, remaining: ${error.remaining}`);
   } else if (error instanceof ValidationError) {
     console.log(`Validation error: ${error.getSummary()}`);
   } else if (error instanceof AuthenticationError) {
@@ -334,21 +345,15 @@ async function validateRelease(filePath) {
   // Validate with SVRL generation
   const result = await client.validateWithSVRL(xmlContent, {
     version,
-    profile,
-    verbose: true  // Include passed rules
+    profile
   });
-  
-  // Generate summary
-  const summary = validator.generateSummary(result);
   
   console.log('\n📊 Validation Summary:');
   console.log(`├─ Valid: ${result.valid ? '✅' : '❌'}`);
-  console.log(`├─ Compliance Rate: ${summary.complianceRate}%`);
-  console.log(`├─ Schema Compliant: ${summary.schemaCompliant ? '✅' : '❌'}`);
-  console.log(`├─ Profile Compliant: ${summary.profileCompliant ? '✅' : '❌'}`);
+  console.log(`├─ Schema Compliant: ${validator.getXSDErrors(result).length === 0 ? '✅' : '❌'}`);
+  console.log(`├─ Profile Compliant: ${validator.getSchematronErrors(result).length === 0 ? '✅' : '❌'}`);
   console.log(`├─ Errors: ${result.errors.length}`);
   console.log(`├─ Warnings: ${result.warnings.length}`);
-  console.log(`├─ Passed Rules: ${summary.passedRules}`);
   console.log(`└─ Processing Time: ${result.metadata.processingTime}ms`);
   
   // Show validation steps
@@ -404,11 +409,15 @@ validateRelease('./release.xml').catch(console.error);
 
 ## Browser Usage
 
-The SDK works in modern browsers with some limitations:
+The SDK works in modern browsers. With a bundler (Vite, webpack, etc.), import it as usual.
+Without one, the ES module build imports `axios` by name, so add an import map for it:
 
 ```html
+<script type="importmap">
+{ "imports": { "axios": "https://unpkg.com/axios@1/dist/esm/axios.min.js" } }
+</script>
 <script type="module">
-import { DDEXClient } from 'https://unpkg.com/@ddex-workbench/sdk/dist/index.mjs';
+import { DDEXClient } from 'https://unpkg.com/@ddex-workbench/sdk@1/dist/index.mjs';
 
 const client = new DDEXClient();
 const result = await client.validate(xmlContent, {

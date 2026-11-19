@@ -260,7 +260,7 @@
             v-model="localResource.pLineYear"
             type="text"
             class="form-input"
-            placeholder="2025"
+            :placeholder="String(currentYear)"
             maxlength="4"
             @input="updateResource"
           />
@@ -272,10 +272,10 @@
             v-model="localResource.pLineText"
             type="text"
             class="form-input"
-            :placeholder="`${localResource.pLineYear || '2025'} Label Name, a Company Name`"
+            :placeholder="`${localResource.pLineYear || currentYear} Label Name, a Company Name`"
             @input="updateResource"
           />
-          <p class="form-help">No (P) symbol. Format: "2025 Label Name"</p>
+          <p class="form-help">No (P) symbol. Format: "{{ currentYear }} Label Name"</p>
         </div>
       </div>
 
@@ -371,6 +371,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'update', 'remove'])
+
+// Used in the P line placeholders and format hint
+const currentYear = new Date().getFullYear()
 
 const localResource = ref({ ...props.modelValue })
 const previewStart = ref(30)
