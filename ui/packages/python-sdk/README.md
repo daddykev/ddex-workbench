@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 [![Python versions](https://img.shields.io/pypi/pyversions/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Documentation](https://img.shields.io/badge/docs-website-blue.svg)](https://ddex-workbench.org/docs)
+[![Documentation](https://img.shields.io/badge/docs-website-blue.svg)](https://ddex-workbench.org/api)
 
 Official Python SDK for [DDEX Workbench](https://ddex-workbench.org) - Open-source DDEX validation and processing tools for the music industry.
 
@@ -43,7 +43,7 @@ pip install ddex-workbench
 
 For development:
 ```bash
-pip install ddex-workbench[dev]
+pip install "ddex-workbench[dev]"
 ```
 
 ## Quick Start
@@ -375,7 +375,7 @@ profiles. Passing one to `validate()` emits a `DeprecationWarning`, and they wil
 ```bash
 # Clone repository
 git clone https://github.com/daddykev/ddex-workbench.git
-cd ddex-workbench/packages/python-sdk
+cd ddex-workbench/ui/packages/python-sdk
 
 # Install development dependencies
 pip install -e ".[dev]"
@@ -445,7 +445,6 @@ pytest --cov=ddex_workbench --cov-report=html
 
 ## Documentation
 
-- 📚 [Full Documentation](https://ddex-workbench.org/docs)
 - 🌐 [API Reference](https://ddex-workbench.org/api)
 - 📖 [DDEX Standards](https://kb.ddex.net)
 
@@ -465,9 +464,9 @@ We welcome contributions! Please see our [Contributing Guide](https://github.com
 ## Support
 
 - 💬 [GitHub Issues](https://github.com/daddykev/ddex-workbench/issues) - Bug reports and feature requests
-- 📧 [Email Support](mailto:support@ddex-workbench.org) - Direct support
+- 📧 [Email](mailto:daddykev@gmail.com) - Direct support
 - 🌐 [Website](https://ddex-workbench.org) - Web application
-- 📚 [Documentation](https://ddex-workbench.org/docs) - Full documentation
+- 📚 [API Reference](https://ddex-workbench.org/api) - Endpoints, rate limits and code samples
 
 ## License
 

@@ -226,8 +226,8 @@ not through the SDK.
 
 API keys are optional but recommended for production use:
 
-- **Without API key**: 10 requests/minute
-- **With API key**: 60 requests/minute
+- **Without an API key**: 10 requests/minute per IP address
+- **With an API key**: 60 requests/minute per key
 
 ```javascript
 // Set API key after initialization
@@ -431,13 +431,15 @@ const result = await client.validate(xmlContent, {
 
 ## API Rate Limits
 
-- **Anonymous**: 10 requests per minute
-- **Authenticated**: 60 requests per minute
+- **Anonymous**: 10 requests per minute per IP address
+- **With an API key**: 60 requests per minute per key
 - **Batch validation**: Counts as one request per file
+
+Responses carry `RateLimit-*` headers; a 429 also carries `Retry-After`. Requests over 10 MB are rejected with a 413.
 
 ## Support
 
-- 📚 [Documentation](https://github.com/daddykev/ddex-workbench/tree/main/docs)
+- 📚 [API Reference](https://ddex-workbench.org/api)
 - 💬 [GitHub Issues](https://github.com/daddykev/ddex-workbench/issues)
 - 👨🏻‍💻 [Developer CV](https://ddex-workbench.org/developer)
 - 📧 [Developer Email](mailto:daddykev@gmail.com)

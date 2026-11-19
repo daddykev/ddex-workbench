@@ -39,6 +39,13 @@
 
 ## [1.0.2] - 2025-09-02
 
+> **Corrections (added 2026-11-19)**
+> - The server-side rules and SVRL support this release relies on went live on the API on 2025-09-05, after the release.
+> - Profile support is AudioAlbum, AudioSingle, Video and Mixed, plus ReleaseByRelease for ERN 3.8.2, not "all DDEX
+>   profiles". The API has no rules for Classical, Ringtone or DJ, and 1.1.0 removed them from `ERNProfile`.
+> - `validateFile()` was removed in 1.0.1 because it uploaded the file to an endpoint the API doesn't have. In 1.0.2 it
+>   came back as a Node.js-only method that reads the file locally and sends its content to `/validate`.
+
 ### Added
 - **Schematron Validation Support**: Full support for profile-specific validation using comprehensive built-in rules
   - Version-specific schematron rules for ERN 3.8.2, 4.2, and 4.3
@@ -119,3 +126,7 @@
 
 ### Changed
 - Updated User-Agent version to 1.0.1
+
+[1.1.0]: https://github.com/daddykev/ddex-workbench/compare/js-sdk-v1.0.2...js-sdk-v1.1.0
+[1.0.2]: https://github.com/daddykev/ddex-workbench/compare/js-sdk-v1.0.1...js-sdk-v1.0.2
+[1.0.1]: https://github.com/daddykev/ddex-workbench/tree/js-sdk-v1.0.1/packages/sdk

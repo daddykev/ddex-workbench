@@ -130,6 +130,12 @@
             {{ rateLimitMessage }}
           </div>
 
+          <!-- Placeholder notice (only the placeholders this message uses) -->
+          <div v-if="placeholderWarning" class="placeholder-warning" role="note">
+            <font-awesome-icon :icon="['fas', 'exclamation-triangle']" />
+            <span>{{ placeholderWarning }}</span>
+          </div>
+
           <!-- XML Preview -->
           <div class="xml-preview" v-if="ernXml">
             <pre><code v-html="highlightedXml"></code></pre>
@@ -228,6 +234,35 @@ const highlightedXml = computed(() => {
     .replace(/(\w+)=/g, '<span class="xml-attr">$1</span>=')
     .replace(/"([^"]*)"/g, '"<span class="xml-value">$1</span>"')
     .replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>')
+})
+
+// Names the placeholder values the current message uses, or '' when there are none
+const placeholderWarning = computed(() => {
+  if (!ernXml.value) return ''
+
+  const used = Object.fromEntries(
+    ernBuilder.getPlaceholders(product.value, resources.value).map(p => [p.field, p.value])
+  )
+  const parts = []
+
+  if (used.senderDPID && used.recipientDPID) {
+    parts.push(`party IDs ${used.senderDPID}/${used.recipientDPID.slice(-1)}`)
+  } else if (used.senderDPID || used.recipientDPID) {
+    parts.push(`party ID ${used.senderDPID || used.recipientDPID}`)
+  }
+
+  if (used.senderName && used.recipientName) {
+    parts.push(`sender and recipient names "${used.senderName}" and "${used.recipientName}"`)
+  } else if (used.senderName) {
+    parts.push(`sender name "${used.senderName}"`)
+  } else if (used.recipientName) {
+    parts.push(`recipient name "${used.recipientName}"`)
+  }
+
+  if (used.genre) parts.push(`genre "${used.genre}"`)
+
+  if (parts.length === 0) return ''
+  return `This message uses placeholder values (${parts.join(', ')}). Replace them before sending to a real recipient.`
 })
 
 // Methods
@@ -753,6 +788,26 @@ const validateERN = async () => {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+/* Placeholder notice above the XML preview */
+.placeholder-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin: var(--space-md) var(--space-lg) 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-warning);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.placeholder-warning svg {
+  color: var(--color-warning);
+  margin-top: 2px;
 }
 
 /* XML Preview */

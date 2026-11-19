@@ -44,6 +44,13 @@ All notable changes to the DDEX Workbench Python SDK will be documented in this 
 
 ## [1.0.2] - 2025-09-02
 
+> **Corrections (added 2026-11-19)**
+> - The server-side rules and SVRL support this release relies on went live on the API on 2025-09-05, after the release.
+> - Profile support is AudioAlbum, AudioSingle, Video and Mixed, plus ReleaseByRelease for ERN 3.8.2, not "all DDEX
+>   profiles". The API has no rules for Classical, Ringtone or DJ; 1.1.0 deprecated those `ERNProfile` members.
+> - `validate_file()` was removed in 1.0.1 because it uploaded the file to `/api/validate/file`, which the API doesn't
+>   have. In 1.0.2 it came back on `client.validator`, reading the file locally and sending its content to `/validate`.
+
 ### Added
 - **Schematron Validation Support**: Full support for profile-specific validation using comprehensive built-in rules
   - Version-specific schematron rules for ERN 3.8.2, 4.2, and 4.3
@@ -133,6 +140,7 @@ All notable changes to the DDEX Workbench Python SDK will be documented in this 
 - Rate limiting and retry logic
 - API key management
 
-[1.0.2]: https://github.com/daddykev/ddex-workbench/releases/tag/python-sdk-v1.0.2
-[1.0.1]: https://github.com/daddykev/ddex-workbench/releases/tag/python-sdk-v1.0.1
-[1.0.0]: https://github.com/daddykev/ddex-workbench/releases/tag/python-sdk-v1.0.0
+[1.1.0]: https://github.com/daddykev/ddex-workbench/compare/python-sdk-v1.0.2...python-sdk-v1.1.0
+[1.0.2]: https://github.com/daddykev/ddex-workbench/compare/python-sdk-v1.0.1...python-sdk-v1.0.2
+[1.0.1]: https://github.com/daddykev/ddex-workbench/tree/python-sdk-v1.0.1/packages/python-sdk
+[1.0.0]: https://pypi.org/project/ddex-workbench/1.0.0/

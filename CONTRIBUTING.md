@@ -1,10 +1,10 @@
 # Contributing to DDEX Workbench
 
-First off, thank you for considering contributing to DDEX Workbench! It's people like you that make DDEX Workbench such a great tool for the music industry.
+Thank you for considering contributing to DDEX Workbench, an open-source DDEX ERN validator for the music industry, live at [ddex-workbench.org](https://ddex-workbench.org).
 
 ## Code of Conduct
 
-By participating in this project, you are expected to uphold our Code of Conduct:
+By participating in this project, you are expected to:
 
 - Use welcoming and inclusive language
 - Be respectful of differing viewpoints and experiences
@@ -12,124 +12,123 @@ By participating in this project, you are expected to uphold our Code of Conduct
 - Focus on what is best for the community
 - Show empathy towards other community members
 
-## How Can I Contribute?
+## How can I contribute?
 
-### Reporting Bugs
+### Reporting bugs
 
-Before creating bug reports, please check existing issues as you might find out that you don't need to create one. When you are creating a bug report, please include as many details as possible:
+Check the existing [issues](https://github.com/daddykev/ddex-workbench/issues) first. When you open a bug report, include:
 
-- **Use a clear and descriptive title**
-- **Describe the exact steps to reproduce the problem**
-- **Provide specific examples to demonstrate the steps**
-- **Describe the behavior you observed after following the steps**
-- **Explain which behavior you expected to see instead and why**
-- **Include screenshots and animated GIFs if possible**
-- **Include your environment details** (OS, browser, Node.js version)
+- A clear, descriptive title
+- The exact steps to reproduce the problem, with a sample ERN message if relevant (remove any confidential data)
+- What you observed, and what you expected instead
+- Screenshots, if they help
+- Your environment: OS, browser, Node.js or Python version, and SDK version
 
-### Suggesting Enhancements
+### Suggesting enhancements
 
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion, please include:
+Enhancement suggestions are tracked as [GitHub issues](https://github.com/daddykev/ddex-workbench/issues). Describe the current behaviour, the behaviour you'd like, and why it would be useful.
 
-- **Use a clear and descriptive title**
-- **Provide a step-by-step description of the suggested enhancement**
-- **Provide specific examples to demonstrate the steps**
-- **Describe the current behavior and explain which behavior you expected to see instead**
-- **Explain why this enhancement would be useful**
+### Pull requests
 
-### Pull Requests
+1. Fork the repository and create your branch from `main`.
+2. Keep changes focused. If you change behaviour, update the relevant docs.
+3. Run the tests for the package you changed (see [Testing](#testing)).
+4. Follow the existing code style.
+5. Open the pull request.
 
-1. Fork the repo and create your branch from `main`
-2. If you've added code that should be tested, add tests
-3. If you've changed APIs, update the documentation
-4. Ensure the test suite passes
-5. Make sure your code follows the existing code style
-6. Issue that pull request!
+## Development
 
-## Development Process
+### Setting up
 
-### Setting Up Your Development Environment
+See [docs/SETUP.md](docs/SETUP.md). Note that `/validate` needs the validation rule files, which are private and not part of this repository. Without them, `/validate` returns 503, and the rest of the app and API works.
 
-See [docs/SETUP.md](docs/SETUP.md) for detailed setup instructions.
+### Project structure
 
-### Project Structure
 ```
 ddex-workbench/
-├── src/               # Vue 3 application
-├── functions/         # Firebase Cloud Functions
-├── docs/              # Documentation
-└── tests/             # Test files
+├── cloudflare/
+│   └── worker.js      # Worker in front of api.ddex-workbench.org
+├── docs/              # Blueprint and setup guide
+└── ui/
+    ├── src/           # Vue 3 application
+    ├── functions/     # Firebase Cloud Functions (Express API and validators)
+    ├── packages/
+    │   ├── sdk/         # JavaScript/TypeScript SDK (@ddex-workbench/sdk)
+    │   └── python-sdk/  # Python SDK (ddex-workbench)
+    └── public/        # Static assets
 ```
 
-### Coding Standards
+See [docs/blueprint.md](docs/blueprint.md) for the full tree and architecture.
 
-#### JavaScript/Vue
-- Use Vue 3 Composition API
-- Follow ESLint configuration
-- Use meaningful variable and function names
-- Add JSDoc comments for functions
-- Keep components small and focused
+### Coding standards
 
-#### CSS
-- Follow the existing CSS architecture (see blueprint.md)
-- Use CSS custom properties from themes.css
-- Prefer utility classes from components.css
-- Mobile-first responsive design
-- Maintain light/dark theme support
+**JavaScript/Vue**
+- Use the Vue 3 Composition API (`<script setup>`).
+- Match the style of the surrounding code. The app and functions have no linter configuration.
+- Use meaningful names, and add JSDoc comments to exported functions.
+- Keep components small and focused.
 
-#### Commits
-- Use clear, descriptive commit messages
-- Follow conventional commits format:
-  - `feat:` New feature
-  - `fix:` Bug fix
-  - `docs:` Documentation changes
-  - `style:` Code style changes (formatting, etc)
-  - `refactor:` Code refactoring
-  - `test:` Adding or updating tests
-  - `chore:` Maintenance tasks
+**CSS**
+- Follow the CSS architecture in [docs/blueprint.md](docs/blueprint.md#css-architecture).
+- Use the custom properties from `ui/src/assets/themes.css`, and the classes from `ui/src/assets/components.css`.
+- Design mobile-first, and keep both the light and dark themes working.
 
-Example: `feat: add ERN 4.3 validation support`
+**Commits**
+
+Use [conventional commits](https://www.conventionalcommits.org/):
+- `feat:` a new feature
+- `fix:` a bug fix
+- `docs:` documentation
+- `style:` formatting
+- `refactor:` refactoring
+- `test:` tests
+- `chore:` maintenance
+
+Example: `fix: report the line number for XSD parser errors`
 
 ### Testing
 
-- Write unit tests for validation logic
-- Add integration tests for API endpoints
-- Test UI components with different screen sizes
-- Verify light/dark theme compatibility
+The test suites live in the SDKs:
+
+**JavaScript SDK** (vitest):
+```bash
+cd ui/packages/sdk
+npm install
+npm test
+```
+
+**Python SDK** (pytest):
+```bash
+cd ui/packages/python-sdk
+pip install -e ".[dev]"
+pytest
+```
+
+The Python SDK's integration tests call the live API. They are skipped unless you set `DDEX_INTEGRATION_TEST=true`:
+```bash
+DDEX_INTEGRATION_TEST=true pytest tests/test_integration.py
+```
+
+The web app and the Cloud Functions have no automated test suite. Test those changes by hand:
+- Run the app and the emulators (see [docs/SETUP.md](docs/SETUP.md)).
+- Validate sample messages for each ERN version you touched.
+- Check the UI at several screen sizes, in both the light and dark themes.
 
 ### Documentation
 
-- Update README.md if adding new features
-- Add JSDoc comments to new functions
-- Update API.md for new endpoints
-- Include inline comments for complex logic
+- Update `README.md` when you add or change a user-facing feature.
+- Document API changes in `ui/src/views/ApiDocsView.vue`, the live reference at [ddex-workbench.org/api](https://ddex-workbench.org/api).
+- Update the SDK `README.md` and `CHANGELOG.md` when you change an SDK.
+- Add comments for complex logic.
 
-## Community
+## Questions and discussion
 
-### Communication Channels
+Use [GitHub Issues](https://github.com/daddykev/ddex-workbench/issues) for bug reports, feature requests and questions. Add the `question` label to questions.
 
-- **GitHub Issues**: Bug reports and feature requests
-- **Discord**: [Join our community](https://discord.gg/ddex-workbench)
-- **GitHub Discussions**: General discussions and questions
+## Release process
 
-### Recognition
-
-Contributors will be recognized in:
-- The project README
-- Release notes
-- Our website (coming soon)
-
-## Release Process
-
-1. Features are developed in feature branches
-2. Pull requests are reviewed by maintainers
-3. Approved changes are merged to `main`
-4. Releases are tagged following semantic versioning
-
-## Questions?
-
-Don't hesitate to ask questions! You can:
-- Open an issue with the `question` label
-- Ask in our Discord server
-- Start a GitHub Discussion
+1. Features are developed on branches and merged to `main` through reviewed pull requests.
+2. The app and API are deployed from `main` (see [Deployment](docs/blueprint.md#deployment)).
+3. SDK releases follow semantic versioning and are tagged `js-sdk-vX.Y.Z` or `python-sdk-vX.Y.Z` (see [Releasing the SDKs](docs/blueprint.md#releasing-the-sdks)).
 
 Thank you for contributing! 🎵

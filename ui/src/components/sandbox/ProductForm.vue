@@ -64,6 +64,56 @@
       />
     </div>
 
+    <!-- Message header parties (placeholders are used when empty) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Sender DPID (Optional)</label>
+        <input
+          v-model="localProduct.senderDPID"
+          type="text"
+          class="form-input"
+          placeholder="PADPIDA0000000000S"
+          @input="updateProduct"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Sender Name (Optional)</label>
+        <input
+          v-model="localProduct.senderName"
+          type="text"
+          class="form-input"
+          placeholder="DDEX Workbench Sandbox"
+          @input="updateProduct"
+        />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Recipient DPID (Optional)</label>
+        <input
+          v-model="localProduct.recipientDPID"
+          type="text"
+          class="form-input"
+          placeholder="PADPIDA0000000000R"
+          @input="updateProduct"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Recipient Name (Optional)</label>
+        <input
+          v-model="localProduct.recipientName"
+          type="text"
+          class="form-input"
+          placeholder="Test Recipient"
+          @input="updateProduct"
+        />
+      </div>
+    </div>
+    <p class="form-help">MessageSender and MessageRecipient. DDEX Party IDs start with PADPIDA.</p>
+
     <!-- Metadata -->
     <div class="form-section-header">Metadata</div>
 

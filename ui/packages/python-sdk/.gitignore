@@ -80,7 +80,7 @@ temp/
 # ... existing content ...
 
 # Local test files (not part of official test suite)
-test_integration.py
+/test_integration.py
 test_integration_robust.py
 test_v102_features.py
 test_all.py

@@ -1,292 +1,175 @@
 # DDEX Workbench Setup Guide
 
-This guide will help you set up DDEX Workbench for local development.
+This guide sets up DDEX Workbench for local development.
 
 ## Prerequisites
 
-- **Node.js** 18.0 or higher
-- **npm** 8.0 or higher (comes with Node.js)
-- **Firebase CLI** (`npm install -g firebase-tools`)
-- **Git**
-- A **Google account** (for Firebase)
-- A code editor (we recommend VS Code)
+- **Node.js 22+**: the app requires `>=22.12.0`, and the functions run on Node 22
+- **Firebase CLI**: `npm install -g firebase-tools`
+- **Java**: required by the Firestore and Auth emulators
+- **Python 3.10+**: only if you work on the Python SDK
+- **Git**, and a **Google account** for Firebase
 
-## Quick Start
-
-### 1. Clone the Repository
+## 1. Clone and install
 
 ```bash
-git clone https://github.com/ddex-workbench/ddex-workbench.git
-cd ddex-workbench
+git clone https://github.com/daddykev/ddex-workbench.git
+cd ddex-workbench/ui
+
+npm install                          # frontend
+cd functions && npm install && cd .. # Cloud Functions
 ```
 
-### 2. Install Dependencies
+The app lives under `ui/`. **Run all Firebase commands from `ui/`**, where `firebase.json` is.
 
-```bash
-# Install frontend dependencies
-npm install
+## 2. Firebase project
 
-# Install Firebase Functions dependencies
-cd functions
-npm install
-cd ..
-```
+The repository already contains the Firebase configuration in `ui/firebase.json`, so don't run `firebase init`. It sets up:
+- **Hosting**, serving `dist/` with SPA rewrites
+- **Functions**, from `functions/`
+- **Firestore**, using `firestore.rules` and `firestore.indexes.json`
+- **Storage**, using `storage.rules`, which denies all access
+- **Emulators**: Functions on port 5001, Firestore on 8080, Auth on 9099, and the Emulator UI
 
-### 3. Firebase Setup
+To use your own project:
+1. Create a project in the [Firebase Console](https://console.firebase.google.com), and enable **Authentication** (Email/Password and Google) and **Firestore**.
+2. Select the project (`.firebaserc` is gitignored):
+   ```bash
+   firebase login
+   firebase use --add
+   ```
 
-#### Create a Firebase Project
-
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Click "Create a project"
-3. Name it (e.g., "ddex-workbench-dev")
-4. Disable Google Analytics (optional for development)
-
-#### Initialize Firebase
-
-```bash
-# Login to Firebase
-firebase login
-
-# Initialize Firebase in your project
-firebase init
-```
-
-Select the following options:
-- **Functions**: Yes
-- **Firestore**: Yes
-- **Hosting**: Yes
-- **Storage**: Yes
-- **Emulators**: Yes
-
-When prompted:
-- Use an existing project and select your created project
-- Use JavaScript for Functions
-- Use default ports for emulators
-
-### 4. Environment Configuration
-
-Copy the example environment file:
+## 3. Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Get your Firebase configuration:
-1. Go to Firebase Console → Project Settings
-2. Under "Your apps", click "Web" icon to create a web app
-3. Copy the configuration values
-4. Update `.env` with your values:
+Fill in the web app config from Firebase Console → Project settings → Your apps:
 
 ```env
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
-VITE_API_BASE_URL=http://localhost:5001/your-project-id/us-central1
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
 ```
 
-### 5. Database Setup
+`VITE_API_BASE_URL` is optional and sets the API base URL that `ui/src/services/api.js` calls. When it's empty, the app uses `http://localhost:5001/ddex-workbench/us-central1/app` in development and `https://api.ddex-workbench.org/v1` in production builds. `ui/.env.production` sets it to `https://api.ddex-workbench.org/v1`, so builds go through the Cloudflare Worker. To point `npm run dev` at the Functions emulator explicitly:
 
-Deploy Firestore security rules:
+```env
+VITE_API_BASE_URL=http://127.0.0.1:5001/ddex-workbench/us-central1/app
+```
+
+## 4. Schemas and validation rules
+
+Validation needs two gitignored inputs in `ui/functions/`.
+
+**XSD schemas:**
 
 ```bash
-firebase deploy --only firestore:rules
+cd functions
+npm run schemas:download      # writes schemas/ern/<version>/
+npm run schemas:download -- --dry-run   # list what would be fetched
+cd ..
 ```
 
-Create indexes:
+DDEX no longer serves the ERN 3.8.2 schema, so that version fails to download. The script leaves any existing `schemas/ern/3.8.2/` in place, so keep a copy of it.
+
+**Validation rules:** the rule modules `functions/validators/rules/schematron-382.js`, `schematron-42.js` and `schematron-43.js` are private and not part of the repository. Copy them in if you have them. Without them, the function logs a startup error, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint (`/health`, `/formats`, `/keys`, `/deezer/*`) keeps working.
+
+## 5. Run locally
+
+In one terminal, from `ui/`, start the emulators:
 
 ```bash
-firebase deploy --only firestore:indexes
+firebase emulators:start --only functions,firestore,auth --project ddex-workbench
 ```
 
-### 6. Running the Development Environment
+- **Functions:** `http://127.0.0.1:5001/ddex-workbench/us-central1/app`
+- **Firestore:** `127.0.0.1:8080`
+- **Auth:** `127.0.0.1:9099`
+- **Emulator UI:** the URL printed at startup
 
-#### Start Firebase Emulators
+`--project ddex-workbench` makes the Functions URL match the development URL in `ui/src/services/api.js`. With another project ID, the function is served under that ID instead. In the emulated function, the Admin SDK uses the Firestore and Auth emulators.
 
-In one terminal:
-
-```bash
-firebase emulators:start
-```
-
-This starts:
-- Firestore emulator on `localhost:8080`
-- Functions emulator on `localhost:5001`
-- Auth emulator on `localhost:9099`
-- Storage emulator on `localhost:9199`
-
-#### Start the Vue Development Server
-
-In another terminal:
+In a second terminal, from `ui/`:
 
 ```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+The app runs at `http://localhost:5173`. The web app doesn't connect to the emulators itself: sign-in, snippets and profiles use the Firebase project in your `.env`, and API calls go to the Functions emulator.
 
-## Development Workflow
+To run only the Functions emulator, use `cd functions && npm run serve`.
 
-### Code Structure
+Check the API:
 
-```
-src/
-├── components/        # Reusable Vue components
-├── views/            # Page components
-├── services/         # API and Firebase services
-├── utils/            # Helper functions
-├── assets/           # CSS and static assets
-└── router/           # Vue Router configuration
+```bash
+curl http://127.0.0.1:5001/ddex-workbench/us-central1/app/health
+
+curl -X POST -H "Content-Type: application/xml" --data-binary @release.xml \
+  "http://127.0.0.1:5001/ddex-workbench/us-central1/app/validate?version=4.3&profile=AudioAlbum"
 ```
 
-### Making Changes
+## npm scripts
 
-1. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+| Location | Script | What it does |
+|---|---|---|
+| `ui/` | `npm run dev` | Vite dev server |
+| | `npm run build` | Production build into `ui/dist` |
+| | `npm run preview` | Serve the production build locally |
+| `ui/functions/` | `npm run serve` | Functions emulator only |
+| | `npm run shell` / `npm start` | Functions shell |
+| | `npm run deploy` | `firebase deploy --only functions` |
+| | `npm run logs` | `firebase functions:log` |
+| | `npm run schemas:download` | Download the DDEX XSDs |
+| `ui/packages/sdk/` | `npm run build` / `npm run dev` | tsup build, or watch mode |
+| | `npm test` / `npm run test:coverage` | vitest |
 
-2. Make your changes following the coding standards
+There is no test or lint script for the app or the functions.
 
-3. Test your changes:
-   ```bash
-   npm run test        # Run tests
-   npm run lint        # Check code style
-   ```
+## Where things live
 
-4. Commit using conventional commits:
-   ```bash
-   git commit -m "feat: add new validation rule"
-   ```
+| Task | Location |
+|---|---|
+| API routes | `ui/functions/api/` (`validate.js`, `keys.js`, `deezer.js`), mounted in `ui/functions/index.js` |
+| Auth and rate-limit middleware | `ui/functions/middleware/` |
+| Validators | `ui/functions/validators/` |
+| Frontend API client | `ui/src/services/api.js` |
+| Pages and routes | `ui/src/views/`, `ui/src/router/index.js` |
+| Styles and themes | `ui/src/assets/` (`themes.css` holds the design tokens) |
+| API reference page | `ui/src/views/ApiDocsView.vue` (served at `/api`) |
+| API edge proxy | `cloudflare/worker.js` (at the repository root) |
 
-### CSS Development
+### Adding an API endpoint
 
-Our CSS architecture uses:
-- **Custom Properties**: Edit `assets/themes.css` for design tokens
-- **Utility Classes**: Use existing classes from `assets/components.css`
-- **Component Styles**: Scoped styles in Vue components
-
-Theme testing:
-```javascript
-// Toggle theme in browser console
-document.documentElement.setAttribute('data-theme', 'dark')
-```
-
-## Common Tasks
-
-### Adding a New API Endpoint
-
-1. Create function in `functions/src/api/`:
-   ```javascript
-   // functions/src/api/myEndpoint.js
-   exports.myEndpoint = async (req, res) => {
-     // Your logic here
-   };
-   ```
-
-2. Export from `functions/index.js`:
-   ```javascript
-   exports.myEndpoint = functions.https.onRequest(api.myEndpoint);
-   ```
-
-3. Add to frontend API service:
-   ```javascript
-   // src/services/api.js
-   export const myApiCall = async (data) => {
-     const response = await apiClient.post('/myEndpoint', data);
-     return response.data;
-   };
-   ```
-
-### Adding a New Vue Component
-
-1. Create component file:
-   ```vue
-   <!-- src/components/MyComponent.vue -->
-   <template>
-     <div class="my-component">
-       <!-- Your template -->
-     </div>
-   </template>
-
-   <script setup>
-   // Your logic
-   </script>
-
-   <style scoped>
-   /* Your styles */
-   </style>
-   ```
-
-2. Import and use in parent component:
-   ```vue
-   <script setup>
-   import MyComponent from '@/components/MyComponent.vue'
-   </script>
-   ```
+1. Add an Express router in `ui/functions/api/`.
+2. Mount it in `ui/functions/index.js` under both `/<name>` and `/api/<name>`. Add `validationGuards` if it should be rate limited.
+3. Call it from `ui/src/services/api.js`.
+4. Document it in `ui/src/views/ApiDocsView.vue`.
 
 ## Troubleshooting
 
-### Firebase Emulators Won't Start
-
-- Check if ports are already in use
-- Kill any existing processes:
-  ```bash
-  lsof -ti:8080,5001,9099,9199 | xargs kill -9
-  ```
-
-### CSS Not Updating
-
-- Clear browser cache
-- Check that Vite HMR is working
-- Restart dev server if needed
-
-### Authentication Issues
-
-- Ensure Auth emulator is running
-- Check `.env` configuration
-- Clear browser localStorage
-
-### Build Errors
-
-- Delete `node_modules` and reinstall:
-  ```bash
-  rm -rf node_modules package-lock.json
-  npm install
-  ```
+- **Emulator ports in use:** `lsof -ti:5001,8080,9099 | xargs kill -9`
+- **`/validate` returns 503:** the rule modules are missing from `ui/functions/validators/rules/`.
+- **XSD errors about missing schema files:** run `npm run schemas:download` in `ui/functions`, and restore `schemas/ern/3.8.2/` from a backup.
+- **Auth problems in development:** check the `.env` values, and that the project allows sign-in from `localhost`.
+- **Build errors:** delete `node_modules` and `package-lock.json`, then run `npm install` again.
 
 ## Deployment
 
-### Building for Production
+See [Deployment in the blueprint](blueprint.md#deployment). In short: when `cloudflare/worker.js` changes, paste its full contents into the Cloudflare dashboard (Workers & Pages → `ddex-api-proxy` → Edit code → Deploy). The file in the repository is the source of truth, and the Worker's attachment to `api.ddex-workbench.org` is configured in the dashboard. Then, from `ui/`, run `firebase deploy --only functions`, then `npm run build && firebase deploy --only hosting`.
 
-```bash
-npm run build
-```
+## Resources
 
-### Deploy to Firebase
-
-```bash
-firebase deploy
-```
-
-To deploy specific services:
-```bash
-firebase deploy --only hosting
-firebase deploy --only functions
-firebase deploy --only firestore
-```
-
-## Additional Resources
-
-- [Vue 3 Documentation](https://vuejs.org/)
-- [Firebase Documentation](https://firebase.google.com/docs)
+- [Technical blueprint](blueprint.md)
+- [API reference](https://ddex-workbench.org/api)
 - [DDEX Knowledge Base](https://kb.ddex.net/)
-- [Project Blueprint](../blueprint.md)
+- [Vue 3](https://vuejs.org/) and [Firebase](https://firebase.google.com/docs) documentation
 
-## Need Help?
+## Need help?
 
-- Check existing [GitHub Issues](https://github.com/ddex-workbench/ddex-workbench/issues)
-- Join our [Discord community](https://discord.gg/ddex-workbench)
-- Email us at support@ddex-workbench.org
+Open an issue on [GitHub Issues](https://github.com/daddykev/ddex-workbench/issues), or email daddykev@gmail.com.

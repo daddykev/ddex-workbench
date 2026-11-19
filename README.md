@@ -2,543 +2,269 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-v9-FFA000.svg)](https://firebase.google.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-v12-FFA000.svg)](https://firebase.google.com/)
 [![npm version](https://img.shields.io/npm/v/@ddex-workbench/sdk.svg)](https://www.npmjs.com/package/@ddex-workbench/sdk)
 [![PyPI version](https://img.shields.io/pypi/v/ddex-workbench.svg)](https://pypi.org/project/ddex-workbench/)
 
-> Modern, open-source DDEX validation tools for the music industry.
+> Open-source DDEX ERN validation tools for the music industry.
 
 **Live at: [https://ddex-workbench.org](https://ddex-workbench.org)**
 
-## 🎉 Version 1.0.2 Released!
+DDEX Workbench is a web-based validator and public API for DDEX ERN (Electronic Release Notification) messages, with official JavaScript/TypeScript and Python SDKs. It aims to make DDEX implementation accessible to everyone, from independent artists to major labels.
 
-Major enhancements now available in both SDKs:
-- **🆕 SVRL Report Generation** - Detailed Schematron Validation Report Language output
-- **🆕 Auto-Detection** - Automatic ERN version and profile detection
-- **🆕 Concurrent Processing** - Parallel batch validation with configurable workers
-- **🆕 Profile Compliance** - Detailed compliance statistics and reporting
-- **🆕 Advanced Error Filtering** - Type-based error categorization and analysis
-- **🎯 648 Validation Rules** - Comprehensive rule coverage across all ERN versions
+## Features
 
-## 📊 Validation Engine Statistics
+### ERN versions and profiles
+- **ERN 4.3** (recommended), **ERN 4.2** and **ERN 3.8.2**
+- **Profiles:** AudioAlbum, AudioSingle, Video and Mixed, plus ReleaseByRelease for ERN 3.8.2 only
 
-Our proprietary rule generation technology provides industry-leading validation coverage:
+### Validation pipeline
+Each request runs these stages in order:
+1. **XSD schema validation** against the official DDEX schemas, using WebAssembly-based `xmllint-wasm`. If the XML isn't well-formed, validation stops here.
+2. **Business rules**: ERN-specific checks such as cross-references between resources, releases, parties and deals, identifier formats (ISRC), durations, dates and territory codes.
+3. **Version-specific rules**, whenever a profile is given: 648 version-specific rules generated from the official DDEX XSD schemas via DDEX Rosetta; the rule files are not part of this repository.
+4. **SVRL report**, only when requested (`generateSVRL`).
 
-### 🚀 By The Numbers
-- **648** Total validation rules generated
-- **2,231** XML elements analyzed across all ERN versions
-- **606** Complex type definitions processed
-- **8.4MB** Official DDEX XSD schemas comprehensively analyzed
-- **8** Distinct validation categories per version
+Warnings are reported separately from errors, and `valid` reflects errors only.
 
-### 📈 Version-Specific Coverage
-| ERN Version | Rules | Elements | Complex Types |
-|-------------|-------|----------|---------------|
-| **3.8.2** | 236 | 850 | 212 |
-| **4.2** | 191 | 662 | 190 |
-| **4.3** | 221 | 719 | 204 |
+### Web validator
+- Three input methods: file upload, paste XML, or load from URL
+- Optional real-time validation while you type
+- Errors grouped by line, type or severity, with links to the DDEX Knowledge Base
+- A timeline showing the duration of each validation stage
+- JSON and text report downloads, plus SVRL view, copy and download
+- Light, dark and auto themes
 
-## 🎯 Vision
+### ERN Sandbox
+For signed-in users. It builds ERN 4.3 messages from interactive forms:
+- Imports release metadata from Deezer by UPC/EAN, including the track listing, ISRCs and durations
+- Starts from scratch or from Audio Single, Audio Album or Video templates
+- Generates valid ERN 4.3 XML as you edit, using placeholder party IDs (DPIDs) for the message sender and recipient
+- Validates the generated message in one click
 
-DDEX Workbench democratizes access to the digital music supply chain by providing web-based, collaborative tools that lower the barrier to entry for DDEX implementation. From independent artists to major labels, our tools make DDEX standards accessible to everyone.
+### Accounts and community
+- Email/password and Google sign-in, with password reset
+- API keys for programmatic access, managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys)
+- A community library of ERN snippets
 
-## 🚀 Project Overview
+## Public API
 
-A production-ready web-based ERN validator supporting multiple versions with comprehensive validation and API access.
+**Base URL:** `https://api.ddex-workbench.org/v1`
 
-**Why it matters:**
-- DDEX is mandating migration to ERN 4.3 by March 2026
-- Zero maintained open-source tools currently support ERN 4.3
-- The industry needs accessible validation tools
+### Quickstart
 
-### Current Features (Production-Ready)
+Validate a minimal ERN 4.3 message with a single raw-XML request:
 
-#### ✅ Multi-Version ERN Support
-- **ERN 4.3** - Latest standard (recommended)
-- **ERN 4.2** - Previous ERN 4.x version
-- **ERN 3.8.2** - Legacy support with migration hints
-- **Profile validation** - AudioAlbum, AudioSingle, Video, Mixed, Classical, Ringtone, DJ
+```bash
+curl -X POST "https://api.ddex-workbench.org/v1/validate?version=4.3" -H "Content-Type: application/xml" -d '<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/43" AvsVersionId="9" LanguageAndScriptCode="en"><MessageHeader><MessageId>MSG-0001</MessageId><MessageSender><PartyId>PADPIDA0000000000S</PartyId></MessageSender><MessageRecipient><PartyId>PADPIDA0000000000R</PartyId></MessageRecipient><MessageCreatedDateTime>2026-01-01T00:00:00Z</MessageCreatedDateTime></MessageHeader><PartyList><Party><PartyReference>P1</PartyReference><PartyName><FullName>Example Artist</FullName></PartyName></Party><Party><PartyReference>P2</PartyReference><PartyName><FullName>Example Label</FullName></PartyName></Party></PartyList><ResourceList><SoundRecording><ResourceReference>A1</ResourceReference><Type>MusicalWorkSoundRecording</Type><SoundRecordingEdition><ResourceId><ISRC>USRC17607839</ISRC></ResourceId></SoundRecordingEdition><DisplayTitleText>Example Track</DisplayTitleText><DisplayTitle><TitleText>Example Track</TitleText></DisplayTitle><DisplayArtistName>Example Artist</DisplayArtistName><DisplayArtist><ArtistPartyReference>P1</ArtistPartyReference><DisplayArtistRole>MainArtist</DisplayArtistRole></DisplayArtist><Duration>PT3M30S</Duration><ParentalWarningType>NotExplicit</ParentalWarningType></SoundRecording></ResourceList><ReleaseList><Release><ReleaseReference>R0</ReleaseReference><ReleaseType>Single</ReleaseType><ReleaseId><ICPN>00000000000000</ICPN></ReleaseId><DisplayTitleText>Example Single</DisplayTitleText><DisplayTitle><TitleText>Example Single</TitleText></DisplayTitle><DisplayArtistName>Example Artist</DisplayArtistName><DisplayArtist><ArtistPartyReference>P1</ArtistPartyReference><DisplayArtistRole>MainArtist</DisplayArtistRole></DisplayArtist><ReleaseLabelReference>P2</ReleaseLabelReference><Genre><GenreText>Pop</GenreText></Genre><ParentalWarningType>NotExplicit</ParentalWarningType><ResourceGroup><ResourceGroupContentItem><ReleaseResourceReference>A1</ReleaseResourceReference></ResourceGroupContentItem></ResourceGroup></Release></ReleaseList><DealList><ReleaseDeal><DealReleaseReference>R0</DealReleaseReference><Deal><DealTerms><TerritoryCode>Worldwide</TerritoryCode><ValidityPeriod><StartDate>2026-01-01</StartDate></ValidityPeriod><CommercialModelType>SubscriptionModel</CommercialModelType><UseType>OnDemandStream</UseType></DealTerms></Deal></ReleaseDeal></DealList></ern:NewReleaseMessage>'
+```
 
-#### ✅ Enhanced Three-Stage Validation Pipeline (v1.0.2)
-- **XSD Schema Validation** - WebAssembly-based validation using xmllint-wasm v5.x
-  - No native dependencies, works everywhere
-  - Pre-downloaded schemas for offline validation
-  - Memory-optimized for large DDEX schemas
-- **Business Rules** - ERN-specific requirement checking
-  - Cross-reference validation (Resource, Release, Party, Deal)
-  - Date chronology and territory code validation
-  - ISRC, duration, and language code formats
-- **Enhanced Schematron** - 648 comprehensive profile-specific validation rules
-  - SVRL report generation for compliance documentation
-  - Auto-detection of ERN version and profile
-  - Profile compliance statistics and scoring
+### Request formats
 
-#### ✅ Advanced Validation Features
+`POST /validate` accepts two formats:
 
-**Cross-Reference Validation**
-- ResourceReference → Resource mappings
-- ReleaseResourceReference → Release connections
-- PartyReference → Party relationships
-- DealReleaseReference → Deal integrity
+- **JSON body** (`Content-Type: application/json`): `{ "content": "<xml…>", "type": "ERN", "version": "4.3", "profile": "AudioAlbum", "generateSVRL": true }`
+- **Raw XML** (`Content-Type: application/xml` or `text/xml`): the message is the request body, and `type`, `version`, `profile` and `generateSVRL` are query parameters, for example `/validate?version=4.3&profile=AudioAlbum`.
 
-**Business Logic Validation**
-- Deal date chronology (StartDate < EndDate)
-- Territory code validation (ISO 3166-1)
-- Commercial model compatibility
-- Rights delegation chain verification
-- Release date consistency across territories
+`version` is required. `type` defaults to `ERN`. In a JSON request, body fields take precedence over query parameters.
 
-**Format-Specific Validators**
-- ISRC: Country code, registrant, year, and designation code
-- Duration: ISO 8601 format (PT3M45S pattern)
-- Date/DateTime: Full ISO 8601 compliance
-- Language codes: ISO 639-2/B validation
+### Rate limits
 
-#### ✅ Modern Web Interface
-- **Three input methods**: File upload, paste XML, or load from URL
-- **Real-time validation** as you type (with debouncing)
-- **Advanced options**: Validation mode, strict mode, reference checking
-- **Enhanced error display**:
-  - Grouped by line/type/severity
-  - Collapsible error sections
-  - Searchable and filterable
-  - Error context with XML snippets
-  - Direct links to DDEX Knowledge Base
-  - Advanced error categorization (v1.0.2)
-- **Validation steps visualization**: Shows timing for each validation stage
-- **Export capabilities**:
-  - JSON report download
-  - Text report download
-  - **SVRL report download** (v1.0.2)
-  - Copy summary to clipboard
-  - Share results functionality
-- **Theme system** with light/dark/auto modes
-- **Fully responsive** for all devices
+| Caller | Limit | Counted per |
+|---|---|---|
+| Anonymous | 10 requests/minute | IP address |
+| API key (`X-API-Key` header) | 60 requests/minute | key |
+| Signed-in web user (Firebase ID token) | 60 requests/minute | account |
 
-#### ✅ BETA: ERN Sandbox with Deezer Integration
-- **Interactive form-based ERN creation** - Visual message builder
-- **Deezer metadata import** - Import real album data by UPC/EAN
-  - Automatic track listing with durations
-  - ISRC batch retrieval with rate limiting
-  - Instant population of all required fields
-- **Real-time XML generation** - See ERN XML as you type
-- **Templates** - Pre-filled for Audio Single, Audio Album, Music Video
-- **Integrated validation** - One-click validation of generated messages
+An API key takes precedence over a sign-in token. Responses carry `RateLimit-*` headers, and a 429 also carries `Retry-After`. Requests larger than 10 MB are rejected with a 413.
 
-## 📦 JavaScript/TypeScript SDK
+The full reference (endpoints, response format, error codes and code samples) is at **[ddex-workbench.org/api](https://ddex-workbench.org/api)**.
 
-### Installation
+## SDKs
+
+Both SDKs are at 1.1.0. API keys are managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys), not through the SDKs.
+
+### JavaScript/TypeScript
+
 ```bash
 npm install @ddex-workbench/sdk
 ```
 
-### Quick Example with v1.0.2 Features
+Requires Node.js 22 or later, or a modern browser.
+
 ```javascript
+import fs from 'node:fs';
 import { DDEXClient } from '@ddex-workbench/sdk';
 
 const client = new DDEXClient({
-  apiKey: 'ddex_your-api-key' // Optional - for higher rate limits
+  apiKey: 'ddex_your-api-key' // Optional: raises the rate limit to 60/min
 });
 
-// Auto-detect version and profile (v1.0.2)
+const xmlContent = fs.readFileSync('release.xml', 'utf-8');
+
+// Detect the ERN version and profile from the message
 const version = client.validator.detectVersion(xmlContent);
 const profile = client.validator.detectProfile(xmlContent);
 
-// Validate with SVRL report generation (v1.0.2)
-const result = await client.validateWithSVRL(xmlContent, {
-  version,
-  profile,
-  verbose: true
-});
+// Validate and request an SVRL report
+const result = await client.validateWithSVRL(xmlContent, { version, profile });
 
 if (result.valid) {
-  console.log('✅ Valid DDEX file!');
-  console.log(`Compliance Rate: ${result.profileCompliance?.complianceRate}%`);
+  console.log('Valid DDEX message');
 } else {
-  console.log(`❌ Found ${result.errors.length} errors`);
-  result.errors.forEach(error => {
-    console.log(`  Line ${error.line}: ${error.message}`);
-  });
+  console.log(`Found ${result.errors.length} errors`);
+  result.errors.forEach(error => console.log(`  Line ${error.line}: ${error.message}`));
 }
 
-// Save SVRL report (v1.0.2)
 if (result.svrl) {
   fs.writeFileSync('validation-report.svrl', result.svrl);
 }
 
-// Batch validation with concurrency (v1.0.2)
-const files = ['file1.xml', 'file2.xml', 'file3.xml'];
-const batchResult = await client.validator.validateBatch(
-  files,
-  { version: '4.3', profile: 'AudioAlbum' },
-  { maxWorkers: 8 }
+// Validate several messages, three at a time
+const batch = await client.validateBatch(
+  [
+    { content: xml1, options: { version: '4.3', profile: 'AudioAlbum' } },
+    { content: xml2, options: { version: '4.3', profile: 'AudioSingle' } }
+  ],
+  { concurrency: 3 }
 );
+console.log(`Valid: ${batch.validFiles}/${batch.totalFiles}`);
 ```
 
-### Why Use the JavaScript SDK?
-- **TypeScript Support** - Full type definitions with IntelliSense
-- **Auto-Detection** (v1.0.2) - Automatically detect ERN version and profile
-- **SVRL Reports** (v1.0.2) - Generate detailed validation reports
-- **Concurrent Processing** (v1.0.2) - Process multiple files in parallel
-- **Automatic Retry Logic** - Built-in exponential backoff for resilience
-- **Cross-Platform** - Works in Node.js and browsers
-- **Small Bundle** - Only ~6KB gzipped
+See the [JavaScript SDK README](ui/packages/sdk/README.md) or [npm](https://www.npmjs.com/package/@ddex-workbench/sdk).
 
-**📦 View on npm**: [https://www.npmjs.com/package/@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
+### Python
 
-## 🐍 Python SDK
-
-### Installation
 ```bash
 pip install ddex-workbench
 ```
 
-### Quick Example with v1.0.2 Features
+Requires Python 3.10 or later.
+
 ```python
-from ddex_workbench import DDEXClient
 from pathlib import Path
+from ddex_workbench import DDEXClient
 
-# Initialize client
-client = DDEXClient(api_key="ddex_your-api-key")
+client = DDEXClient(api_key="ddex_your-api-key")  # Optional: raises the rate limit to 60/min
 
-# Auto-detect and validate (v1.0.2)
-with open('release.xml', 'r') as f:
-    xml_content = f.read()
-    
+xml_content = Path("release.xml").read_text()
+
+# Detect the ERN version and profile from the message
 version = client.validator.detect_version(xml_content)
 profile = client.validator.detect_profile(xml_content)
 
-# Validate with SVRL and compliance reporting (v1.0.2)
-result = client.validate_with_svrl(
-    xml_content,
-    version=version,
-    profile=profile,
-    verbose=True
-)
+# Validate and request an SVRL report
+result, svrl = client.validate_with_svrl(xml_content, version=version, profile=profile)
 
 if result.valid:
-    print("✅ Valid DDEX file!")
-    if result.profile_compliance:
-        print(f"Compliance Rate: {result.profile_compliance.compliance_rate:.1%}")
+    print("Valid DDEX message")
 else:
-    print(f"❌ Found {len(result.errors)} errors")
+    print(f"Found {len(result.errors)} errors")
     for error in result.errors:
         print(f"  Line {error.line}: {error.message}")
 
-# Save SVRL report (v1.0.2)
-if result.svrl:
-    Path('report.svrl').write_text(result.svrl)
+if svrl:
+    Path("validation-report.svrl").write_text(svrl)
 
-# Batch validation with concurrency (v1.0.2)
-files = list(Path("releases").glob("*.xml"))
+# Validate a folder of messages, four at a time
 batch_result = client.validator.validate_batch(
-    files=files,
+    files=list(Path("releases").glob("*.xml")),
     version="4.3",
     profile="AudioAlbum",
-    max_workers=8  # Process 8 files concurrently
+    max_workers=4
 )
 print(f"Validated {batch_result.total_files} files in {batch_result.processing_time:.2f}s")
 ```
 
-### Why Use the Python SDK?
-- **Type Hints** - Full type annotations with dataclasses
-- **Auto-Detection** (v1.0.2) - Automatically detect ERN version and profile
-- **SVRL Reports** (v1.0.2) - Generate compliance documentation
-- **Concurrent Processing** (v1.0.2) - Batch validate with parallel processing
-- **Async Support** - Built-in async/await support with retry logic
-- **Python 3.7+** - Compatible with modern Python versions
-- **CI/CD Ready** - Examples for integration with GitHub Actions
+See the [Python SDK README](ui/packages/python-sdk/README.md) or [PyPI](https://pypi.org/project/ddex-workbench/).
 
-**📦 View on PyPI**: [https://pypi.org/project/ddex-workbench/](https://pypi.org/project/ddex-workbench/)
+## Tech stack
 
-## 🌐 Public Validation API
+- **Frontend:** Vue 3 (Composition API), Vue Router and Vite, with a custom utility-first CSS architecture. It reads and writes Firestore directly through the Firebase SDK for snippets and user profiles.
+- **Backend:** an Express app on Firebase Cloud Functions (Node.js 22), with Firestore and Firebase Authentication.
+- **Edge:** a Cloudflare Worker ([`cloudflare/worker.js`](cloudflare/worker.js)) fronts `api.ddex-workbench.org`, maps `/v1/*` to the function, and handles CORS.
+- **Validation:** `xmllint-wasm` for XSD, plus JavaScript business rules and version-specific rules.
 
-**Base URL**: `https://api.ddex-workbench.org/v1`
-
-### Standard Validation
-```javascript
-// POST /validate
-{
-  "content": "<?xml version=\"1.0\"?>...",
-  "type": "ERN",
-  "version": "4.3",  // or "4.2", "3.8.2"
-  "profile": "AudioAlbum"
-}
-```
-
-### Enhanced Validation with v1.0.2 Features
-```javascript
-// POST /validate
-{
-  "content": "<?xml version=\"1.0\"?>...",
-  "type": "ERN",
-  "version": "4.3",
-  "profile": "AudioAlbum",
-  "options": {
-    "generateSVRL": true,      // v1.0.2: Generate SVRL report
-    "verbose": true,           // v1.0.2: Include passed rules
-    "includeMetadata": true    // v1.0.2: Extract metadata
-  }
-}
-
-// Response includes (v1.0.2):
-{
-  "valid": true,
-  "errors": [...],
-  "warnings": [...],
-  "metadata": {...},
-  "svrl": "<?xml version=\"1.0\"?>...",  // SVRL report
-  "profileCompliance": {
-    "profile": "AudioAlbum",
-    "version": "4.3",
-    "complianceRate": 95.5,
-    "totalRules": 200,
-    "passedRules": 191,
-    "failedRules": 9
-  }
-}
-```
-
-### API Documentation
-- Interactive code examples (cURL, JavaScript, Python, PHP)
-- Live response examples
-- Complete endpoint reference
-- Authentication guide
-- Version and profile information
-- SVRL report format documentation
-
-## ⚡ Performance Improvements (v1.0.2)
-
-- **Validation Speed**: 2-100ms for typical files
-- **Batch Processing**: Up to 8x faster with parallel processing
-- **SVRL Generation**: Adds only 10-20ms to validation time
-- **Auto-Detection**: Near-instant (<5ms) version and profile detection
-- **Memory Efficiency**: Streaming XML parsing for large files
-- **Concurrent Processing**: Handle multiple files simultaneously
-
-## ✅ Production-Ready Features
-- Multi-version ERN validation (3.8.2, 4.2, 4.3)
-- **648 comprehensive validation rules** via proprietary generation
-- Enhanced three-stage validation pipeline with SVRL
-- Auto-detection of ERN version and profile
-- Concurrent batch processing
-- Profile compliance reporting
-- Real-time validation
-- Authentication & API keys
-- Community snippets library
-- Public REST API
-- **Official JavaScript/TypeScript SDK v1.0.2+** - [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk)
-- **Official Python SDK v1.0.2+** - [ddex-workbench](https://pypi.org/project/ddex-workbench/)
-- Comprehensive API documentation
-- Theme system (light/dark/auto)
-- **BETA: ERN Sandbox** with Deezer integration
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Vue 3** with Composition API
-- **Vite** for lightning-fast builds
-- **Custom CSS Architecture** with utility-first approach
-- **Firebase SDK** for direct Firestore access
-
-### Backend
-- **Firebase Cloud Functions** for validation API
-- **Firestore** for data persistence
-- **Firebase Auth** for user management
-- **Express.js** for API routing
-- **xmllint-wasm** v5.x for WebAssembly-based XSD validation
-
-### Validation Engine
-- **Multi-version support** (ERN 3.8.2, 4.2, 4.3)
-- **XSD schema validation** with pre-downloaded schemas
-- **648 Schematron rules** (v1.0.2) via proprietary generation
-- **SVRL report generation** (v1.0.2)
-- **Auto-detection capabilities** (v1.0.2)
-- **Comprehensive error reporting** with context
-
-## 📦 Installation
+## Local development
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
+- Node.js 22+
+- Python 3.10+ (only for the Python SDK)
 - Firebase CLI (`npm install -g firebase-tools`)
 
 ### Setup
 
 1. Clone the repository:
-```bash
-git clone https://github.com/daddykev/ddex-workbench.git
-cd ddex-workbench
-```
+   ```bash
+   git clone https://github.com/daddykev/ddex-workbench.git
+   cd ddex-workbench/ui
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-cd functions && npm install && cd ..
-```
+   ```bash
+   npm install
+   cd functions && npm install && cd ..
+   ```
 
-3. Create `.env` file from template:
-```bash
-cp .env.example .env
-# Edit .env with your Firebase config
-```
+3. Create `ui/.env` from the template and fill in your Firebase web app config:
+   ```bash
+   cp .env.example .env
+   ```
 
-4. Configure Firebase:
-```bash
-firebase login
-firebase use --add
-```
+4. Select your Firebase project:
+   ```bash
+   firebase login
+   firebase use --add
+   ```
 
-5. Download XSD schemas (required for validation):
-```bash
-cd functions
-node scripts/downloadSchemas.js
-# This downloads official DDEX XSD schemas locally
-# Schemas are stored in functions/schemas/ern/
-cd ..
-```
+5. Download the DDEX XSD schemas into `ui/functions/schemas/ern/` (gitignored):
+   ```bash
+   cd functions && npm run schemas:download && cd ..
+   ```
+   DDEX no longer serves the ERN 3.8.2 schema, so that version fails to download; keep an existing copy of `schemas/ern/3.8.2/`.
 
-6. Run development server:
-```bash
-npm run dev
-```
+6. Install the validation rules. The rule files (`ui/functions/validators/rules/schematron-{382,42,43}.js`) are private and not part of this repository, and they are required for `/validate`. Without them, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint keeps working.
 
-## 🔧 Development
+7. Run the frontend and the emulators (Firebase commands run from `ui/`):
+   ```bash
+   npm run dev                  # Vite dev server
+   firebase emulators:start     # Functions, Firestore and Auth emulators
+   ```
 
-### Running locally
-```bash
-# Frontend development
-npm run dev
+See [docs/SETUP.md](docs/SETUP.md) for the full guide.
 
-# Firebase emulators (backend)
-firebase emulators:start
+### npm scripts
 
-# Run both frontend and emulators
-npm run dev:full
-```
+| Location | Scripts |
+|---|---|
+| `ui/` | `dev`, `build`, `preview` |
+| `ui/functions/` | `serve`, `shell`, `start`, `deploy`, `logs`, `schemas:download` |
+| `ui/packages/sdk/` | `build`, `dev`, `test`, `test:coverage`, `lint`, `format`, `docs` |
 
-### Building for production
-```bash
-npm run build
-firebase deploy
-```
+## Documentation
 
-### Testing validation
-```bash
-# Test the API with v1.0.2 features
-curl -X POST http://localhost:5001/your-project/us-central1/app/api/validate \
-  -H "Content-Type: application/json" \
-  -d '{"content": "<?xml>...", "type": "ERN", "version": "4.3", "options": {"generateSVRL": true}}'
-```
+- [API reference](https://ddex-workbench.org/api): live, interactive API docs
+- [Technical blueprint](docs/blueprint.md): current architecture, data models and deployment
+- [Setup guide](docs/SETUP.md): local development environment
+- [Contributing](CONTRIBUTING.md)
 
-## 🗺️ Roadmap
+## Contributing
 
-### Phase 1: DDEX ERN Validation ✅
-- [x] Project setup and architecture
-- [x] Core validation engine with multi-version support
-- [x] Web interface with real-time validation
-- [x] Authentication system with Google OAuth
-- [x] Theme system (light/dark/auto)
-- [x] Public API with rate limiting
-- [x] API key management
-- [x] Comprehensive API documentation
-- [x] Three-stage validation pipeline
-- [x] 648 Schematron rules via proprietary generation
-- [x] Enhanced error display with grouping/filtering
-- [x] Community snippet library
-- [x] JSON and text report generation
-- [x] Official JavaScript/TypeScript SDK v1.0.2+
-- [x] Official Python SDK v1.0.2+
-- [x] SVRL report generation (v1.0.2)
-- [x] Auto-detection features (v1.0.2)
-- [x] Concurrent batch processing (v1.0.2)
-- [x] Profile compliance reporting (v1.0.2)
+Contributions are welcome. See the [Contributing Guidelines](CONTRIBUTING.md).
 
-### Phase 2: ERN Sandbox (In Progress)
-- [x] Interactive form-based ERN creation
-- [x] Deezer API integration for metadata import
-- [x] UPC/EAN lookup with automatic data population
-- [x] Batch ISRC retrieval with rate limiting
-- [x] Real-time XML generation
-- [ ] Template library expansion
-- [ ] Export to production systems
+## License
 
-### Phase 3: DSR-Flow (Q4 2025)
-Digital Sales Reporting processor for financial data workflows
+The application code is licensed under the MIT License; see [LICENSE](LICENSE). The validation rule files are not part of this repository.
 
-## 🤝 Contributing
+## Acknowledgments
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+- DDEX, for maintaining the industry standards
+- The music technology community, for insights and feedback
+- Everyone who contributes to making DDEX more accessible
 
-### Quick Start for Contributors
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Contact
 
-## 📚 Documentation
-
-- [Technical Blueprint](blueprint.md) - Detailed technical architecture and implementation details
-- [API Documentation](https://ddex-workbench.org/api) - Live interactive API docs
-- [JavaScript SDK Documentation](https://www.npmjs.com/package/@ddex-workbench/sdk) - npm package documentation
-- [Python SDK Documentation](https://pypi.org/project/ddex-workbench/) - PyPI package documentation
-- [Setup Guide](docs/SETUP.md) - Detailed development environment setup
-
-## 🎯 Performance & Metrics
-
-### Current Performance
-- **Validation speed**: 2-100ms depending on file size and complexity
-- **Batch processing**: Up to 8x faster with v1.0.2 parallel processing
-- **API response time**: <200ms average
-- **Uptime**: 99.95% target
-- **Rule execution**: Native JavaScript (no XSLT overhead)
-- **XSD validation**: WebAssembly-powered for consistent cross-platform performance
-- **Schema loading**: Pre-cached schemas eliminate network latency
-
-## 🔄 Upgrading to v1.0.2
-
-### JavaScript/TypeScript
-```bash
-npm update @ddex-workbench/sdk
-```
-
-### Python
-```bash
-pip install --upgrade ddex-workbench
-```
-
-### What's New
-- **648 Validation Rules**: Comprehensive coverage via proprietary generation
-- **SVRL Report Generation**: Detailed validation reports in Schematron format
-- **Auto-Detection**: Automatically detect ERN version and profile from XML
-- **Concurrent Processing**: Process multiple files in parallel with configurable workers
-- **Profile Compliance**: Get detailed compliance statistics including pass rates
-- **Enhanced Error Filtering**: Advanced categorization and filtering of validation errors
-- **Performance**: Up to 8x faster batch processing with parallel validation
-
-### Breaking Changes
-None - v1.0.2 is fully backward compatible
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- DDEX for maintaining the industry standards
-- The music technology community for insights and feedback
-- All contributors who help make DDEX more accessible
-
-## 📞 Contact & Support
-
-- **Live App**: [https://ddex-workbench.org](https://ddex-workbench.org)
-- **API**: [https://api.ddex-workbench.org/v1](https://api.ddex-workbench.org/v1)
-- **JavaScript SDK**: [@ddex-workbench/sdk](https://www.npmjs.com/package/@ddex-workbench/sdk) v1.0.2+
-- **Python SDK**: [ddex-workbench](https://pypi.org/project/ddex-workbench/) v1.0.2+
-- **GitHub Issues**: For bug reports and feature requests
-- **Email**: daddykev@gmail.com
-
----
-
-Built for the music industry by the open-source community.
+- **Live app:** [https://ddex-workbench.org](https://ddex-workbench.org)
+- **API:** `https://api.ddex-workbench.org/v1` (see [the API reference](https://ddex-workbench.org/api))
+- **GitHub Issues:** [bug reports and feature requests](https://github.com/daddykev/ddex-workbench/issues)
+- **Email:** daddykev@gmail.com

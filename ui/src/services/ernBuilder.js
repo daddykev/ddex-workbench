@@ -15,6 +15,10 @@ const SANDBOX_RECIPIENT_DPID = 'PADPIDA0000000000R'
 const DEFAULT_PARENTAL_WARNING = 'NoAdviceAvailable'
 const DEFAULT_GENRE = 'Unspecified'
 
+// Names used when the form leaves the sender or recipient name empty
+const SANDBOX_SENDER_NAME = 'DDEX Workbench Sandbox'
+const SANDBOX_RECIPIENT_NAME = 'Test Recipient'
+
 // Sandbox form values mapped to ERN 4.3 allowed values
 const CONTRIBUTOR_ROLES = { Producer: 'StudioProducer' }
 const VIDEO_TYPES = { MusicalWorkVideoRecording: 'ShortFormMusicalWorkVideo', Video: 'ShortFormNonMusicalWorkVideo' }
@@ -33,10 +37,9 @@ export class ERNBuilder {
 
     const config = {
       messageControlType: options.messageControlType || 'TestMessage',
-      messageSender: options.messageSender || 'DDEX Workbench Sandbox',
-      messageRecipient: options.messageRecipient || 'Test Recipient',
       ...options
     }
+    const header = this.resolveMessageParties(product, config)
 
     // Every artist, label and contributor named in the form becomes a Party
     const parties = this.collectParties(product, resources)
@@ -49,15 +52,15 @@ export class ERNBuilder {
   <MessageHeader>
     <MessageId>${messageId}</MessageId>
     <MessageSender>
-      <PartyId>${SANDBOX_SENDER_DPID}</PartyId>
+      <PartyId>${this.escapeXml(header.senderDPID)}</PartyId>
       <PartyName>
-        <FullName>${this.escapeXml(config.messageSender)}</FullName>
+        <FullName>${this.escapeXml(header.senderName)}</FullName>
       </PartyName>
     </MessageSender>
     <MessageRecipient>
-      <PartyId>${SANDBOX_RECIPIENT_DPID}</PartyId>
+      <PartyId>${this.escapeXml(header.recipientDPID)}</PartyId>
       <PartyName>
-        <FullName>${this.escapeXml(config.messageRecipient)}</FullName>
+        <FullName>${this.escapeXml(header.recipientName)}</FullName>
       </PartyName>
     </MessageRecipient>
     <MessageCreatedDateTime>${createdDate}</MessageCreatedDateTime>
@@ -65,11 +68,50 @@ export class ERNBuilder {
   </MessageHeader>
 
   ${this.buildPartyList(parties)}
-  ${this.buildResourceList(resources, parties)}
-  ${this.buildReleaseList(product, resources, parties)}
+  ${this.buildResourceList(resources, parties, header.senderDPID)}
+  ${this.buildReleaseList(product, resources, parties, header.senderDPID)}
   ${this.buildDealList(product)}
 
 </ern:NewReleaseMessage>`
+  }
+
+  /**
+   * MessageSender/MessageRecipient values: the form's values, else the
+   * builder options, else the sandbox placeholders
+   */
+  resolveMessageParties(product = {}, options = {}) {
+    const value = (v) => (typeof v === 'string' ? v.trim() : '')
+    return {
+      senderDPID: value(product.senderDPID) || SANDBOX_SENDER_DPID,
+      senderName: value(product.senderName) || options.messageSender || SANDBOX_SENDER_NAME,
+      recipientDPID: value(product.recipientDPID) || SANDBOX_RECIPIENT_DPID,
+      recipientName: value(product.recipientName) || options.messageRecipient || SANDBOX_RECIPIENT_NAME
+    }
+  }
+
+  resolveGenre(product = {}, resources = []) {
+    return product.genre || resources.find(r => r.genre)?.genre || DEFAULT_GENRE
+  }
+
+  /**
+   * Placeholder values buildERN() would write for this form, in display order
+   */
+  getPlaceholders(product = {}, resources = [], options = {}) {
+    const h = this.resolveMessageParties(product, options)
+    const used = []
+    if (h.senderDPID === SANDBOX_SENDER_DPID) {
+      // The sender DPID is also the namespace for catalog numbers and AV1 codec values
+      const usedIn = ['MessageSender']
+      if (product.catalogNumber) usedIn.push('CatalogNumber')
+      if (resources.some(r => this.isVideo(r) && r.codecType === 'AV1')) usedIn.push('VideoCodecType')
+      used.push({ field: 'senderDPID', value: SANDBOX_SENDER_DPID, usedIn })
+    }
+    if (h.recipientDPID === SANDBOX_RECIPIENT_DPID) used.push({ field: 'recipientDPID', value: SANDBOX_RECIPIENT_DPID, usedIn: ['MessageRecipient'] })
+    if (h.senderName === SANDBOX_SENDER_NAME) used.push({ field: 'senderName', value: SANDBOX_SENDER_NAME })
+    if (h.recipientName === SANDBOX_RECIPIENT_NAME) used.push({ field: 'recipientName', value: SANDBOX_RECIPIENT_NAME })
+    // Only when the builder filled it in, not when someone typed "Unspecified"
+    if (!product.genre && !resources.some(r => r.genre)) used.push({ field: 'genre', value: DEFAULT_GENRE })
+    return used
   }
 
   /**
@@ -114,15 +156,19 @@ export class ERNBuilder {
   </PartyList>`
   }
 
-  buildResourceList(resources, parties) {
+  buildResourceList(resources, parties, senderDPID = SANDBOX_SENDER_DPID) {
     return `<ResourceList>
-    ${resources.map(resource => this.buildResource(resource, parties)).join('\n    ')}
+    ${resources.map(resource => this.buildResource(resource, parties, senderDPID)).join('\n    ')}
   </ResourceList>`
   }
 
-  buildResource(resource, parties) {
-    if (resource.type === 'MusicalWorkVideoRecording' || resource.type === 'Video') {
-      return this.buildVideo(resource, parties)
+  isVideo(resource) {
+    return resource.type === 'MusicalWorkVideoRecording' || resource.type === 'Video'
+  }
+
+  buildResource(resource, parties, senderDPID = SANDBOX_SENDER_DPID) {
+    if (this.isVideo(resource)) {
+      return this.buildVideo(resource, parties, senderDPID)
     }
     return this.buildSoundRecording(resource, parties)
   }
@@ -249,7 +295,7 @@ export class ERNBuilder {
     </SoundRecording>`
   }
 
-  buildVideo(resource, parties) {
+  buildVideo(resource, parties, senderDPID = SANDBOX_SENDER_DPID) {
     const pLineYear = resource.pLineYear || new Date().getFullYear()
     const pLineText = this.formatPLineText(resource.pLineText, pLineYear, resource.label || resource.artist)
 
@@ -268,7 +314,7 @@ export class ERNBuilder {
           <TechnicalResourceDetailsReference>T${resource.resourceReference}</TechnicalResourceDetailsReference>
           <DeliveryFile>
             <Type>AudioVisualFile</Type>
-            ${this.buildVideoCodec(resource.codecType || 'H264')}
+            ${this.buildVideoCodec(resource.codecType || 'H264', senderDPID)}
             <VideoBitRate>${resource.bitRate || '5000'}</VideoBitRate>
             <AspectRatio AspectRatioType="DAR">${this.aspectRatioToDecimal(resource.aspectRatio || '16:9')}</AspectRatio>
             <File>
@@ -286,10 +332,10 @@ export class ERNBuilder {
     </Video>`
   }
 
-  buildVideoCodec(codec) {
-    // AV1 has no ERN 4.3 code, so it's sent as a user-defined value
+  buildVideoCodec(codec, senderDPID = SANDBOX_SENDER_DPID) {
+    // AV1 has no ERN 4.3 code, so it's sent as a user-defined value in the sender's namespace
     if (codec === 'AV1') {
-      return `<VideoCodecType Namespace="DPID:${SANDBOX_SENDER_DPID}" UserDefinedValue="AV1">UserDefined</VideoCodecType>`
+      return `<VideoCodecType Namespace="DPID:${this.escapeXml(senderDPID)}" UserDefinedValue="AV1">UserDefined</VideoCodecType>`
     }
     return `<VideoCodecType>${VIDEO_CODECS[codec] || codec}</VideoCodecType>`
   }
@@ -301,7 +347,7 @@ export class ERNBuilder {
     return (w / h).toFixed(2)
   }
 
-  buildReleaseList(product, resources, parties) {
+  buildReleaseList(product, resources, parties, senderDPID = SANDBOX_SENDER_DPID) {
     const releaseDate = product.releaseDate || new Date().toISOString().split('T')[0]
 
     const pLineYear = product.pLineYear || new Date().getFullYear()
@@ -310,7 +356,7 @@ export class ERNBuilder {
     const cLineYear = product.cLineYear || new Date().getFullYear()
     const cLineText = this.formatCLineText(product.cLineText, cLineYear, product.label)
 
-    const genre = product.genre || resources.find(r => r.genre)?.genre || DEFAULT_GENRE
+    const genre = this.resolveGenre(product, resources)
 
     const contentItems = (product.tracks || []).map((track, index) => `<ResourceGroupContentItem>
           <SequenceNumber>${index + 1}</SequenceNumber>
@@ -323,7 +369,7 @@ export class ERNBuilder {
       <ReleaseType>${RELEASE_TYPES[product.releaseType] || product.releaseType}</ReleaseType>
       <ReleaseId>
         <ICPN>${product.upc}</ICPN>${product.catalogNumber ? `
-        <CatalogNumber Namespace="DPID:${product.labelDPID || 'PADPIDA2023081501R'}">${this.escapeXml(product.catalogNumber)}</CatalogNumber>` : ''}
+        <CatalogNumber Namespace="DPID:${this.escapeXml(senderDPID)}">${this.escapeXml(product.catalogNumber)}</CatalogNumber>` : ''}
       </ReleaseId>
       <DisplayTitleText>${this.escapeXml(product.title)}</DisplayTitleText>
       <DisplayTitle>

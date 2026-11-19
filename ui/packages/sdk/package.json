@@ -54,7 +54,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/daddykev/ddex-workbench.git",
-    "directory": "packages/sdk"
+    "directory": "ui/packages/sdk"
   },
   "bugs": {
     "url": "https://github.com/daddykev/ddex-workbench/issues",

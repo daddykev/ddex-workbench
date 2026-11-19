@@ -49,11 +49,5 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && 
         request.auth.uid == resource.data.author.uid;
     }
-    
-    // Validation history - users can only read/write their own
-    match /validation_history/{historyId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-    }
   }
 }

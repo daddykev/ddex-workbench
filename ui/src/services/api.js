@@ -2,22 +2,27 @@
 import axios from 'axios'
 import { auth } from '../firebase'
 
-// API configuration
+// API configuration. VITE_API_BASE_URL (see .env.example) overrides the
+// default base URL for either mode.
 const API_CONFIG = {
   development: {
-    // Still use Firebase Functions directly in development
+    // Firebase Functions emulator
     baseURL: 'http://localhost:5001/ddex-workbench/us-central1/app',
     timeout: 30000
   },
   production: {
-    // Use the branded API domain in production
+    // Branded API domain (the Cloudflare Worker in cloudflare/worker.js)
     baseURL: 'https://api.ddex-workbench.org/v1',
     timeout: 30000
   }
 }
 
 // Get current environment config
-const config = import.meta.env.DEV ? API_CONFIG.development : API_CONFIG.production
+const modeConfig = import.meta.env.DEV ? API_CONFIG.development : API_CONFIG.production
+const config = {
+  ...modeConfig,
+  baseURL: import.meta.env.VITE_API_BASE_URL || modeConfig.baseURL
+}
 
 /**
  * Thrown when the API returns 429. `retryAfter` is the number of seconds
