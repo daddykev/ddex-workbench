@@ -1325,7 +1325,7 @@ const exportAsJSON = () => {
       exportedAt: new Date().toISOString(),
       validatedAt: validationResult.value.metadata.validatedAt,
       tool: 'DDEX Workbench Validator',
-      version: '1.0.0'
+      version: __APP_VERSION__
     },
     validation: {
       valid: validationResult.value.valid,

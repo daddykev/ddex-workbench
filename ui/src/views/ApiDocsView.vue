@@ -469,7 +469,7 @@ if (!empty($result['svrl'])) {
   "status": "ok",
   "timestamp": "2026-01-01T00:00:00.000Z",
   "service": "DDEX Workbench API",
-  "version": "1.0.2"
+  "version": "${__API_VERSION__}"
 }`
   },
   rateLimitResponse: {
