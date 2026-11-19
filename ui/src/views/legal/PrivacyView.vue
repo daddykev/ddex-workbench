@@ -6,7 +6,7 @@
         <div class="hero-content text-center">
           <h1 class="hero-title">Privacy Policy</h1>
           <p class="hero-subtitle">
-            Last updated: November 18, 2026
+            Last updated: November 19, 2026
           </p>
         </div>
       </div>
@@ -26,6 +26,7 @@
               <li><a href="#how-we-use" @click="scrollToSection('how-we-use')">How We Use Information</a></li>
               <li><a href="#data-storage" @click="scrollToSection('data-storage')">Data Storage</a></li>
               <li><a href="#third-parties" @click="scrollToSection('third-parties')">Third-Party Services</a></li>
+              <li><a href="#analytics" @click="scrollToSection('analytics')">Analytics</a></li>
               <li><a href="#your-rights" @click="scrollToSection('your-rights')">Your Rights</a></li>
               <li><a href="#contact" @click="scrollToSection('contact')">Contact Us</a></li>
             </ul>
@@ -44,7 +45,7 @@
                 <ul>
                   <li>We do NOT sell your data to anyone</li>
                   <li>We do NOT store your validated XML files unless you explicitly save them</li>
-                  <li>We collect only essential information for service functionality</li>
+                  <li>We collect only the information needed to run the service, plus basic usage analytics (see <a href="#analytics" @click="scrollToSection('analytics')">Analytics</a> below)</li>
                   <li>Our application code is open source (MIT) and auditable</li>
                 </ul>
               </div>
@@ -96,7 +97,7 @@
                   <li>Store the content of your validated XML files</li>
                   <li>Track or analyze your DDEX file contents</li>
                   <li>Collect payment information (service is free)</li>
-                  <li>Use tracking cookies or advertising pixels</li>
+                  <li>Use advertising cookies, advertising pixels, or ad networks</li>
                   <li>Share or sell any user data</li>
                   <li>Perform any data mining on your content</li>
                 </ul>
@@ -115,6 +116,7 @@
                 <li>Authenticate users who choose to create accounts</li>
                 <li>Enforce rate limits to ensure fair usage</li>
                 <li>Debug and improve the validation service</li>
+                <li>Understand page usage and site traffic</li>
                 <li>Respond to support requests</li>
                 <li>Comply with legal obligations</li>
               </ul>
@@ -165,10 +167,32 @@
                   release metadata. No account information is sent.<br>
                   <a href="https://www.deezer.com/legal/personal-datas" target="_blank" rel="noopener">Deezer Privacy Policy</a>
                 </li>
+                <li>
+                  <strong>Google Analytics</strong> - Measures page usage and site traffic (see
+                  <a href="#analytics" @click="scrollToSection('analytics')">Analytics</a> below)<br>
+                  <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>
+                </li>
               </ul>
               <p>
-                We do not use any analytics services, advertising networks, or tracking pixels.
+                Other than Google Analytics, we do not use any analytics services, and we do not use
+                advertising networks or tracking pixels.
               </p>
+            </section>
+
+            <section id="analytics" class="legal-section">
+              <h2>Analytics</h2>
+              <p>
+                We use Google Analytics to understand page usage and site traffic, such as which pages
+                are visited and how visitors find the site.
+              </p>
+              <ul>
+                <li><strong>Cookies</strong> - Google Analytics sets first-party cookies (<code>_ga</code>) to distinguish visitors</li>
+                <li><strong>What we don't send</strong> - We do not send your XML content, files, or account details to Google Analytics</li>
+                <li>
+                  <strong>Opting out</strong> - You can opt out with Google's
+                  <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a>
+                </li>
+              </ul>
             </section>
 
             <section id="your-rights" class="legal-section">
