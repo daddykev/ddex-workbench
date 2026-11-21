@@ -10,6 +10,7 @@ from enum import Enum
 class ERNVersion(str, Enum):
     """Supported ERN versions"""
     V382 = "3.8.2"
+    V383 = "3.8.3"
     V42 = "4.2"
     V43 = "4.3"
 
@@ -19,7 +20,7 @@ class ERNProfile(str, Enum):
     ERN profiles
 
     The API supports AudioAlbum, AudioSingle, Video and Mixed for all versions,
-    plus ReleaseByRelease for ERN 3.8.2 only.
+    plus ReleaseByRelease for ERN 3.8.x only (3.8.2 and 3.8.3).
 
     Deprecated since 1.1.0: ``CLASSICAL``, ``RINGTONE`` and ``DJ``. The API
     doesn't support these profiles. They are kept so existing code doesn't

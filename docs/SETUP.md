@@ -76,9 +76,9 @@ npm run schemas:download -- --dry-run   # list what would be fetched
 cd ..
 ```
 
-DDEX no longer serves the ERN 3.8.2 schema, so that version fails to download. The script leaves any existing `schemas/ern/3.8.2/` in place, so keep a copy of it.
+DDEX no longer serves the ERN 3.8.2 or 3.8.3 XSDs (404), so those versions fail to download. The script leaves any existing `schemas/ern/3.8.2/` and `schemas/ern/3.8.3/` in place. Keep ui/functions/schemas/ern/ and ui/functions/validators/rules/ backed up outside the repo; both are gitignored.
 
-**Validation rules:** the rule modules `functions/validators/rules/schematron-382.js`, `schematron-42.js` and `schematron-43.js` are private and not part of the repository. Copy them in if you have them. Without them, the function logs a startup error, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint (`/health`, `/formats`, `/keys`, `/deezer/*`) keeps working.
+**Validation rules:** the rule modules `functions/validators/rules/schematron-382.js`, `schematron-383.js`, `schematron-42.js` and `schematron-43.js` are private and not part of the repository. Copy them in if you have them. `schematron-383.js` extends the 3.8.2 rules; if it is missing, ERN 3.8.3 uses the 3.8.2 rules. Without them, the function logs a startup error, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint (`/health`, `/formats`, `/keys`, `/deezer/*`) keeps working.
 
 ## 5. Run locally
 
@@ -155,7 +155,7 @@ There is no test or lint script for the app or the functions.
 
 - **Emulator ports in use:** `lsof -ti:5001,8080,9099 | xargs kill -9`
 - **`/validate` returns 503:** the rule modules are missing from `ui/functions/validators/rules/`.
-- **XSD errors about missing schema files:** run `npm run schemas:download` in `ui/functions`, and restore `schemas/ern/3.8.2/` from a backup.
+- **XSD errors about missing schema files:** run `npm run schemas:download` in `ui/functions`, and restore `schemas/ern/3.8.2/` and `schemas/ern/3.8.3/` from a backup.
 - **Auth problems in development:** check the `.env` values, and that the project allows sign-in from `localhost`.
 - **Build errors:** delete `node_modules` and `package-lock.json`, then run `npm install` again.
 

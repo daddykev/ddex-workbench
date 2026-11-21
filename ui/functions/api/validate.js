@@ -3,6 +3,19 @@ const express = require('express');
 const router = express.Router();
 const ValidationOrchestrator = require('../validators/validationOrchestrator');
 const { rulesStatus } = require('../validators/schematronValidator');
+const { ERN_CONFIGS } = require('../validators/ernValidator');
+
+// Supported ERN versions, newest first (e.g. 4.3, 4.2, 3.8.3, 3.8.2)
+const compareVersionsDesc = (a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pb[i] || 0) - (pa[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+};
+const SUPPORTED_VERSIONS = Object.keys(ERN_CONFIGS).sort(compareVersionsDesc);
 
 // Create a validation orchestrator instance
 const validationOrchestrator = new ValidationOrchestrator();
@@ -95,6 +108,15 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (!Object.prototype.hasOwnProperty.call(ERN_CONFIGS, version)) {
+      return res.status(400).json({
+        error: {
+          code: 'UNSUPPORTED_ERN_VERSION',
+          message: `Version "${version}" is not supported. Supported versions: ${SUPPORTED_VERSIONS.join(', ')}`
+        }
+      });
+    }
+
     // Start timing
     const startTime = Date.now();
 
@@ -149,6 +171,18 @@ router.post('/', async (req, res) => {
 // Get supported versions and profiles - PUBLIC ENDPOINT
 router.get('/formats', (req, res) => {
   const { ERN_CONFIGS } = require('../validators/ernValidator');
+
+// Supported ERN versions, newest first (e.g. 4.3, 4.2, 3.8.3, 3.8.2)
+const compareVersionsDesc = (a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pb[i] || 0) - (pa[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+};
+const SUPPORTED_VERSIONS = Object.keys(ERN_CONFIGS).sort(compareVersionsDesc);
   
   const formats = {
     types: ['ERN'],

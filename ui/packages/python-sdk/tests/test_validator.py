@@ -89,6 +89,56 @@ class TestDDEXValidator:
             profile=None,
             options=None
         )
+
+    def test_validate_ern383(self):
+        """Test ERN 3.8.3 validation"""
+        mock_result = ValidationResult(valid=True, errors=[], warnings=[], metadata={})
+        self.mock_client.validate.return_value = mock_result
+
+        result = self.validator.validate_ern383(VALID_ERN_43_XML, profile="AudioAlbum")
+
+        assert result.valid is True
+        self.mock_client.validate.assert_called_once_with(
+            VALID_ERN_43_XML,
+            version="3.8.3",
+            profile="AudioAlbum",
+            options=None
+        )
+
+    @pytest.mark.parametrize("xml, expected", [
+        # Namespaces
+        ('<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/43"/>', "4.3"),
+        ('<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/42"/>', "4.2"),
+        ('<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/383"/>', "3.8.3"),
+        ('<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/382"/>', "3.8.2"),
+        ('<ernm:NewReleaseMessage xmlns:ernm="http://ddex.net/xml/ern/383"/>', "3.8.3"),
+        ('<NewReleaseMessage xmlns="http://ddex.net/xml/ern/382"/>', "3.8.2"),
+        # MessageSchemaVersionId alone
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/3.8.3"/>', "3.8.3"),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/383"/>', "3.8.3"),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/3.8.2"/>', "3.8.2"),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/382"/>', "3.8.2"),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/43"/>', "4.3"),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/4.2"/>', "4.2"),
+        # Unknown
+        ('<root/>', None),
+        ('<NewReleaseMessage MessageSchemaVersionId="ern/3.8"/>', None),
+        ('<NewReleaseMessage xmlns="http://ddex.net/xml/ern/37"/>', None),
+        ('not xml', None),
+    ])
+    def test_detect_version_cases(self, xml, expected):
+        """detect_version and utils.detect_ern_version agree on every case"""
+        from ddex_workbench.utils import detect_ern_version
+        assert self.validator.detect_version(xml) == expected
+        assert detect_ern_version(xml) == expected
+
+    def test_detect_version_383_not_misdetected_as_382(self):
+        """MessageSchemaVersionId "ern/3.8.3" used to match the bare "3.8" check"""
+        xml = """<?xml version="1.0"?>
+        <ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/383"
+            MessageSchemaVersionId="ern/3.8.3" LanguageAndScriptCode="en">
+        </ern:NewReleaseMessage>"""
+        assert self.validator.detect_version(xml) == "3.8.3"
     
     def test_detect_version(self):
         """Test version detection"""

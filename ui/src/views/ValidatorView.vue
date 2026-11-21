@@ -227,6 +227,7 @@
                   <option value="4.3">ERN 4.3</option>
                   <option value="4.2">ERN 4.2</option>
                   <option value="3.8.2">ERN 3.8.2</option>
+                  <option value="3.8.3">ERN 3.8.3</option>
                 </select>
               </div>
               

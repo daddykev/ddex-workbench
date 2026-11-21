@@ -89,8 +89,10 @@ export class ValidationError extends DDEXError {
       message: string;
       code?: string;
     }>,
+    /** Error code from the API response (e.g. "UNSUPPORTED_ERN_VERSION"), if any */
+    code?: string,
   ) {
-    super(message, "VALIDATION_ERROR");
+    super(message, code || "VALIDATION_ERROR");
     this.name = "ValidationError";
     Object.setPrototypeOf(this, ValidationError.prototype);
   }

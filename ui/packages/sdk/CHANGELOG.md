@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0] - 2026-11-20
+
+### Added
+- **ERN 3.8.3:** `ERNVersion` now includes `"3.8.3"`, and `detectVersion()` / `validateAuto()` recognise 3.8.3 documents
+  (the `http://ddex.net/xml/ern/383` namespace, including `xmlns:ernm`, or `MessageSchemaVersionId="ern/383"`).
+  3.8.3 is checked before 3.8.2. The `ReleaseByRelease` profile applies to both 3.8.2 and 3.8.3.
+
+### Changed
+- **API error codes on 400/422:** `ValidationError.code` now carries the API's `error.code` when the response has one
+  (e.g. `"UNSUPPORTED_ERN_VERSION"` when the requested version isn't supported), and is still `"VALIDATION_ERROR"`
+  otherwise. `ValidationError`'s constructor takes the code as an optional third argument.
+
 ## [1.1.0] - 2026-11-18
 
 ### Changed

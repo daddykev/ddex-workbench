@@ -2,6 +2,28 @@
 
 All notable changes to the DDEX Workbench Python SDK will be documented in this file.
 
+## [1.2.0] - 2026-11-20
+
+### Added
+- **ERN 3.8.3:** `ERNVersion.V383 = "3.8.3"` and `DDEXValidator.validate_ern383()`. `detect_version()` and
+  `utils.detect_ern_version()` recognise 3.8.3 documents (the `http://ddex.net/xml/ern/383` namespace under any prefix,
+  or `MessageSchemaVersionId` `ern/383` / `ern/3.8.3`), and `extract_message_id()` knows the 3.8.3 namespace.
+  The `ReleaseByRelease` profile applies to both 3.8.2 and 3.8.3.
+
+### Fixed
+- **Version detection:** `detect_version()` mapped any `3.8` substring to 3.8.2, so a 3.8.3 document with
+  `MessageSchemaVersionId="ern/3.8.3"` was detected as 3.8.2. 3.8.3 is now checked first, and 3.8.2 only matches
+  `ern/382` or `ern/3.8.2`. `DDEXValidator.detect_version()` now calls `utils.detect_ern_version()`, so the two give the
+  same answer. That also means `utils.detect_ern_version()` now finds the version from a default (`xmlns="..."`) or
+  `xmlns:ernm` namespace, and from `ern/4.3`-style values, which it used to miss.
+- **API error codes:** `APIError.code` now carries the API's `error.code` when the response has one (e.g.
+  `"UNSUPPORTED_ERN_VERSION"` when the requested version isn't supported, or `"INVALID_JSON"`), and is still
+  `"API_ERROR"` otherwise. `APIError` takes the code as an optional `code` argument.
+- `utils.format_validation_report()` and `utils.create_summary_statistics()` raised `AttributeError` on every result:
+  they read `result.metadata` as an object, but it's the API's metadata dict. The text, JSON and CSV reports also
+  raised `AttributeError` whenever a result had warnings, because `ValidationWarning` has no `severity` or
+  `suggestion` field.
+
 ## [1.1.0] - 2026-11-18
 
 ### Changed

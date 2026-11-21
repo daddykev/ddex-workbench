@@ -19,6 +19,7 @@ import requests
 # Local imports - be careful with circular imports
 from ._deprecation import warn_deprecated_once
 from .errors import ValidationError, FileError, ParseError
+from .utils import detect_ern_version
 from .types import (
     BatchValidationResult,
     ValidationError as ValidationErrorDetail,
@@ -100,6 +101,25 @@ class DDEXValidator:
             ValidationResult object
         """
         return self.client.validate(content, version="3.8.2", profile=profile, options=options)
+
+    def validate_ern383(
+        self,
+        content: str,
+        profile: Optional[str] = None,
+        options: Optional[ValidationOptions] = None
+    ) -> ValidationResult:
+        """
+        Validate ERN 3.8.3 content
+
+        Args:
+            content: XML content to validate
+            profile: Optional profile
+            options: Optional validation options
+
+        Returns:
+            ValidationResult object
+        """
+        return self.client.validate(content, version="3.8.3", profile=profile, options=options)
     
     def validate_auto(
         self,
@@ -506,50 +526,18 @@ class DDEXValidator:
     def detect_version(self, content: str) -> Optional[str]:
         """
         Auto-detect ERN version from XML content
-        
+
+        Uses :func:`ddex_workbench.utils.detect_ern_version`, so both detectors
+        agree. Supports ERN 4.3, 4.2, 3.8.3 and 3.8.2.
+
         Args:
             content: XML content
-            
+
         Returns:
             Detected version string or None
         """
-        # Quick string checks first
-        if 'ern/43' in content or 'ern/4.3' in content:
-            return '4.3'
-        elif 'ern/42' in content or 'ern/4.2' in content:
-            return '4.2'
-        elif 'ern/382' in content or 'ern/3.8' in content:
-            return '3.8.2'
-        
-        # Try parsing for more accurate detection
-        try:
-            root = ET.fromstring(content)
-            
-            # Check namespace
-            namespace = root.tag.split('}')[0].strip('{') if '}' in root.tag else ''
-            if '43' in namespace or '4.3' in namespace:
-                return '4.3'
-            elif '42' in namespace or '4.2' in namespace:
-                return '4.2'
-            elif '382' in namespace or '3.8' in namespace:
-                return '3.8.2'
-            
-            # Check schema version attribute
-            schema_version = root.get('MessageSchemaVersionId', '')
-            if '4.3' in schema_version or '43' in schema_version:
-                return '4.3'
-            elif '4.2' in schema_version or '42' in schema_version:
-                return '4.2'
-            elif '3.8' in schema_version or '382' in schema_version:
-                return '3.8.2'
-            
-        except ET.ParseError:
-            pass
-        except Exception:
-            pass
-        
-        return None
-    
+        return detect_ern_version(content)
+
     def detect_profile(self, content: str) -> Optional[str]:
         """
         Auto-detect profile from XML content

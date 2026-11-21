@@ -4,11 +4,11 @@ This document describes how DDEX Workbench works today: its architecture, valida
 
 ## Overview
 
-DDEX Workbench is an open-source web application and public API for validating DDEX ERN (Electronic Release Notification) messages. It supports ERN **4.3** (recommended), **4.2** and **3.8.2**.
+DDEX Workbench is an open-source web application and public API for validating DDEX ERN (Electronic Release Notification) messages. It supports ERN **4.3** (recommended), **4.2**, **3.8.3** and **3.8.2**. ERN 3.8.3 accepts historical ISO 3166-3 territory codes (e.g. YUCS) for nationality, citizenship, rights shares and society affiliations.
 
 - **Web app:** https://ddex-workbench.org
 - **API:** `https://api.ddex-workbench.org/v1` (reference at https://ddex-workbench.org/api)
-- **SDKs:** `@ddex-workbench/sdk` on npm and `ddex-workbench` on PyPI, both at 1.1.0
+- **SDKs:** `@ddex-workbench/sdk` on npm and `ddex-workbench` on PyPI, both at 1.2.0
 - **Versions:** the app and the API service are 1.1.0. `/health` reports the version from `ui/functions/package.json`.
 
 The application code is MIT-licensed. The version-specific validation rules are private and are not part of the repository (see [Validation rules](#validation-rules)).
@@ -62,8 +62,8 @@ The web app calls the function directly. In development that is `http://localhos
 `ui/functions/validators/validationOrchestrator.js` runs these stages in order:
 
 1. **XSD schema validation** (`xsdValidator.js`): `xmllint-wasm` 5.x checks the message against the official DDEX XSDs in `ui/functions/schemas/ern/<version>/`. If the XML isn't well-formed (a parser error), the pipeline **stops here**.
-2. **Business rules** (`ernValidator.js`): ERN-specific checks, such as references between resources, releases, parties and deals, identifiers, durations, dates and territory codes.
-3. **Version-specific rules** (`schematronValidator.js`), **whenever a profile is given**: 648 version-specific rules (ERN 3.8.2: 236, 4.2: 191, 4.3: 221) generated from the official DDEX XSD schemas via DDEX Rosetta.
+2. **Business rules** (`ernValidator.js`): checks that the root element is `NewReleaseMessage` and that the version's required top-level sections are present (such as `MessageHeader`, `ReleaseList` and `ResourceList`; ERN 3.8.x also gets a warning when `UpdateIndicator` is missing). When a profile is given, it also checks a few profile expectations: AudioAlbum and AudioSingle need at least one release, AudioAlbum expects ReleaseType Album or EP, AudioSingle expects one main release, Video needs a video resource, and ReleaseByRelease is only accepted for ERN 3.x.
+3. **Profile rules** (`schematronValidator.js`), **whenever a profile is given**: runs the private rule module for the version (see [Validation rules](#validation-rules)). These rules were generated from the DDEX XSDs by DDEX Rosetta. An audit (November 2026) found that only 30 of the 648 generated rules can fail a document, and those duplicate checks the XSD stage already makes, so this stage currently adds no checks beyond XSD validation. Its results still feed the SVRL report.
 4. **SVRL report** (`ui/functions/utils/svrlGenerator.js`), **only when requested** with `generateSVRL`. It is built from stage 3's results, so it needs a profile.
 
 The response is assembled as follows:
@@ -73,21 +73,27 @@ The response is assembled as follows:
 - Each stage returns at most 100 issues. The number left out is reported in `metadata.truncatedErrors`.
 - `metadata.validationSteps` lists each stage that ran, with its duration and its full error and warning counts.
 
+### Known DDEX schema defect
+
+The published ERN 3.8.2 schema types Nationality as `ddexC_CurrentTerritoryCode`, which allows only the literal value `IdentifierType`, so it rejects every Nationality; ERN 3.8.3 still does this for `IndirectResourceContributor/Nationality`. The official XSDs are kept as published. Instead, `xsdValidator.js` checks the value against DDEX's intended territory-code list from the version's AVS file: a valid code becomes a `DDEX-Schema-Defect-Nationality` warning, and an invalid code becomes an `ERN-Nationality-InvalidCode` error.
+
 ### Profiles
 
-| Profile | ERN 4.3 | ERN 4.2 | ERN 3.8.2 |
-|---|---|---|---|
-| AudioAlbum | ✅ | ✅ | ✅ |
-| AudioSingle | ✅ | ✅ | ✅ |
-| Video | ✅ | ✅ | ✅ |
-| Mixed | ✅ | ✅ | ✅ |
-| ReleaseByRelease | | | ✅ |
+| Profile | ERN 4.3 | ERN 4.2 | ERN 3.8.3 | ERN 3.8.2 |
+|---|---|---|---|---|
+| AudioAlbum | ✅ | ✅ | ✅ | ✅ |
+| AudioSingle | ✅ | ✅ | ✅ | ✅ |
+| Video | ✅ | ✅ | ✅ | ✅ |
+| Mixed | ✅ | ✅ | ✅ | ✅ |
+| ReleaseByRelease | | | ✅ | ✅ |
+
+ReleaseByRelease is ERN 3.8.x only.
 
 These come from `ERN_CONFIGS` in `ernValidator.js`, which `/formats` also returns.
 
 ### Validation rules
 
-The rule modules, `ui/functions/validators/rules/schematron-{382,42,43}.js`, are **private and gitignored**. They are loaded when the function starts. If they are missing, the server logs a startup error, `POST /validate` returns **503 `VALIDATION_RULES_UNAVAILABLE`**, and every other endpoint keeps working.
+The rule modules, `ui/functions/validators/rules/schematron-{382,383,42,43}.js`, are **private and gitignored**. The modules are generated from the XSDs alone, so they can't express profile requirements or cross-element business rules. Their `ruleCount` (236, 191, 221) counts generated definitions, not working checks. `schematron-383.js` extends the 3.8.2 rules; if it is missing, ERN 3.8.3 falls back to the 3.8.2 rules. They are loaded when the function starts. If they are missing, the server logs a startup error, `POST /validate` returns **503 `VALIDATION_RULES_UNAVAILABLE`**, and every other endpoint keeps working.
 
 ## API
 
@@ -145,6 +151,7 @@ The base URL is `https://api.ddex-workbench.org/v1`. The Worker maps `/v1/<path>
 | Status | When |
 |---|---|
 | 400 | Missing content, missing `version`, an unsupported `type`, or an empty raw-XML body |
+| 400 | Unsupported `version` (`code: "UNSUPPORTED_ERN_VERSION"`) |
 | 400 (HTML) | Malformed JSON. The Functions runtime parses the body before Express and returns its own HTML error page. |
 | 401 `INVALID_API_KEY` | The API key is malformed, unknown or revoked |
 | 404 | Unknown endpoint |
@@ -208,7 +215,7 @@ Only fields the code reads or writes are listed.
   content: string,          // XML
   category: string,
   tags: string[],
-  ernVersion: '3.8.2' | '4.2' | '4.3',
+  ernVersion: '3.8.2' | '3.8.3' | '4.2' | '4.3',
   author: { uid: string, displayName: string },
   created: Timestamp,
   updated: Timestamp
@@ -241,7 +248,7 @@ The styling is utility-first, with semantic component classes in `ui/src/assets/
 
 `ui/src/utils/themeManager.js` switches themes by setting `data-theme` on the root element. Components use the custom properties (for example `var(--color-surface)`, `var(--color-text)` and `var(--color-border)`) rather than hard-coded colours.
 
-## SDKs (1.1.0)
+## SDKs (1.2.0)
 
 | | JavaScript/TypeScript | Python |
 |---|---|---|
@@ -282,6 +289,10 @@ ddex-workbench/
 │   │   │   ├── clientIp.js        # Client IP behind Cloudflare and Google proxies
 │   │   │   └── rateLimiter.js     # 10/min anonymous, 60/min key or user
 │   │   ├── schemas/ern/           # GITIGNORED: DDEX XSDs (npm run schemas:download)
+│   │   │   ├── 3.8.2/             # avs_20161006.xsd, release-notification.xsd
+│   │   │   ├── 3.8.3/             # avs_20200108.xsd, release-notification.xsd
+│   │   │   ├── 4.2/               # avs20200518.xsd, release-notification.xsd
+│   │   │   └── 4.3/               # allowed-value-sets.xsd, release-notification.xsd
 │   │   ├── scripts/
 │   │   │   └── downloadSchemas.js # Fetches the XSDs into schemas/ern/<version>/
 │   │   ├── test/
@@ -324,6 +335,7 @@ ddex-workbench/
 │   │   │   ├── tests/
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── test_client.py
+│   │   │   │   ├── test_integration.py
 │   │   │   │   └── test_validator.py
 │   │   │   ├── .gitignore
 │   │   │   ├── CHANGELOG.md
@@ -344,7 +356,8 @@ ddex-workbench/
 │   │       │   ├── types.ts
 │   │       │   └── validator.ts   # DDEXValidator helpers
 │   │       ├── test/
-│   │       │   └── client.test.ts
+│   │       │   ├── client.test.ts
+│   │       │   └── validator.test.ts
 │   │       ├── .gitignore
 │   │       ├── .npmignore
 │   │       ├── CHANGELOG.md
@@ -426,8 +439,8 @@ ddex-workbench/
 ```
 
 How the gitignored directories are obtained:
-- **`ui/functions/schemas/ern/`:** run `cd ui/functions && npm run schemas:download`. DDEX no longer serves the ERN 3.8.2 schema, so that version fails to download and the script keeps any existing copy. Keep a backup of `schemas/ern/3.8.2/`.
-- **`ui/functions/validators/rules/`:** the private rule modules (`schematron-382.js`, `schematron-42.js` and `schematron-43.js`) are generated from the DDEX XSDs via DDEX Rosetta and installed separately. Without them, `POST /validate` returns 503.
+- **`ui/functions/schemas/ern/`:** run `cd ui/functions && npm run schemas:download`. DDEX no longer serves the ERN 3.8.2 or 3.8.3 schemas, so those versions fail to download and the script keeps any existing copy. Keep a backup of `schemas/ern/3.8.2/` and `schemas/ern/3.8.3/`.
+- **`ui/functions/validators/rules/`:** the private rule modules (`schematron-382.js`, `schematron-383.js`, `schematron-42.js` and `schematron-43.js`) are generated from the DDEX XSDs by DDEX Rosetta (see the note under Validation rules) and installed separately. Without them, `POST /validate` returns 503.
 
 ## Deployment
 
@@ -436,11 +449,11 @@ The `firebase` commands run from `ui/`. The order is the Worker, then functions,
 1. **Prepare the gitignored inputs** (the function deploy uploads them):
    ```bash
    cd ui/functions
-   npm run schemas:download          # XSDs into schemas/ern/ (3.8.2 must already exist locally)
-   ls validators/rules/              # schematron-382.js, schematron-42.js, schematron-43.js
+   npm run schemas:download          # XSDs into schemas/ern/ (3.8.2 and 3.8.3 must already exist locally)
+   ls validators/rules/              # schematron-382.js, schematron-383.js, schematron-42.js, schematron-43.js
    cd ..
    ```
-2. **Back up** the schemas and rules outside the repository. Neither directory is in git, and ERN 3.8.2 can no longer be downloaded:
+2. **Back up** the schemas and rules outside the repository. Neither directory is in git, and ERN 3.8.2 and 3.8.3 can no longer be downloaded:
    ```bash
    tar -czf ~/ddex-workbench-private-$(date +%F).tgz functions/schemas/ern functions/validators/rules
    ```
@@ -499,4 +512,4 @@ README fixes in either package reach npm and PyPI only with the next published r
 
 ---
 
-**Last Updated**: 2026-11-19
+**Last Updated**: 2026-11-20

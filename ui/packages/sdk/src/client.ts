@@ -491,6 +491,7 @@ export class DDEXClient {
       "An unknown error occurred";
 
     const status = axiosError.response?.status;
+    const apiCode = axiosError.response?.data?.error?.code;
 
     switch (status) {
       case 401:
@@ -515,9 +516,9 @@ export class DDEXClient {
         });
       }
       case 422:
-        return new ValidationError(message);
+        return new ValidationError(message, undefined, apiCode);
       case 400:
-        return new ValidationError(message);
+        return new ValidationError(message, undefined, apiCode);
       case 404:
         return new DDEXError(`Resource not found: ${message}`);
       case 500:

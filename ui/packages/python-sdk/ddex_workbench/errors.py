@@ -238,9 +238,11 @@ class APIError(DDEXError):
         status_code: int,
         endpoint: Optional[str] = None,
         method: Optional[str] = None,
-        response_body: Optional[str] = None
+        response_body: Optional[str] = None,
+        code: Optional[str] = None
     ):
-        super().__init__(message, "API_ERROR", status_code)
+        # code: the API's error.code (e.g. "UNSUPPORTED_ERN_VERSION"), if any
+        super().__init__(message, code or "API_ERROR", status_code)
         self.endpoint = endpoint
         self.method = method
         self.response_body = response_body

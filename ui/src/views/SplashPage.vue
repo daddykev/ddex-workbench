@@ -91,7 +91,7 @@
               </div>
               <h3 class="feature-title">DDEX Validator</h3>
               <p class="feature-description">
-                Validate against DDEX standards. Support for ERN 3.8.2, 4.2, and 4.3 
+                Validate against DDEX standards. Support for ERN 3.8.2, 3.8.3, 4.2, and 4.3 
                 with version-specific rules generated from the official DDEX XSD schemas.
               </p>
               <ul class="feature-list">
@@ -225,7 +225,7 @@
             <div class="step">
               <font-awesome-icon :icon="['fas', 'check-circle']" />
               <strong class="step-title">Validate</strong>
-              <span>Check ERN 3.8.2, 4.2 and 4.3 messages against the official XSDs, business rules and 648 version-specific rules.</span>
+              <span>Check ERN 3.8.2, 3.8.3, 4.2 and 4.3 messages against the official XSDs, business rules and 648 version-specific rules.</span>
             </div>
             <div class="step-arrow">→</div>
             <div class="step">

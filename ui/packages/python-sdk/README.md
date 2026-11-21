@@ -27,7 +27,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full details.
 - 🚀 **Simple API** - Intuitive methods for all DDEX validation operations
 - 🔧 **Full Type Safety** - Type hints, dataclasses, and IDE autocomplete support
 - 🌐 **Smart Networking** - Connection pooling, retry logic, and timeout handling
-- 📊 **Flexible Validation** - Support for ERN 3.8.2, 4.2, and 4.3 with the AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for 3.8.2)
+- 📊 **Flexible Validation** - Support for ERN 3.8.2, 3.8.3, 4.2, and 4.3 with the AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for 3.8.x)
 - 🎯 **Comprehensive Error Reporting** - Detailed errors with line numbers, context, and suggestions
 - 📈 **Multiple Report Formats** - JSON, CSV, text, and SVRL output formats
 - 🔑 **API Key Support** - Send an API key for higher rate limits
@@ -348,17 +348,18 @@ client = DDEXClient(
 ### ERN Versions
 - **ERN 4.3**
 - **ERN 4.2**
+- **ERN 3.8.3**: accepts historical ISO 3166-3 territory codes (e.g. `YUCS`) where 3.8.2 allows only current ones
 - **ERN 3.8.2**
 
 ### Profiles by Version
 
-**ERN 4.3, 4.2 and 3.8.2:**
+**ERN 4.3, 4.2, 3.8.3 and 3.8.2:**
 - AudioAlbum
 - AudioSingle
 - Video
 - Mixed
 
-**ERN 3.8.2 only:**
+**ERN 3.8.x only (3.8.2 and 3.8.3):**
 - ReleaseByRelease
 
 `ERNProfile.CLASSICAL`, `RINGTONE` and `DJ` are deprecated: the API doesn't support these

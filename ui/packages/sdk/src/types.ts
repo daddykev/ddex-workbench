@@ -29,7 +29,7 @@ export interface DDEXClientConfig {
 /**
  * Supported ERN versions
  */
-export type ERNVersion = "3.8.2" | "4.2" | "4.3";
+export type ERNVersion = "3.8.2" | "3.8.3" | "4.2" | "4.3";
 
 /**
  * Supported ERN profiles
@@ -39,7 +39,7 @@ export type ERNProfile =
   | "AudioSingle"
   | "Video"
   | "Mixed"
-  | "ReleaseByRelease"; // Only for ERN 3.8.2
+  | "ReleaseByRelease"; // ReleaseByRelease is only for ERN 3.8.x
 
 /**
  * DDEX message types

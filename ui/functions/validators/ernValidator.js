@@ -26,6 +26,14 @@ const ERN_CONFIGS = {
     },
     rootElements: ['NewReleaseMessage'],
     profiles: ['AudioAlbum', 'AudioSingle', 'Video', 'Mixed', 'ReleaseByRelease']
+  },
+  '3.8.3': {
+    namespaces: {
+      main: 'http://ddex.net/xml/ern/383',
+      release: 'http://ddex.net/xml/ern/383'
+    },
+    rootElements: ['NewReleaseMessage'],
+    profiles: ['AudioAlbum', 'AudioSingle', 'Video', 'Mixed', 'ReleaseByRelease']
   }
 };
 
@@ -127,7 +135,8 @@ class ERNValidator {
         this.validateERN42Rules(root, errors);
         break;
       case '3.8.2':
-        this.validateERN382Rules(root, errors);
+      case '3.8.3':
+        this.validateERN3Rules(root, errors, this.version);
         break;
     }
   }
@@ -204,15 +213,17 @@ class ERNValidator {
     }
   }
 
-  validateERN382Rules(root, errors) {
-    // ERN 3.8.2 specific validations
+  validateERN3Rules(root, errors, version) {
+    // ERN 3.8.x validations (3.8.2 and 3.8.3 share these rules)
+    const rulePrefix = `ERN${version.replace(/\./g, '')}`;
+
     if (!root.MessageHeader) {
       errors.push({
         line: 0,
         column: 0,
-        message: 'MessageHeader is required in ERN 3.8.2',
+        message: `MessageHeader is required in ERN ${version}`,
         severity: 'error',
-        rule: 'ERN382-MessageHeader'
+        rule: `${rulePrefix}-MessageHeader`
       });
     }
 
@@ -221,9 +232,9 @@ class ERNValidator {
       errors.push({
         line: 0,
         column: 0,
-        message: 'UpdateIndicator is recommended but not required in ERN 3.8.2',
+        message: `UpdateIndicator is recommended but not required in ERN ${version}`,
         severity: 'warning',
-        rule: 'ERN382-UpdateIndicator'
+        rule: `${rulePrefix}-UpdateIndicator`
       });
     }
     
@@ -232,9 +243,9 @@ class ERNValidator {
       errors.push({
         line: 0,
         column: 0,
-        message: 'ReleaseList is required in ERN 3.8.2',
+        message: `ReleaseList is required in ERN ${version}`,
         severity: 'error',
-        rule: 'ERN382-ReleaseList'
+        rule: `${rulePrefix}-ReleaseList`
       });
     }
 
@@ -243,9 +254,9 @@ class ERNValidator {
       errors.push({
         line: 0,
         column: 0,
-        message: 'ResourceList is required in ERN 3.8.2',
+        message: `ResourceList is required in ERN ${version}`,
         severity: 'error',
-        rule: 'ERN382-ResourceList'
+        rule: `${rulePrefix}-ResourceList`
       });
     }
   }

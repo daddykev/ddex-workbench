@@ -70,7 +70,7 @@
                 DDEX Workbench provides free tools for validating DDEX (Digital Data Exchange) files:
               </p>
               <ul>
-                <li><strong>Web Validator</strong> - Validate ERN files (versions 3.8.2, 4.2, and 4.3)</li>
+                <li><strong>Web Validator</strong> - Validate ERN files (versions 3.8.2, 3.8.3, 4.2, and 4.3)</li>
                 <li><strong>REST API</strong> - Programmatic validation for developers</li>
                 <li><strong>ERN Sandbox</strong> - Build ERN 4.3 messages with a form-based editor</li>
                 <li><strong>Community Snippets</strong> - Share and discover DDEX examples</li>

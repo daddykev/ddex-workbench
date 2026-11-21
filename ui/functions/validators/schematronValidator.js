@@ -26,6 +26,25 @@ try {
   );
 }
 
+// ERN 3.8.3 shares the 3.8.2 rule set. Load its module separately so a missing
+// schematron-383.js never takes /validate down: fall back to the 3.8.2 rules.
+let ERN383Rules;
+if (rulesStatus.installed) {
+  try {
+    ERN383Rules = require('./rules/schematron-383');
+  } catch (err) {
+    console.warn(
+      `[startup] Could not load rules/schematron-383.js (${err.message.split('\n')[0]}). ` +
+      'Using the ERN 3.8.2 rules for ERN 3.8.3.'
+    );
+    ERN383Rules = function () {
+      const rules = new ERN382Rules();
+      rules.version = '3.8.3';
+      return rules;
+    };
+  }
+}
+
 class SchematronValidator {
   constructor() {
     this.rulesCache = new Map();
@@ -37,6 +56,7 @@ class SchematronValidator {
     this.ruleEngines = rulesStatus.installed
       ? {
           '3.8.2': new ERN382Rules(),
+          '3.8.3': new ERN383Rules(),
           '4.2': new ERN42Rules(),
           '4.3': new ERN43Rules()
         }

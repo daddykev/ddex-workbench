@@ -21,7 +21,9 @@
 // files download, so a failed fetch never leaves a half-updated directory and
 // keeps whatever is already on disk. As of 2026-11 DDEX no longer serves the
 // ERN 3.8.2 main schema (service.ddex.net/xml/ern/382/ returns 404), so 3.8.2
-// will fail here; keep the existing copy in schemas/ern/3.8.2/.
+// will fail here; keep the existing copy in schemas/ern/3.8.2/. The ERN 3.8.3
+// main schema (service.ddex.net/xml/ern/383/) also returns 404, so keep a local
+// backup of schemas/ern/3.8.3/ as well.
 
 const fs = require('fs').promises;
 const path = require('path');
@@ -33,6 +35,12 @@ const SCHEMAS = {
     main: `${BASE_URL}/ern/382/release-notification.xsd`,
     avs: `${BASE_URL}/avs/avs_20161006.xsd`,
     avsFilename: 'avs_20161006.xsd'
+  },
+  // The 3.8.3 main schema returns 404 from DDEX; keep a local backup.
+  '3.8.3': {
+    main: `${BASE_URL}/ern/383/release-notification.xsd`,
+    avs: `${BASE_URL}/avs/avs_20200108.xsd`,
+    avsFilename: 'avs_20200108.xsd'
   },
   '4.2': {
     main: `${BASE_URL}/ern/42/release-notification.xsd`,

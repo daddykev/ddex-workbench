@@ -395,6 +395,16 @@ export class DDEXValidator {
       return "4.2";
     }
 
+    // Check for ERN 3.8.3 (before 3.8.2, so "383" is never caught by a looser check)
+    if (
+      content.includes('xmlns:ern="http://ddex.net/xml/ern/383"') ||
+      content.includes('MessageSchemaVersionId="ern/383"') ||
+      content.includes('/ern/383') ||
+      content.includes('xmlns:ernm="http://ddex.net/xml/ern/383"')
+    ) {
+      return "3.8.3";
+    }
+
     // Check for ERN 3.8.2
     if (
       content.includes('xmlns:ern="http://ddex.net/xml/ern/382"') ||

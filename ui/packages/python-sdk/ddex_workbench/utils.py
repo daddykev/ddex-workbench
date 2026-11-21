@@ -11,67 +11,85 @@ import csv
 from datetime import datetime
 
 
+# ERN version for each namespace / MessageSchemaVersionId number
+# (http://ddex.net/xml/ern/<num>, MessageSchemaVersionId="ern/<num>")
+_ERN_VERSION_BY_NUMBER = {
+    "43": "4.3",
+    "42": "4.2",
+    "383": "3.8.3",
+    "382": "3.8.2",
+}
+
+# Quick substring checks, newest first. 3.8.3 is checked before 3.8.2, and every
+# token is exact ("ern/382" or "ern/3.8.2", never a bare "3.8"), so a 3.8.3
+# document can't be caught by a 3.8.2 check. The tokens cover the namespace
+# (any prefix, or the default namespace), MessageSchemaVersionId and
+# xsi:schemaLocation.
+_ERN_VERSION_TOKENS = [
+    ("4.3", ("ern/43", "ern/4.3")),
+    ("4.2", ("ern/42", "ern/4.2")),
+    ("3.8.3", ("ern/383", "ern/3.8.3")),
+    ("3.8.2", ("ern/382", "ern/3.8.2")),
+]
+
+
+def _token_in(token: str, content: str) -> bool:
+    """True if ``token`` occurs in ``content`` and isn't followed by more of the
+    version (so "ern/43" doesn't match "ern/430" and "ern/4.3" doesn't match
+    "ern/4.3.1")."""
+    return re.search(re.escape(token) + r'(?![\d.]*\d)', content) is not None
+
+
 def detect_ern_version(xml_content: str) -> Optional[str]:
     """
     Detect ERN version from XML content
-    
+
+    Supports ERN 4.3, 4.2, 3.8.3 and 3.8.2.
+
     Args:
         xml_content: XML content as string
-        
+
     Returns:
         Detected version string or None
     """
     # Quick string checks first
-    version_patterns = {
-        "4.3": [
-            'xmlns:ern="http://ddex.net/xml/ern/43"',
-            'MessageSchemaVersionId="ern/43"'
-        ],
-        "4.2": [
-            'xmlns:ern="http://ddex.net/xml/ern/42"',
-            'MessageSchemaVersionId="ern/42"'
-        ],
-        "3.8.2": [
-            'xmlns:ern="http://ddex.net/xml/ern/382"',
-            'MessageSchemaVersionId="ern/382"'
-        ]
-    }
-    
-    for version, patterns in version_patterns.items():
-        for pattern in patterns:
-            if pattern in xml_content:
-                return version
-    
-    # Try parsing XML for more thorough check
+    for version, tokens in _ERN_VERSION_TOKENS:
+        if any(_token_in(token, xml_content) for token in tokens):
+            return version
+
+    # Try parsing XML for a more thorough check
     try:
         root = ET.fromstring(xml_content)
-        
-        # Check namespaces
-        for ns_url in root.attrib.values():
-            if "ddex.net/xml/ern/" in ns_url:
-                version_match = re.search(r'/ern/(\d+)', ns_url)
-                if version_match:
-                    version_num = version_match.group(1)
-                    if version_num == "43":
-                        return "4.3"
-                    elif version_num == "42":
-                        return "4.2"
-                    elif version_num == "382":
-                        return "3.8.2"
-        
-        # Check MessageSchemaVersionId attribute
-        schema_version = root.get("MessageSchemaVersionId", "")
-        if "ern/43" in schema_version:
-            return "4.3"
-        elif "ern/42" in schema_version:
-            return "4.2"
-        elif "ern/382" in schema_version:
-            return "3.8.2"
-            
     except ET.ParseError:
-        pass
-    
+        return None
+
+    # Root element namespace ({http://ddex.net/xml/ern/43}NewReleaseMessage),
+    # then attribute values such as xsi:schemaLocation
+    candidates = []
+    if root.tag.startswith("{"):
+        candidates.append(root.tag[1:].split("}", 1)[0])
+    candidates.extend(root.attrib.values())
+    for value in candidates:
+        match = re.search(r'ddex\.net/xml/ern/(\d+)', value)
+        if match and match.group(1) in _ERN_VERSION_BY_NUMBER:
+            return _ERN_VERSION_BY_NUMBER[match.group(1)]
+
+    # MessageSchemaVersionId: "ern/43", "ern/4.3", "43" or "4.3"
+    schema_version = root.get("MessageSchemaVersionId", "").strip()
+    if schema_version.lower().startswith("ern/"):
+        schema_version = schema_version[4:]
+    number = schema_version.replace(".", "")
+    if number in _ERN_VERSION_BY_NUMBER:
+        return _ERN_VERSION_BY_NUMBER[number]
+
     return None
+
+
+def _meta(result: Any, key: str, default: Any = None) -> Any:
+    """Read a field from ``result.metadata``, the API's metadata dict (camelCase keys)."""
+    metadata = getattr(result, "metadata", None) or {}
+    value = metadata.get(key) if isinstance(metadata, dict) else None
+    return default if value is None else value
 
 
 def validate_xml_structure(xml_content: str) -> Tuple[bool, Optional[str]]:
@@ -108,6 +126,7 @@ def extract_message_id(xml_content: str) -> Optional[str]:
         namespaces = {
             'ern': 'http://ddex.net/xml/ern/43',
             'ern42': 'http://ddex.net/xml/ern/42',
+            'ern383': 'http://ddex.net/xml/ern/383',
             'ern382': 'http://ddex.net/xml/ern/382'
         }
         
@@ -184,19 +203,19 @@ def format_validation_report(
                     "line": w.line,
                     "column": w.column,
                     "message": w.message,
-                    "severity": w.severity,
+                    "severity": getattr(w, "severity", "warning"),
                     "rule": w.rule,
                     "context": w.context,
-                    "suggestion": w.suggestion
+                    "suggestion": getattr(w, "suggestion", None)
                 }
                 for w in result.warnings
             ] if include_warnings else [],
             "metadata": {
-                "processingTime": result.metadata.processing_time,
-                "schemaVersion": result.metadata.schema_version,
-                "validatedAt": result.metadata.validated_at,
-                "errorCount": result.metadata.error_count,
-                "warningCount": result.metadata.warning_count
+                "processingTime": _meta(result, "processingTime"),
+                "schemaVersion": _meta(result, "schemaVersion"),
+                "validatedAt": _meta(result, "validatedAt"),
+                "errorCount": _meta(result, "errorCount", len(result.errors)),
+                "warningCount": _meta(result, "warningCount", len(result.warnings))
             }
         }, indent=2)
     
@@ -226,10 +245,10 @@ def format_validation_report(
                     "type": "warning",
                     "line": warning.line,
                     "column": warning.column,
-                    "severity": warning.severity,
+                    "severity": getattr(warning, "severity", "warning"),
                     "rule": warning.rule,
                     "message": warning.message,
-                    "suggestion": warning.suggestion or ""
+                    "suggestion": getattr(warning, "suggestion", None) or ""
                 })
         
         return output.getvalue()
@@ -240,11 +259,11 @@ def format_validation_report(
         lines.append("DDEX VALIDATION REPORT")
         lines.append("=" * 60)
         lines.append(f"Status: {'VALID ✅' if result.valid else 'INVALID ❌'}")
-        lines.append(f"Schema Version: {result.metadata.schema_version}")
-        lines.append(f"Validated At: {result.metadata.validated_at}")
-        lines.append(f"Processing Time: {result.metadata.processing_time}ms")
-        lines.append(f"Errors: {result.metadata.error_count}")
-        lines.append(f"Warnings: {result.metadata.warning_count}")
+        lines.append(f"Schema Version: {_meta(result, 'schemaVersion')}")
+        lines.append(f"Validated At: {_meta(result, 'validatedAt')}")
+        lines.append(f"Processing Time: {_meta(result, 'processingTime')}ms")
+        lines.append(f"Errors: {_meta(result, 'errorCount', len(result.errors))}")
+        lines.append(f"Warnings: {_meta(result, 'warningCount', len(result.warnings))}")
         lines.append("")
         
         if result.errors:
@@ -265,7 +284,7 @@ def format_validation_report(
                 lines.append(f"{i}. Line {warning.line}, Column {warning.column}")
                 lines.append(f"   Rule: {warning.rule}")
                 lines.append(f"   Message: {warning.message}")
-                if warning.suggestion:
+                if getattr(warning, "suggestion", None):
                     lines.append(f"   Suggestion: {warning.suggestion}")
                 lines.append("")
         
@@ -332,9 +351,9 @@ def create_summary_statistics(results: List['ValidationResult']) -> Dict[str, An
     """
     total = len(results)
     valid_count = sum(1 for r in results if r.valid)
-    total_errors = sum(r.metadata.error_count for r in results)
-    total_warnings = sum(r.metadata.warning_count for r in results)
-    total_processing_time = sum(r.metadata.processing_time for r in results)
+    total_errors = sum(_meta(r, "errorCount", len(r.errors)) for r in results)
+    total_warnings = sum(_meta(r, "warningCount", len(r.warnings)) for r in results)
+    total_processing_time = sum(_meta(r, "processingTime", 0) or 0 for r in results)
     
     # Count errors by rule
     error_by_rule = {}
@@ -347,7 +366,7 @@ def create_summary_statistics(results: List['ValidationResult']) -> Dict[str, An
     # Count by version
     version_counts = {}
     for result in results:
-        version = result.metadata.schema_version
+        version = _meta(result, "schemaVersion")
         if version not in version_counts:
             version_counts[version] = {"total": 0, "valid": 0}
         version_counts[version]["total"] += 1

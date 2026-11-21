@@ -329,7 +329,7 @@ class TestDDEXClient:
             json={
                 "types": ["ERN"],
                 "versions": {
-                    "ERN": ["3.8.2", "4.2", "4.3"]
+                    "ERN": ["3.8.2", "3.8.3", "4.2", "4.3"]
                 },
                 "profiles": {
                     "ERN": ["AudioAlbum", "AudioSingle", "Video"]
@@ -343,6 +343,88 @@ class TestDDEXClient:
         
         assert "ERN" in formats.formats
         assert "4.3" in formats.versions.get("ERN", [])
+        assert "3.8.3" in formats.versions.get("ERN", [])
+
+    @responses.activate
+    def test_unsupported_version_400_exposes_message_and_code(self):
+        """A 400 UNSUPPORTED_ERN_VERSION surfaces both the message and the API's code"""
+        message = 'Version "3.8" is not supported. Supported versions: 4.3, 4.2, 3.8.3, 3.8.2'
+        responses.add(
+            responses.POST,
+            "https://api.ddex-workbench.org/v1/validate",
+            json={"error": {"code": "UNSUPPORTED_ERN_VERSION", "message": message}},
+            status=400
+        )
+
+        client = DDEXClient()
+        with pytest.raises(APIError) as exc_info:
+            client.validate(VALID_ERN_43_XML, version="3.8")
+
+        assert exc_info.value.message == message
+        assert exc_info.value.code == "UNSUPPORTED_ERN_VERSION"
+        assert exc_info.value.status_code == 400
+
+    @responses.activate
+    def test_400_without_code_keeps_default_code(self):
+        """A 400 without error.code keeps the existing default code, API_ERROR"""
+        responses.add(
+            responses.POST,
+            "https://api.ddex-workbench.org/v1/validate",
+            json={"error": {"message": "XML content is required"}},
+            status=400
+        )
+
+        client = DDEXClient()
+        with pytest.raises(APIError) as exc_info:
+            client.validate("", version="4.3")
+
+        assert exc_info.value.code == "API_ERROR"
+        assert exc_info.value.status_code == 400
+
+    @responses.activate
+    def test_valid_response_with_warning_stays_valid(self):
+        """A valid result with a warning stays valid, and the warning isn't counted as an error"""
+        from ddex_workbench.utils import create_summary_statistics, format_validation_report
+        responses.add(
+            responses.POST,
+            "https://api.ddex-workbench.org/v1/validate",
+            json={
+                "valid": True,
+                "errors": [],
+                "warnings": [{
+                    "line": 35,
+                    "column": 0,
+                    "message": '"US" is a valid territory code, but the published DDEX ERN 3.8.2 schema ...',
+                    "severity": "warning",
+                    "rule": "DDEX-Schema-Defect-Nationality"
+                }],
+                "metadata": {
+                    "processingTime": 10,
+                    "schemaVersion": "ERN 3.8.2",
+                    "errorCount": 0,
+                    "warningCount": 1
+                }
+            },
+            status=200
+        )
+
+        client = DDEXClient()
+        result = client.validate(VALID_ERN_43_XML, version="3.8.2")
+
+        assert result.valid is True
+        assert result.errors == []
+        assert len(result.warnings) == 1
+        assert result.warnings[0].rule == "DDEX-Schema-Defect-Nationality"
+        assert client.validator.get_critical_errors(VALID_ERN_43_XML, "3.8.2") == []
+        assert client.validator.is_valid(VALID_ERN_43_XML, "3.8.2") is True
+
+        # The report helpers used to raise AttributeError on any result
+        for format_type in ("text", "json", "csv"):
+            assert "DDEX-Schema-Defect-Nationality" in format_validation_report(result, format_type)
+        stats = create_summary_statistics([result])
+        assert stats["valid_files"] == 1
+        assert stats["total_errors"] == 0
+        assert stats["total_warnings"] == 1
     
     def test_set_and_clear_api_key(self):
         """Test dynamic API key management"""

@@ -15,8 +15,9 @@ DDEX Workbench is a web-based validator and public API for DDEX ERN (Electronic 
 ## Features
 
 ### ERN versions and profiles
-- **ERN 4.3** (recommended), **ERN 4.2** and **ERN 3.8.2**
-- **Profiles:** AudioAlbum, AudioSingle, Video and Mixed, plus ReleaseByRelease for ERN 3.8.2 only
+- **ERN 4.3** (recommended), **ERN 4.2**, **ERN 3.8.3** and **ERN 3.8.2**
+- ERN 3.8.3 accepts historical ISO 3166-3 territory codes (e.g. YUCS) for nationality, citizenship, rights shares and society affiliations.
+- **Profiles:** AudioAlbum, AudioSingle, Video and Mixed, plus ReleaseByRelease (ERN 3.8.x only)
 
 ### Validation pipeline
 Each request runs these stages in order:
@@ -82,7 +83,7 @@ The full reference (endpoints, response format, error codes and code samples) is
 
 ## SDKs
 
-Both SDKs are at 1.1.0. API keys are managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys), not through the SDKs.
+Both SDKs are at 1.2.0. API keys are managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys), not through the SDKs.
 
 ### JavaScript/TypeScript
 
@@ -221,9 +222,9 @@ See the [Python SDK README](ui/packages/python-sdk/README.md) or [PyPI](https://
    ```bash
    cd functions && npm run schemas:download && cd ..
    ```
-   DDEX no longer serves the ERN 3.8.2 schema, so that version fails to download; keep an existing copy of `schemas/ern/3.8.2/`.
+   DDEX no longer serves the ERN 3.8.2 or 3.8.3 schemas, so those versions fail to download; keep existing copies of `schemas/ern/3.8.2/` and `schemas/ern/3.8.3/`.
 
-6. Install the validation rules. The rule files (`ui/functions/validators/rules/schematron-{382,42,43}.js`) are private and not part of this repository, and they are required for `/validate`. Without them, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint keeps working.
+6. Install the validation rules. The rule files (`ui/functions/validators/rules/schematron-{382,383,42,43}.js`) are private and not part of this repository, and they are required for `/validate`. `schematron-383.js` extends the 3.8.2 rules; if it is missing, ERN 3.8.3 uses the 3.8.2 rules. Without them, `POST /validate` returns `503 VALIDATION_RULES_UNAVAILABLE`, and every other endpoint keeps working.
 
 7. Run the frontend and the emulators (Firebase commands run from `ui/`):
    ```bash

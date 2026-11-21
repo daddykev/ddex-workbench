@@ -460,6 +460,11 @@ if (!empty($result['svrl'])) {
       "version": "3.8.2",
       "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
       "status": "supported"
+    },
+    {
+      "version": "3.8.3",
+      "profiles": ["AudioAlbum", "AudioSingle", "Video", "Mixed", "ReleaseByRelease"],
+      "status": "supported"
     }
   ]
 }`
@@ -729,7 +734,7 @@ onUnmounted(() => {
           </p>
           <div class="hero-badges mt-lg">
             <span class="badge">REST API</span>
-            <span class="badge">ERN 3.8.2 · 4.2 · 4.3</span>
+            <span class="badge">ERN 3.8.2 · 3.8.3 · 4.2 · 4.3</span>
             <span class="badge">Free to use</span>
           </div>
         </div>
@@ -772,7 +777,7 @@ onUnmounted(() => {
             <section id="introduction" class="doc-section">
               <h2>Introduction</h2>
               <p>
-                The DDEX Validation API validates DDEX Electronic Release Notification (ERN) messages for versions 4.3, 4.2 and 3.8.2.
+                The DDEX Validation API validates DDEX Electronic Release Notification (ERN) messages for versions 4.3, 4.2, 3.8.3 and 3.8.2.
                 Each request runs XSD schema validation and business-rule checks, plus version-specific rules when you pass a profile.
               </p>
 
@@ -1191,7 +1196,7 @@ onUnmounted(() => {
                   <pre class="code-block"><code>{{ getCodeExample('errorFormat', 'json') }}</code></pre>
                 </div>
               </div>
-              <p>Some errors also include <code>code</code> (e.g. <code>INVALID_API_KEY</code>, <code>RATE_LIMIT_EXCEEDED</code>) or <code>details</code>.</p>
+              <p>Some errors also include <code>code</code> (e.g. <code>INVALID_API_KEY</code>, <code>RATE_LIMIT_EXCEEDED</code>, <code>UNSUPPORTED_ERN_VERSION</code>) or <code>details</code>.</p>
 
               <h3>HTTP Status Codes</h3>
               <table class="data-table">
@@ -1209,6 +1214,10 @@ onUnmounted(() => {
                   <tr>
                     <td><code>400</code></td>
                     <td>Missing or invalid fields: <code>"XML content is required"</code>, <code>"Only ERN validation is currently supported"</code>, <code>"Version is required (JSON field `version` or query parameter `?version=`)."</code> or, for raw XML, <code>"Request body is empty."</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>400</code></td>
+                    <td>Unsupported version (<code>code: "UNSUPPORTED_ERN_VERSION"</code>), e.g. <code>'Version "3.8" is not supported. Supported versions: 4.3, 4.2, 3.8.3, 3.8.2'</code></td>
                   </tr>
                   <tr>
                     <td><code>400</code></td>
@@ -1278,13 +1287,13 @@ onUnmounted(() => {
                       <td><code>version</code></td>
                       <td>string</td>
                       <td>Yes</td>
-                      <td><code>"4.3"</code>, <code>"4.2"</code> or <code>"3.8.2"</code>. The API doesn't detect the version; the SDKs can detect it locally.</td>
+                      <td><code>"4.3"</code>, <code>"4.2"</code>, <code>"3.8.3"</code> or <code>"3.8.2"</code>. Any other value returns <code>400</code> (<code>UNSUPPORTED_ERN_VERSION</code>). The API doesn't detect the version; the SDKs can detect it locally.</td>
                     </tr>
                     <tr>
                       <td><code>profile</code></td>
                       <td>string</td>
                       <td>No</td>
-                      <td><code>"AudioAlbum"</code>, <code>"AudioSingle"</code>, <code>"Video"</code>, <code>"Mixed"</code>, or <code>"ReleaseByRelease"</code> (3.8.2 only). Adds the version-specific rules stage.</td>
+                      <td><code>"AudioAlbum"</code>, <code>"AudioSingle"</code>, <code>"Video"</code>, <code>"Mixed"</code>, or <code>"ReleaseByRelease"</code> (ERN 3.8.x only). Adds the version-specific rules stage.</td>
                     </tr>
                     <tr>
                       <td><code>generateSVRL</code></td>
@@ -1314,7 +1323,7 @@ onUnmounted(() => {
                     <tr>
                       <td><code>version</code></td>
                       <td>Yes</td>
-                      <td><code>4.3</code>, <code>4.2</code> or <code>3.8.2</code></td>
+                      <td><code>4.3</code>, <code>4.2</code>, <code>3.8.3</code> or <code>3.8.2</code></td>
                     </tr>
                     <tr>
                       <td><code>profile</code></td>
@@ -1414,7 +1423,7 @@ onUnmounted(() => {
                     <tr>
                       <td><code>valid</code></td>
                       <td>boolean</td>
-                      <td><code>true</code> when there are no errors. Warnings don't affect it.</td>
+                      <td><code>true</code> when there are no errors. Warnings don't affect it, so a result can be valid and still contain warnings.</td>
                     </tr>
                     <tr>
                       <td><code>errors</code></td>
@@ -1668,7 +1677,7 @@ onUnmounted(() => {
 
                 <div class="version-card card">
                   <div class="version-header">
-                    <h3>ERN 3.8.2</h3>
+                    <h3>ERN 3.8.2 / 3.8.3</h3>
                     <span class="badge">Supported</span>
                   </div>
                   <div class="version-stats">
@@ -1682,6 +1691,7 @@ onUnmounted(() => {
                     <li>Mixed</li>
                     <li>ReleaseByRelease</li>
                   </ul>
+                  <p class="text-sm mt-md">ERN 3.8.3 accepts historical ISO 3166-3 territory codes (e.g. YUCS) for nationality, citizenship, rights shares and society affiliations.</p>
                 </div>
               </div>
 
@@ -1745,6 +1755,36 @@ onUnmounted(() => {
                     <td><code>suggestion</code></td>
                     <td>string</td>
                     <td>Optional suggestion for fixing the issue, when a rule provides one</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p class="mt-md">A result can be valid and still contain warnings. Check <code>warnings</code> even when <code>valid</code> is <code>true</code>.</p>
+
+              <h3 class="mt-lg">Version and Nationality Rules</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rule</th>
+                    <th>Severity</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>ERN-Version-Mismatch</code></td>
+                    <td>error</td>
+                    <td>The document's ERN namespace doesn't match the requested <code>version</code>. Reported on line 1 as the first error; the other stages still run. Re-run with the version the message names.</td>
+                  </tr>
+                  <tr>
+                    <td><code>DDEX-Schema-Defect-Nationality</code></td>
+                    <td>warning</td>
+                    <td>The published DDEX ERN 3.8.2 schema rejects every Nationality value, and ERN 3.8.3 does the same for IndirectResourceContributor/Nationality, because of a defect in DDEX's schema. The workbench checks the value against DDEX's intended territory-code list instead: valid codes produce this warning, invalid codes produce <code>ERN-Nationality-InvalidCode</code>. Recipients that validate strictly against the official XSD will still reject the element.</td>
+                  </tr>
+                  <tr>
+                    <td><code>ERN-Nationality-InvalidCode</code></td>
+                    <td>error</td>
+                    <td>A Nationality affected by the schema defect above holds a value that isn't a valid territory code for that ERN version.</td>
                   </tr>
                 </tbody>
               </table>

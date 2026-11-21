@@ -1,5 +1,5 @@
 // functions/validators/validationOrchestrator.js
-const { ERNValidator } = require('./ernValidator');
+const { ERNValidator, ERN_CONFIGS } = require('./ernValidator');
 const XSDValidator = require('./xsdValidator');
 const SchematronValidator = require('./schematronValidator');
 
@@ -80,6 +80,19 @@ class ValidationOrchestrator {
     };
 
     try {
+      // Step 0: the root element's ERN namespace should match the requested version.
+      // A mismatch is reported once, at the top, and validation carries on as asked.
+      const detected = this.detectErnVersion(xmlContent);
+      if (detected && detected !== version) {
+        results.errors.push({
+          line: 1,
+          column: 0,
+          message: `Document namespace indicates ERN ${detected}, but validation was requested for ERN ${version}. Re-run with version "${detected}".`,
+          severity: 'error',
+          rule: 'ERN-Version-Mismatch'
+        });
+      }
+
       // Step 1: XSD schema validation
       const xsdStart = Date.now();
       let xsdIssues = [];
@@ -180,6 +193,32 @@ class ValidationOrchestrator {
         }
       };
     }
+  }
+
+  /**
+   * The supported ERN version named by the root element's namespace
+   * (xmlns or xmlns:* = http://ddex.net/xml/ern/<digits>), mapped through
+   * ERN_CONFIGS[*].namespaces. Returns null when there's no ERN namespace on the
+   * root or it maps to no supported version.
+   */
+  detectErnVersion(xmlContent) {
+    const xml = typeof xmlContent === 'string' ? xmlContent : String(xmlContent || '');
+    // Skip the XML declaration, processing instructions, comments and DOCTYPE
+    const prolog = /^\s*(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>)/;
+    let rest = xml.replace(/^\uFEFF/, '');
+    let m;
+    while ((m = rest.match(prolog))) rest = rest.slice(m[0].length);
+    const rootTag = rest.match(/^\s*<[^\s>\/!?][^>]*>/);
+    if (!rootTag) return null;
+
+    const nsRe = /\sxmlns(?::[\w.-]+)?\s*=\s*["']http:\/\/ddex\.net\/xml\/ern\/(\d+)["']/g;
+    while ((m = nsRe.exec(rootTag[0])) !== null) {
+      const uri = `http://ddex.net/xml/ern/${m[1]}`;
+      const version = Object.keys(ERN_CONFIGS).find(v =>
+        Object.values(ERN_CONFIGS[v].namespaces || {}).includes(uri));
+      if (version) return version;
+    }
+    return null;
   }
 
   hasFatalXSDErrors(errors) {

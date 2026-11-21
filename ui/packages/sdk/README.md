@@ -12,7 +12,7 @@ Official JavaScript/TypeScript SDK for [DDEX Workbench](https://ddex-workbench.o
 
 - 🚀 **Comprehensive Validation** - XSD Schema → Business Rules → Schematron profile rules (when a profile is given)
 - 📋 **SVRL Reports** - Generate Schematron Validation Report Language (SVRL) XML reports
-- 🎯 **Profile-Specific Validation** - AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for ERN 3.8.2)
+- 🎯 **Profile-Specific Validation** - AudioAlbum, AudioSingle, Video and Mixed profiles (plus ReleaseByRelease for ERN 3.8.2 and 3.8.3)
 - 📦 **TypeScript Support** - Full type definitions with IntelliSense
 - 🌐 **Universal** - Works in Node.js and browsers
 - 🔄 **Auto-retry** - Retries network errors and 5xx responses with exponential backoff and jitter (429s are never retried)
@@ -65,7 +65,7 @@ Every validation request runs the first two stages; the third runs when you pass
 
 1. **XSD Schema Validation** - Validates XML structure against official DDEX schemas
 2. **Business Rules Validation** - Checks ERN-specific rules and requirements
-3. **Schematron Profile Validation** - Validates profile-specific requirements (AudioAlbum, AudioSingle, Video, Mixed, or ReleaseByRelease for 3.8.2)
+3. **Schematron Profile Validation** - Validates profile-specific requirements (AudioAlbum, AudioSingle, Video, Mixed, or ReleaseByRelease for 3.8.x)
 
 ### SVRL Report Generation
 
@@ -117,7 +117,8 @@ Process multiple files efficiently with concurrency control:
 const files = [
   { content: xml1, options: { version: '4.3', profile: 'AudioAlbum' }},
   { content: xml2, options: { version: '4.2', profile: 'AudioSingle' }},
-  { content: xml3, options: { version: '3.8.2', profile: 'Video' }}
+  { content: xml3, options: { version: '3.8.3', profile: 'AudioAlbum' }},
+  { content: xml4, options: { version: '3.8.2', profile: 'Video' }}
 ];
 
 const results = await client.validateBatch(files, {
@@ -202,17 +203,18 @@ const fileResult = await client.validateFile(
 ### ERN Versions
 - **ERN 4.3**
 - **ERN 4.2**
+- **ERN 3.8.3**: accepts historical ISO 3166-3 territory codes (e.g. `YUCS`) where 3.8.2 allows only current ones
 - **ERN 3.8.2**
 
 ### Profiles
 
-| Profile | ERN 3.8.2 | ERN 4.2 | ERN 4.3 | Description |
-|---------|-----------|---------|---------|-------------|
-| AudioAlbum | ✅ | ✅ | ✅ | Full album releases |
-| AudioSingle | ✅ | ✅ | ✅ | Single track releases |
-| Video | ✅ | ✅ | ✅ | Music video releases |
-| Mixed | ✅ | ✅ | ✅ | Mixed media releases |
-| ReleaseByRelease | ✅ | ❌ | ❌ | Release-by-release (3.8.2 only) |
+| Profile | ERN 3.8.2 | ERN 3.8.3 | ERN 4.2 | ERN 4.3 | Description |
+|---------|-----------|-----------|---------|---------|-------------|
+| AudioAlbum | ✅ | ✅ | ✅ | ✅ | Full album releases |
+| AudioSingle | ✅ | ✅ | ✅ | ✅ | Single track releases |
+| Video | ✅ | ✅ | ✅ | ✅ | Music video releases |
+| Mixed | ✅ | ✅ | ✅ | ✅ | Mixed media releases |
+| ReleaseByRelease | ✅ | ✅ | ❌ | ❌ | Release-by-release (3.8.x only) |
 
 ## API Configuration
 

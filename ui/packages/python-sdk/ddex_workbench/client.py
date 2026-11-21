@@ -267,17 +267,17 @@ class DDEXClient:
             
             # Handle other client errors
             if response.status_code >= 400:
-                message = (
-                    self._error_body(response).get('message')
-                    or f"API error: {response.status_code}"
-                )
+                error = self._error_body(response)
+                message = error.get('message') or f"API error: {response.status_code}"
+                code = error.get('code')
                 
                 raise APIError(
                     message,
                     status_code=response.status_code,
                     endpoint=endpoint,
                     method=method,
-                    response_body=response.text
+                    response_body=response.text,
+                    code=code if isinstance(code, str) and code else None
                 )
             
             # Parse successful response (204 No Content, e.g. DELETE /keys/:id, has no body)
@@ -309,7 +309,7 @@ class DDEXClient:
         
         Args:
             content: XML content to validate
-            version: ERN version (e.g., "4.3", "4.2", "3.8.2")
+            version: ERN version (e.g., "4.3", "4.2", "3.8.3", "3.8.2")
             profile: Optional profile (e.g., "AudioAlbum")
             options: Optional validation options
             
@@ -333,7 +333,7 @@ class DDEXClient:
                 _warnings.warn(
                     f"The {profile_value!r} profile is deprecated: the DDEX Workbench API doesn't "
                     "support it, and it will be removed in 2.0. Supported profiles are AudioAlbum, "
-                    "AudioSingle, Video and Mixed (plus ReleaseByRelease for ERN 3.8.2).",
+                    "AudioSingle, Video and Mixed (plus ReleaseByRelease for ERN 3.8.2 and 3.8.3).",
                     DeprecationWarning,
                     stacklevel=2,
                 )

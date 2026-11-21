@@ -155,6 +155,17 @@ The invalid variant removes `<MessageId>` and sets `<ReleaseType>NotARealType</R
         "ReleaseByRelease"
       ],
       "status": "supported"
+    },
+    {
+      "version": "3.8.3",
+      "profiles": [
+        "AudioAlbum",
+        "AudioSingle",
+        "Video",
+        "Mixed",
+        "ReleaseByRelease"
+      ],
+      "status": "supported"
     }
   ]
 }

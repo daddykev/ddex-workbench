@@ -64,7 +64,7 @@
                 </svg>
                 <div>
                   <h4>DDEX Validator</h4>
-                  <p>Validate ERN 3.8.2, 4.2 and 4.3 messages</p>
+                  <p>Validate ERN 3.8.2, 3.8.3, 4.2 and 4.3 messages</p>
                 </div>
               </router-link>
               
