@@ -22,11 +22,13 @@ DDEX Workbench is a web-based validator and public API for DDEX ERN (Electronic 
 ### Validation pipeline
 Each request runs these stages in order:
 1. **XSD schema validation** against the official DDEX schemas, using WebAssembly-based `xmllint-wasm`. If the XML isn't well-formed, validation stops here.
-2. **Business rules**: ERN-specific checks such as cross-references between resources, releases, parties and deals, identifier formats (ISRC), durations, dates and territory codes.
-3. **Version-specific rules**, whenever a profile is given: 648 version-specific rules generated from the official DDEX XSD schemas via DDEX Rosetta; the rule files are not part of this repository.
+2. **Business rules**: checks the root element and the version's required top-level sections (ERN 3.8.x also gets a warning when `UpdateIndicator` is missing), plus basic profile expectations when a profile is given.
+3. **Profile rules**, whenever a profile is given: private rule modules generated from the DDEX XSDs; they currently add no checks beyond XSD validation (see the [blueprint](docs/blueprint.md#validation-pipeline)). Their results feed the SVRL report. The rule files are not part of this repository.
 4. **SVRL report**, only when requested (`generateSVRL`).
 
 Warnings are reported separately from errors, and `valid` reflects errors only.
+
+**Known DDEX schema defect:** DDEX's published ERN 3.8.2 schema rejects every Nationality value, and the 3.8.3 schema does the same for `IndirectResourceContributor/Nationality`. The validator checks these values against DDEX's intended territory-code list instead: a valid code produces a `DDEX-Schema-Defect-Nationality` warning, and an invalid code produces an `ERN-Nationality-InvalidCode` error. Recipients that validate strictly against the official XSD will still reject the element.
 
 ### Web validator
 - Three input methods: file upload, paste XML, or load from URL
@@ -69,6 +71,12 @@ curl -X POST "https://api.ddex-workbench.org/v1/validate?version=4.3" -H "Conten
 
 `version` is required. `type` defaults to `ERN`. In a JSON request, body fields take precedence over query parameters.
 
+### Version checks
+
+- `version` must be one of `4.3`, `4.2`, `3.8.3` or `3.8.2`. Any other value returns a 400 with `error.code` `UNSUPPORTED_ERN_VERSION`.
+- If the document's ERN namespace doesn't match the requested version, the response includes an `ERN-Version-Mismatch` error naming the version to use.
+- Version detection in the SDKs (`detectVersion()` / `detect_version()`) recognizes all four namespaces.
+
 ### Rate limits
 
 | Caller | Limit | Counted per |
@@ -83,7 +91,7 @@ The full reference (endpoints, response format, error codes and code samples) is
 
 ## SDKs
 
-Both SDKs are at 1.2.0. API keys are managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys), not through the SDKs.
+Both SDKs are at 1.2.0. API keys are managed at [ddex-workbench.org/api-keys](https://ddex-workbench.org/api-keys), not through the SDKs. API error codes (e.g. `UNSUPPORTED_ERN_VERSION`, `RATE_LIMIT_EXCEEDED`) are exposed on SDK errors as `error.code` (JS) and `exc.code` (Python).
 
 ### JavaScript/TypeScript
 
@@ -184,7 +192,7 @@ See the [Python SDK README](ui/packages/python-sdk/README.md) or [PyPI](https://
 - **Frontend:** Vue 3 (Composition API), Vue Router and Vite, with a custom utility-first CSS architecture. It reads and writes Firestore directly through the Firebase SDK for snippets and user profiles.
 - **Backend:** an Express app on Firebase Cloud Functions (Node.js 22), with Firestore and Firebase Authentication.
 - **Edge:** a Cloudflare Worker ([`cloudflare/worker.js`](cloudflare/worker.js)) fronts `api.ddex-workbench.org`, maps `/v1/*` to the function, and handles CORS.
-- **Validation:** `xmllint-wasm` for XSD, plus JavaScript business rules and version-specific rules.
+- **Validation:** `xmllint-wasm` for XSD, plus JavaScript business-rule and profile-rule stages.
 
 ## Local development
 
